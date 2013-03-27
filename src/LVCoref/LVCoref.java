@@ -5,7 +5,9 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 
@@ -23,6 +25,9 @@ public class LVCoref {
         d.readCONLL();
         System.out.println(d.getSubString(0, 2));
         
+        List<Node> tmp;
+        tmp = d.traverse(d.tree.get(1), null, new ArrayList<Node>(Arrays.asList(d.tree.get(1))));
+        d.printNodes(tmp);
         
         d.printMentions();
 //        

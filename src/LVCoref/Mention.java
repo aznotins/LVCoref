@@ -7,6 +7,10 @@ import LVCoref.Data.Number;
 import LVCoref.Data.Case;
 import LVCoref.Data.PronounType;
 import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
 
 public class Mention{
     
@@ -182,6 +186,13 @@ public class Mention{
         if (id > 0) return d.mentions.get(id-1);
         return null;
     }
+    
+    
+    public Set<Node> traverse(Set<Node> from, Set<Node> exclude) {
+        
+        return null;
+    }
+    
 
     
 }

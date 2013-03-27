@@ -6,7 +6,9 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -124,6 +126,52 @@ public class Document {
 		}
 		
 	}
+    
+    
+    /**
+     * 
+     * @param p no kurienes iet uz augšu
+     * @param p_prev iepriekšejais mezlgs no kurienes gāja uz augšu
+     * @param from mezgli no kuienes iet uz leju
+     * @return 
+     */
+    public List<Node> traverse(Node p, Node p_prev, List<Node> from) {
+        List <Node> res = new ArrayList();
+        res.add(p.parent);
+        for(Node n : from) {
+            if (n != p) {
+                res.addAll(n.children);
+            } else {
+                for(Node x : p.children) {
+                    if (x != p_prev) res.add(x);
+                }
+            }
+        }
+        return res;
+    }
+    
+    
+    public void printNodes(Collection<Node> c) {
+        for (Node n: c) {
+            System.out.println(n.toString());
+        }
+    }
+    
+//        /**
+//     * Apceļo visus mezglus vienu līmeni dziļāk (var gadīties nonākt arī iepriekš
+//     * apsktatītā mezglā
+//     * @param p no kurienes iet uz augšu
+//     * @param from mezgli no kuienes iet uz leju
+//     * @return 
+//     */
+//    public List<Node> traverseAll(Node p, List<Node> from) {
+//        List <Node> res = new ArrayList();
+//        res.add(p.parent);
+//        for(Node n : from) {
+//            res.addAll(n.children);
+//        }
+//        return res;
+//    }
     
     
     
