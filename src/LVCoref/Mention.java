@@ -55,6 +55,9 @@ public class Mention{
     public int corefClusterID = -1;
     public int goldCorefClusterID = -1;
     
+    public Mention antecedent;
+    public List<Mention> successors;
+    
   
     
     Mention(int id, int start, int end, Node node, String ner) {
@@ -63,8 +66,10 @@ public class Mention{
 		this.end = end;
 		this.root = node.id;
         this.node = node;
-        this.headString = node.word;
+        this.headString = node.lemma;
         this.nerString = ner;
+        
+        successors = new ArrayList<Mention>();
         
         this.sentNum = node.sentNum;
         

@@ -1,6 +1,7 @@
 package LVCoref;
 
 
+import java.util.HashSet;
 import java.util.Set;
 
 /*
@@ -38,8 +39,20 @@ public class CorefCluster {
 
     public CorefCluster(int ID) {
         this.id = ID;
-        firstMention = null;
-        representative = null;
-        
+        corefMentions = new HashSet<Mention>();
+    }
+    
+
+    public void add(Mention m) {
+        corefMentions.add(m);
+    }
+    
+    public static void mergeClusters(CorefCluster to, CorefCluster from) {        
+        int toID = to.id;
+        for (Mention m : from.corefMentions){
+          m.corefClusterID = toID;
+        }
+        to.corefMentions.addAll(from.corefMentions);
+        System.out.println("Merge clusters from " +from.id +" to " + to.id +" " + Utils.linearizeMentionSet(to.corefMentions));
     }
 }

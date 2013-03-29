@@ -23,47 +23,76 @@ public class Resolve {
         
         //Appositive construction
 		for (Mention m : d.mentions) {
-            if (m.node.parent != null && m.node.parent.isMention) {
-                Mention n = m.node.parent.mention;
-                if ( n.type == MentionType.PROPER && m.type == MentionType.PROPER ||
-                     n.type == MentionType.NOMINAL && m.type == MentionType.PROPER ||
-                     n.type == MentionType.PROPER && m.type == MentionType.NOMINAL ){
-                    
-                    if ( n.gender == m.gender &&
-                         n.mentionCase == m.mentionCase &&
-                         n.number == m.number ) {
-                        
-                        if (genetiveTest(d, n, m)) {
-                            System.out.println("Appositive cand :" + n.headString +"("+n.node.tag+") <- " + m.headString +"("+m.node.tag+")");
+            if (d.refGraph.needsReso(m)) {
+                if (m.node.parent != null && m.node.parent.isMention) {
+                    Mention n = m.node.parent.mention;
+                    if ( n.type == MentionType.PROPER && m.type == MentionType.PROPER ||
+                         n.type == MentionType.NOMINAL && m.type == MentionType.PROPER ||
+                         n.type == MentionType.PROPER && m.type == MentionType.NOMINAL ){
+
+                        if ( n.gender == m.gender &&
+                             n.mentionCase == m.mentionCase &&
+                             n.number == m.number ) {
+
+                            if (genetiveTest(d, n, m)) {
+                                d.refGraph.setRef(n, m);
+                                System.out.println("Appositive :" + n.headString +"("+n.node.tag+") <- " + m.headString +"("+m.node.tag+")");
+                            }
                         }
                     }
                 }
-                    
             }
         }
         
         //Head match
         for (Mention m : d.mentions) {
-            if (m.type == MentionType.NOMINAL || m.type == MentionType.PROPER) {
-                
-                //simple look at previous mentions (without using sintax tree)
-                
-                int sentenceWindow = 30;
-                
-                Mention prev = m.prev(d);
-                while ( prev != null && prev.sentNum - m.sentNum <= sentenceWindow) {
-                     if (prev.type == MentionType.NOMINAL || prev.type == MentionType.PROPER) {
-                         if (prev.headString.equals(m.headString) ||
-                             d.dict.belongsToSameGroup(prev.headString, m.headString, d.dict.sinonyms)) {
-                             if (!genetiveBad(d, m) && !genetiveBad(d, prev)) {
-                                 System.out.println("Head match :" + prev.headString +"("+prev.node.tag+") <- " + prev.headString+"("+prev.node.tag+")");
-                                 break;
+            if (d.refGraph.needsReso(m)) {
+                if (m.type == MentionType.NOMINAL || m.type == MentionType.PROPER) {
+
+                    //simple look at previous mentions (without using sintax tree)
+
+                    int sentenceWindow = 30;
+
+                    Mention prev = m.prev(d);
+                    while ( prev != null && prev.sentNum - m.sentNum <= sentenceWindow) {
+                         if (prev.type == MentionType.NOMINAL || prev.type == MentionType.PROPER) {
+                             if (prev.headString.equals(m.headString) ||
+                                 d.dict.belongsToSameGroup(prev.headString, m.headString, d.dict.sinonyms)) {
+                                 if (!genetiveBad(d, m) && !genetiveBad(d, prev)) {
+                                     d.refGraph.setRef(prev, m);
+                                     System.out.println("Head match :" + prev.headString +"("+prev.node.tag+") <- " + m.headString+"("+m.node.tag+")");
+                                     break;
+                                 }
                              }
                          }
-                     }
-                     prev = prev.prev(d);
+                         prev = prev.prev(d);
+                    }
                 }
-			}
+            }
+        }
+        
+        //Relaxed pronound match
+        for (Mention m : d.mentions) {
+            if (d.refGraph.needsReso(m)) {
+                if (m.type == MentionType.PRONOMINAL) {
+
+                    //simple look at previous mentions (without using sintax tree)
+
+                    int sentenceWindow = 20;
+
+                    Mention prev = m.prev(d);
+                    while ( prev != null && prev.sentNum - m.sentNum <= sentenceWindow) {
+                         if (prev.type == MentionType.NOMINAL || prev.type == MentionType.PROPER) {
+                             if (prev.number == m.number && prev.gender == m.gender) {
+                                 d.refGraph.setRef(prev, m);
+                                System.out.println("Relaxed pronoun match :" + prev.headString +"("+prev.node.tag+") <- " + m.headString+"("+m.node.tag+")");
+                                break;
+                             }
+                         }
+                         prev = prev.prev(d);
+                    }
+                }
+        }
         }
         
     }
@@ -151,8 +180,7 @@ public class Resolve {
 //		}
 //	}
 	
-	
-	
+
 	
 	public static Boolean genetiveBad(Document d, Mention m) {
 		if (m.type == MentionType.NOMINAL && m.mentionCase == Case.GENITIVE) {
@@ -161,12 +189,6 @@ public class Resolve {
 			}
 		}
 		return false;
-	}
-	
-	
-	public static void isAppositive(Node x, Node y) {
-		
-		
 	}
     
     

@@ -2,15 +2,11 @@ package LVCoref;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
-import java.io.IOException;
-import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Document class contains document parse tree structure, 
@@ -23,13 +19,10 @@ public class Document {
      * Document parse tree
      */
 	public ArrayList<Node> tree;
-    /**
-     * 
-     */
+
 	public ArrayList<Mention> mentions;
-	public ArrayList<Set<Node>> corefs;
     
-    public ArrayList<CorefCluster> coreferences;
+    public RefGraph refGraph;
     
     public Map<Integer, CorefCluster> corefClusters;
     public Map<Integer, CorefCluster> goldCorefClusters;
@@ -39,10 +32,10 @@ public class Document {
 	
     Document(){
 		tree = new ArrayList<Node>();
-		corefs = new ArrayList<Set<Node>>();
-        coreferences = new ArrayList<CorefCluster>();
 		mentions = new ArrayList<Mention>();
         dict = new Dictionaries();
+        refGraph = new RefGraph();
+        corefClusters = new HashMap<Integer, CorefCluster>();
 	}
     
     public void printMentions(){
@@ -52,6 +45,16 @@ public class Document {
             System.out.println(m.toString());
         }
         System.out.println("------/Mentions---------");
+    }
+    
+    public void printNodes(Collection<Node> c) {
+        for (Node n: c) {
+            System.out.println(n.toString());
+        }
+//      for(Node n : d.tree) {
+//			System.out.print("#" +n.id + "\t" + n.word + "\t" + n.type + "\t" + n.category + " ^"+n.parent+" "/*n.children.toString()*/); 
+//			System.out.print("[" );for(int g : n.children) {System.out.print(" " + d.tree.get(g).word + "#" +g+",");} System.out.println("]" );
+//		}
     }
 
     
@@ -156,12 +159,7 @@ public class Document {
         return res;
     }
     
-    
-    public void printNodes(Collection<Node> c) {
-        for (Node n: c) {
-            System.out.println(n.toString());
-        }
-    }
+
     
 //        /**
 //     * Apceļo visus mezglus vienu līmeni dziļāk (var gadīties nonākt arī iepriekš

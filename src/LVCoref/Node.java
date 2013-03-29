@@ -63,24 +63,11 @@ public class Node {
         //determine fields declared in this class only (no fields of superclass)
         Field[] fields = this.getClass().getDeclaredFields();
 
-        //print field names paired with their values
-        //      for ( Field field : fields  ) {
-        //        result.append("  ");
-        //        try {
-        //          result.append( field.getName() );
-        //          result.append(": ");
-        //          //requires access to private field:
-        //          result.append( field.get(this) );
-        //        } catch ( IllegalAccessException ex ) {
-        //          System.out.println(ex);
-        //        }
-        //        result.append(newLine);
-        //      }
         result.append(" word: " + this.word);
         result.append(" tag: " + this.tag);
         result.append(" lemma: " + this.lemma);
         result.append("}");
-        result.append(newLine);
+        //result.append(newLine);
 
         return result.toString();
     }

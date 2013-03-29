@@ -25,14 +25,12 @@ public class LVCoref {
         d.readCONLL();
         d.setMentions();
         
-        
-        System.out.println(d.getSubString(0, 2));
-        
 //        List<Node> tmp;
 //        tmp = d.traverse(d.tree.get(1), null, new ArrayList<Node>(Arrays.asList(d.tree.get(1))));
 //        d.printNodes(tmp);
         
         //d.printMentions();
+        //d.printNodes(d.tree);
 //        
 //		for(Node n : d.tree) {
 //			System.out.print("#" +n.id + "\t" + n.word + "\t" + n.type + "\t" + n.category + " ^"+n.parent+" "/*n.children.toString()*/); 
@@ -41,6 +39,8 @@ public class LVCoref {
 //		
 //		
 		Resolve.go(d);
+        
+        RefsToEntities.go(d);
 //		
 //		RefsToEntities.go(d);
 //		
@@ -53,12 +53,14 @@ public class LVCoref {
 //		}
 //		
 //		
-//		for (Node n: d.tree) {
-//			System.out.print(" " + n.word);
-//			if (n.corefs_id != null) System.out.print("["+n.corefs_id+"/"+n.type+"/"+n.category+"]");
-//			if (n.word.equals(".")) System.out.println();
-//		}
-//		System.out.println();
+		for (Node n: d.tree) {
+			System.out.print(" " + n.word);
+			if (n.mention != null && d.corefClusters.get(n.mention.corefClusterID).corefMentions.size() > 1) {
+                System.out.print("["+n.mention.corefClusterID+"/"+n.mention.type+"/"+n.mention.category+"]");
+            }
+			if (n.word.equals(".")) System.out.println();
+		}
+		System.out.println();
 		
 		
 	};
