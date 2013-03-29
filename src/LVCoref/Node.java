@@ -59,7 +59,6 @@ public class Node {
 
         result.append( this.getClass().getName() );
         result.append( " Object {" );
-        result.append(newLine);
 
         //determine fields declared in this class only (no fields of superclass)
         Field[] fields = this.getClass().getDeclaredFields();
@@ -77,10 +76,11 @@ public class Node {
         //        }
         //        result.append(newLine);
         //      }
-        result.append(" word: " + this.word + newLine);
-        result.append(" tag: " + this.tag + newLine);
-        result.append(" lemma: " + this.lemma + newLine);
+        result.append(" word: " + this.word);
+        result.append(" tag: " + this.tag);
+        result.append(" lemma: " + this.lemma);
         result.append("}");
+        result.append(newLine);
 
         return result.toString();
     }

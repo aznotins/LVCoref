@@ -34,12 +34,15 @@ public class Document {
     public Map<Integer, CorefCluster> corefClusters;
     public Map<Integer, CorefCluster> goldCorefClusters;
     
+    public Dictionaries dict;
+    
 	
     Document(){
 		tree = new ArrayList<Node>();
 		corefs = new ArrayList<Set<Node>>();
         coreferences = new ArrayList<CorefCluster>();
 		mentions = new ArrayList<Mention>();
+        dict = new Dictionaries();
 	}
     
     public void printMentions(){
@@ -66,12 +69,11 @@ public class Document {
 		int node_id = 0;
         int sentence_id = 0;
 		int sentence_start_id = 0;
-        int mention_id = 0;
 		BufferedReader in = null;
 		//in = new BufferedReader(new FileReader("data/Sofija.conll"));
-		//in = new BufferedReader(new FileReader("data/SofijasPasaule1996_11-28-dep-unlabeled.conll"));
+		in = new BufferedReader(new FileReader("data/SofijasPasaule1996_11-28-dep-unlabeled.conll"));
 		//in = new BufferedReader(new FileReader("data/intervija-unlabeled.conll"));
-		in = new BufferedReader(new FileReader("data/LETA_IzlaseFreimiem-dep-unlabeled.conll"));
+		//in = new BufferedReader(new FileReader("data/LETA_IzlaseFreimiem-dep-unlabeled.conll"));
 		
 //		Mention m;
 //		String m_t = "", m_str="";
@@ -91,17 +93,7 @@ public class Document {
 
                 node_id++;
                 tree.add(node);
-                
-                if (node.tag.charAt(0) == 'n' || node.tag.charAt(0) == 'p') {
-                    String[] excl = {"skaits", "vārds", "gals", "laiks", "skaits", "interese", "gadījums", "reize", "sākums", "priekšā", "vieta"};
-                    Set<String> excluded = new HashSet<String>(Arrays.asList(excl));
-                    if (!excluded.contains(node.lemma)) {
-                        node.isMention = true;
-                        Mention m = new Mention(mention_id++, node.id, node.id, node, getSubString(node.id, node.id));
-                        mentions.add(m);
-                    }
-                }
-
+               
 				
 			} else {
 				for (int i = sentence_start_id; i < tree.size(); i++) {
@@ -126,6 +118,20 @@ public class Document {
 		}
 		
 	}
+    
+    public void setMentions() {
+        int mention_id = 0;
+        for (Node node : tree) {
+            if (node.tag.charAt(0) == 'n' || node.tag.charAt(0) == 'p') {
+                if (!dict.excludeWords.contains(node.lemma)) {
+                    node.isMention = true;
+                    Mention m = new Mention(mention_id++, node.id, node.id, node, getSubString(node.id, node.id));
+                    mentions.add(m);
+                    node.mention = m;
+                }
+            }
+        }
+    }
     
     
     /**

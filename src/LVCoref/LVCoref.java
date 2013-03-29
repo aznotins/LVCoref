@@ -21,15 +21,18 @@ public class LVCoref {
 		Document d;
 		d = new Document();
 		
-        
+        //System.out.println(d.dict.firstNames);
         d.readCONLL();
+        d.setMentions();
+        
+        
         System.out.println(d.getSubString(0, 2));
         
-        List<Node> tmp;
-        tmp = d.traverse(d.tree.get(1), null, new ArrayList<Node>(Arrays.asList(d.tree.get(1))));
-        d.printNodes(tmp);
+//        List<Node> tmp;
+//        tmp = d.traverse(d.tree.get(1), null, new ArrayList<Node>(Arrays.asList(d.tree.get(1))));
+//        d.printNodes(tmp);
         
-        d.printMentions();
+        //d.printMentions();
 //        
 //		for(Node n : d.tree) {
 //			System.out.print("#" +n.id + "\t" + n.word + "\t" + n.type + "\t" + n.category + " ^"+n.parent+" "/*n.children.toString()*/); 
@@ -37,7 +40,7 @@ public class LVCoref {
 //		}
 //		
 //		
-//		Resolve.go(d);
+		Resolve.go(d);
 //		
 //		RefsToEntities.go(d);
 //		

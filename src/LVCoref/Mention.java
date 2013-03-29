@@ -1,11 +1,11 @@
 package LVCoref;
 
-import LVCoref.Data.Animacy;
-import LVCoref.Data.Gender;
-import LVCoref.Data.MentionType;
-import LVCoref.Data.Number;
-import LVCoref.Data.Case;
-import LVCoref.Data.PronounType;
+import LVCoref.Dictionaries.Animacy;
+import LVCoref.Dictionaries.Gender;
+import LVCoref.Dictionaries.MentionType;
+import LVCoref.Dictionaries.Number;
+import LVCoref.Dictionaries.Case;
+import LVCoref.Dictionaries.PronounType;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -169,17 +169,18 @@ public class Mention{
         result.append(newLine);
       }
       result.append("}");
+      result.append(newLine);
 
       return result.toString();
     }
     
     
-    public Object prev(Document d) {
+    public Mention prev(Document d) {
         if (id > 0) return d.mentions.get(id-1);
         return null;
     }
     
-    public Object prevSyntactic(Document d) {
+    public Mention prevSyntactic(Document d) {
         for (Node n : node.children);
         
         
