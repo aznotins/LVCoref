@@ -20,6 +20,32 @@ public class Resolve {
 	
 	public static void go(Document d){
         
+        //Head match
+        for (Mention m : d.mentions) {
+            if (d.refGraph.needsReso(m)) {
+                if (m.type == MentionType.NOMINAL || m.type == MentionType.PROPER) {
+
+                    //simple look at previous mentions (without using sintax tree)
+
+                    int sentenceWindow = 50; //need to be larger for proper heads
+
+                    Mention prev = m.prev(d);
+                    while ( prev != null && m.sentNum - prev.sentNum <= sentenceWindow) {
+                         if (prev.type == MentionType.NOMINAL || prev.type == MentionType.PROPER) {
+                             if (prev.headString.equals(m.headString) ||
+                                 d.dict.belongsToSameGroup(prev.headString, m.headString, d.dict.sinonyms)) {
+                                 if (!genetiveBad(d, m) && !genetiveBad(d, prev)) {
+                                     d.refGraph.setRef(m, prev);
+                                     System.out.println("Head match :" + prev.headString +"("+prev.node.tag+")#"+prev.id+" <- " + m.headString+"("+m.node.tag+")#"+m.id);
+                                     break;
+                                 }
+                             }
+                         }
+                         prev = prev.prev(d);
+                    }
+                }
+            }
+        }
         
         //Appositive construction
 		for (Mention m : d.mentions) {
@@ -35,7 +61,7 @@ public class Resolve {
                              n.number == m.number ) {
 
                             if (genetiveTest(d, n, m)) {
-                                d.refGraph.setRef(n, m);
+                                d.refGraph.setRef(m, n);
                                 System.out.println("Appositive :" + n.headString +"("+n.node.tag+") <- " + m.headString +"("+m.node.tag+")");
                             }
                         }
@@ -44,32 +70,6 @@ public class Resolve {
             }
         }
         
-        //Head match
-        for (Mention m : d.mentions) {
-            if (d.refGraph.needsReso(m)) {
-                if (m.type == MentionType.NOMINAL || m.type == MentionType.PROPER) {
-
-                    //simple look at previous mentions (without using sintax tree)
-
-                    int sentenceWindow = 30;
-
-                    Mention prev = m.prev(d);
-                    while ( prev != null && prev.sentNum - m.sentNum <= sentenceWindow) {
-                         if (prev.type == MentionType.NOMINAL || prev.type == MentionType.PROPER) {
-                             if (prev.headString.equals(m.headString) ||
-                                 d.dict.belongsToSameGroup(prev.headString, m.headString, d.dict.sinonyms)) {
-                                 if (!genetiveBad(d, m) && !genetiveBad(d, prev)) {
-                                     d.refGraph.setRef(prev, m);
-                                     System.out.println("Head match :" + prev.headString +"("+prev.node.tag+") <- " + m.headString+"("+m.node.tag+")");
-                                     break;
-                                 }
-                             }
-                         }
-                         prev = prev.prev(d);
-                    }
-                }
-            }
-        }
         
         //Relaxed pronound match
         for (Mention m : d.mentions) {
@@ -78,13 +78,13 @@ public class Resolve {
 
                     //simple look at previous mentions (without using sintax tree)
 
-                    int sentenceWindow = 20;
+                    int sentenceWindow = 3;
 
                     Mention prev = m.prev(d);
-                    while ( prev != null && prev.sentNum - m.sentNum <= sentenceWindow) {
+                    while ( prev != null && m.sentNum - prev.sentNum <= sentenceWindow) {
                          if (prev.type == MentionType.NOMINAL || prev.type == MentionType.PROPER) {
                              if (prev.number == m.number && prev.gender == m.gender) {
-                                 d.refGraph.setRef(prev, m);
+                                 d.refGraph.setRef(m, prev);
                                 System.out.println("Relaxed pronoun match :" + prev.headString +"("+prev.node.tag+") <- " + m.headString+"("+m.node.tag+")");
                                 break;
                              }
@@ -92,7 +92,7 @@ public class Resolve {
                          prev = prev.prev(d);
                     }
                 }
-        }
+            }
         }
         
     }

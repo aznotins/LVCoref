@@ -4,9 +4,11 @@ import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -38,11 +40,11 @@ public class Dictionaries {
     public Dictionaries(
         ){
         try {
-            getWordsFromFile("lists/firstnames.txt", firstNames, false);
-            getWordsFromFile("lists/lastnames.txt", lastNames, false);
-            getWordGroupsFromFile("lists/sinonyms.txt", sinonyms, false);
+            getWordsFromFile("lists/firstnames.txt", firstNames, true);
+            getWordsFromFile("lists/lastnames.txt", lastNames, true);
+            getWordGroupsFromFile("lists/sinonyms.txt", sinonyms, true);
             getWordsFromFile("lists/exclude.txt", excludeWords, true);
-            getWordGroupsFromFile("lists/genetives.txt", sinonyms, false);
+            getWordGroupsFromFile("lists/genetives.txt", sinonyms, true);
             
             commonNouns.put("PERSON",new HashSet<String>());
             properNouns.put("PERSON",new HashSet<String>());
@@ -70,7 +72,7 @@ public class Dictionaries {
             properNouns.put("TIME",new HashSet<String>());
             pronouns.put("TIME",new HashSet<String>());
             pronouns.get("TIME").addAll(Arrays.asList("tas","tā","kas"));
-            commonNouns.get("TIME").addAll(Arrays.asList("tagad","šodien"));
+            commonNouns.get("TIME").addAll(Arrays.asList("tagad","šodien, pirmdiena, otrdiena, trešdiena, ceturtdiena, piektdiena, sestdiena, svētdiena"));
             properNouns.get("TIME").addAll(Arrays.asList("Ziemsvētki","Meteņi","Lieldienas","Pēteri","Jāņi","Kumēdiņi"));
             
             commonNouns.put("THING",new HashSet<String>());
@@ -157,4 +159,37 @@ public class Dictionaries {
         }
     }
     
+    public Set<String> getCategories(String s) {
+        s = s.toLowerCase();
+        Set<String> r = new HashSet<String>();
+        for(String cat: properNouns.keySet()) {
+            if (properNouns.get(cat).contains(s)) {
+                r.add(cat);
+                //break;
+            }
+        }
+        for(String cat: commonNouns.keySet()) {        
+            if (commonNouns.get(cat).contains(s)) {
+                r.add(cat);
+                //break;									
+            }
+        }
+        for(String cat: pronouns.keySet()) {        
+            if (pronouns.get(cat).contains(s)) {
+                r.add(cat);
+                //break;									
+            }
+        }
+        return r;
+    }
+    
+    public String getCategory(String s) {
+        Set<String> categories = getCategories(s);
+        
+        if (categories.size() > 0) {
+            if (categories.size() > 1) System.out.println("More categories for \"" +s+"\"");
+            return categories.iterator().next();
+        }
+        return null;
+    }
 }

@@ -24,6 +24,7 @@ public class LVCoref {
         //System.out.println(d.dict.firstNames);
         d.readCONLL();
         d.setMentions();
+        System.err.println(d.dict.getCategories("kas"));
         
 //        List<Node> tmp;
 //        tmp = d.traverse(d.tree.get(1), null, new ArrayList<Node>(Arrays.asList(d.tree.get(1))));
@@ -31,32 +32,16 @@ public class LVCoref {
         
         //d.printMentions();
         //d.printNodes(d.tree);
-//        
-//		for(Node n : d.tree) {
-//			System.out.print("#" +n.id + "\t" + n.word + "\t" + n.type + "\t" + n.category + " ^"+n.parent+" "/*n.children.toString()*/); 
-//			System.out.print("[" );for(int g : n.children) {System.out.print(" " + d.tree.get(g).word + "#" +g+",");} System.out.println("]" );
-//		}
-//		
-//		
-		Resolve.go(d);
         
-        RefsToEntities.go(d);
-//		
-//		RefsToEntities.go(d);
-//		
-//		
-//		for (Set<Node> x : d.corefs) {
-//			System.out.println("---------"+""+ "----------");
-//			for (Node n: x) {
-//				System.out.println("#" +n.id + "\t" + n.word + "\t" + n.type + "\t" + n.category); 
-//			}
-//		}
-//		
-//		
+		//Resolve.go(d);
+        
+        //RefsToEntities.go(d);
+        
 		for (Node n: d.tree) {
 			System.out.print(" " + n.word);
 			if (n.mention != null && d.corefClusters.get(n.mention.corefClusterID).corefMentions.size() > 1) {
-                System.out.print("["+n.mention.corefClusterID+"/"+n.mention.type+"/"+n.mention.category+"]");
+                Mention ant = d.refGraph.getFinalResolutions().get(n.mention);
+                System.out.print("["+n.mention.corefClusterID+"/"+n.mention.id+"/"+((ant == null)?null:ant.id)+"/"+n.mention.type+"/"+n.mention.category+"]");
             }
 			if (n.word.equals(".")) System.out.println();
 		}

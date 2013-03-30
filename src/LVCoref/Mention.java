@@ -53,14 +53,12 @@ public class Mention{
      * Coreference information
      */
     public int corefClusterID = -1;
-    public int goldCorefClusterID = -1;
+    public int goldCorefClusterID = -1;    
     
-    public Mention antecedent;
-    public List<Mention> successors;
-    
+    Set<String> categories;
   
     
-    Mention(int id, int start, int end, Node node, String ner) {
+    Mention(Document d, int id, int start, int end, Node node, String ner) {
         this.id = id;
 		this.start = start;
 		this.end = end;
@@ -68,12 +66,13 @@ public class Mention{
         this.node = node;
         this.headString = node.lemma;
         this.nerString = ner;
-        
-        successors = new ArrayList<Mention>();
-        
+                
         this.sentNum = node.sentNum;
         
-        type = getType("", node.tag);
+        this.type = getType("", node.tag);
+        
+        //this.category = d.dict.getCategory(node.lemma);
+        this.categories = d.dict.getCategories(node.lemma);
         
         //Nomial word
         if (node.tag.charAt(0) == 'n') {

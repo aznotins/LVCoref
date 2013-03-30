@@ -128,7 +128,7 @@ public class Document {
             if (node.tag.charAt(0) == 'n' || node.tag.charAt(0) == 'p') {
                 if (!dict.excludeWords.contains(node.lemma)) {
                     node.isMention = true;
-                    Mention m = new Mention(mention_id++, node.id, node.id, node, getSubString(node.id, node.id));
+                    Mention m = new Mention(this, mention_id++, node.id, node.id, node, getSubString(node.id, node.id));
                     mentions.add(m);
                     node.mention = m;
                 }
