@@ -23,10 +23,10 @@ public class LVCoref {
 		
         //System.out.println(d.dict.firstNames);
 
-        d.readCONLL("data/Sofija.conll");
-        //d.readCONLL("SofijasPasaule1996_11-28-dep-unlabeled.conll");
-       // d.readCONLL("data/intervija-unlabeled.conll");
-        //d.readCONLL("data/LETA_IzlaseFreimiem-dep-unlabeled.conll");
+        //d.readCONLL("data/Sofija.conll");
+        //d.readCONLL("data/SofijasPasaule1996_11-28-dep-unlabeled.conll");
+        //d.readCONLL("data/intervija-unlabeled.conll");
+        d.readCONLL("data/LETA_IzlaseFreimiem-dep-unlabeled.conll");
         
         d.setMentions();
         d.visualizeParseTree();
@@ -42,6 +42,9 @@ public class LVCoref {
         
         RefsToEntities.go(d);
         
+        d.htmlOutput("data/test.html");
+        
+        
 		for (Node n: d.tree) {
 			System.out.print(" " + n.word);
 			if (n.mention != null && d.corefClusters.get(n.mention.corefClusterID).corefMentions.size() > 1) {
@@ -52,7 +55,7 @@ public class LVCoref {
 		}
 		System.out.println();
 		
-		
+		System.out.println(Mention.getType("žondars", "n_"));
 	};
 	
 

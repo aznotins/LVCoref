@@ -1,9 +1,15 @@
 package LVCoref;
 
+import java.awt.Color;
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -99,9 +105,8 @@ public class Document {
 
                 node_id++;
                 tree.add(node);
-               
 				
-			} else {
+			} else if ((sentence_start_id != node_id)) {
                 tree.get(sentence_start_id).sentStart = true;
                 sentences.add(sentence_start_id);
 				for (int i = sentence_start_id; i < tree.size(); i++) {
@@ -228,6 +233,55 @@ public class Document {
             if (n.sentRoot) {
                 System.out.println(nodeSubTree(n));
             }
+        }
+    }
+    
+    
+    public void htmlOutput(String filename){
+        int cn = corefClusters.keySet().size();
+        String[] cols = new String[cn];
+        for (int i = 0; i < cn; i++)
+            cols[i] = Integer.toHexString(Color.HSBtoRGB((float) i / cn, 1, 1)).substring(2,8);
+        
+        Map<Integer, String> corefColor = new HashMap<Integer,String>();
+        
+        Collections.shuffle(Arrays.asList(cols));
+        
+        for (Integer id: corefClusters.keySet()) {
+            corefColor.put(id, cols[--cn]);
+        }
+        
+        try {
+            
+            PrintWriter out = new PrintWriter(new FileWriter(filename));
+            out.print(
+                "<!DOCTYPE html>\n" +
+                "<meta http-equiv=\"content-type\" content=\"text/html; charset=UTF-8\">"+
+                "<html>\n" +
+                    "<style>"
+                    + "body {font-size: 14px;}"
+                    + "</style>"+
+                    "<script src=\"http://code.jquery.com/jquery-latest.min.js\" type=\"text/javascript\"></script>\n"+
+                    "<script src=\"scripts.js\" type=\"text/javascript\"></script>\n"+
+                "<body><p class=text>");
+            
+            for (Node n: tree) {
+                
+                if (n.mention != null && corefClusters.get(n.mention.corefClusterID).corefMentions.size() > 1) {
+                    Mention ant = refGraph.getFinalResolutions().get(n.mention);
+                    out.print("<span style='color:#"+corefColor.get(n.mention.corefClusterID)+";'id='"+n.mention.id+"' class='c"+n.mention.corefClusterID+"' title='"+n.mention.corefClusterID+"/"+n.mention.id+"("+n.tag+")"+"/"+((ant == null)?null:ant.id)+"/"+n.mention.type+"/"+n.mention.categories+"@"+n.mention.comments+"]'><em>"+" " + n.word+"</em></span>");
+                } else if (n.mention != null) {
+                    out.print(" <em title='#"+n.mention.id+"("+n.tag+")"+"/"+n.mention.type+"/"+n.mention.categories+"'>" + n.word+"</em>");
+                } else {
+                    out.print(" " + n.word);
+                }
+                if (n.word.equals(".")) out.println("<br />");
+            }
+            System.out.println("<br />");
+            out.print("</p></body></html>");
+            out.close();
+        } catch (IOException e) {
+            
         }
     }
         

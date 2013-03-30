@@ -71,7 +71,7 @@ public class Mention{
                 
         this.sentNum = node.sentNum;
         
-        this.type = getType("", node.tag);
+        this.type = getType(node.lemma, node.tag);
         
         //this.category = d.dict.getCategory(node.lemma);
         this.categories = d.dict.getCategories(node.lemma);
@@ -144,6 +144,9 @@ public class Mention{
 		if (tag.charAt(0) == 'n') {
 			if (tag.charAt(1)=='p') {
 				return MentionType.PROPER;
+            }
+            if (Character.isUpperCase(lemma.charAt(0))) {
+                return MentionType.PROPER;
             }
 		} else if (tag.charAt(0) == 'p') {
 			return MentionType.PRONOMINAL;
