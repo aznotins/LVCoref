@@ -14,6 +14,7 @@ public class Resolve {
 	public static void go(Document d){
         
       headMatch(d);
+      //headMatchSintax(d);//not really better than headMatch
 
       appositive(d);
 
@@ -46,6 +47,55 @@ public class Resolve {
                              }
                          }
                          prev = prev.prev(d);
+                    }
+                }
+            }
+        }
+    }
+    
+    public static void headMatchSintax(Document d){
+        //Head match
+        for (Mention m : d.mentions) {
+            if (d.refGraph.needsReso(m)) {
+                if (m.type == MentionType.NOMINAL || m.type == MentionType.PROPER) {
+
+                    int sentenceWindow = 50;
+                    List<Node> q = new LinkedList<Node>(Arrays.asList(m.node));
+                    q = d.traverse(m.node, q);
+                    Boolean found = true;
+                    Node h = m.node; //the highest node from tree while traversing
+                    int level = 0;
+                    while (found) {
+                        found = false;
+                        Iterator<Node> i = q.iterator();
+                        while (i.hasNext()) {
+                            Node n = i.next();
+                            if (m.node.sentNum - n.sentNum <= sentenceWindow) {
+                                found = true;
+                                if (n.id < m.node.id && n.mention != null) {
+                                    Mention prev = n.mention;
+                                    if (prev.type == MentionType.NOMINAL || prev.type == MentionType.PROPER) {
+                                         if (prev.headString.equals(m.headString) ||
+                                             d.dict.belongsToSameGroup(prev.headString, m.headString, d.dict.sinonyms)) {
+                                             if (!genetiveBad(d, m) && !genetiveBad(d, prev)) {
+                                                 d.refGraph.setRef(m, prev);
+                                                 System.out.println("Head match (sintax l="+level+"):" + prev.headString +"("+prev.node.tag+")#"+prev.id+" <- " + m.headString+"("+m.node.tag+")#"+m.id);
+                                                 m.addRefComm(prev, "headMatch");
+                                                 found = false;
+                                                 break;
+                                             }
+                                         }
+                                     }
+                                }
+                            } else {
+                                i.remove(); //outside sentece window
+                            }
+                        }
+                        if (found) {
+                            q = d.traverse( (h!= null) ? h.parent : null, q);
+                            h = (h != null) ? h.parent : null;
+                            level ++;
+                        }
                     }
                 }
             }
