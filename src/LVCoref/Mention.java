@@ -40,6 +40,8 @@ public class Mention{
     
     public int person;
     public String category;
+    
+    public String comments;
 
 //    public boolean isSubject;
 //    public boolean isDirectObject;
@@ -131,6 +133,7 @@ public class Mention{
             //@TODO Anafora tags?
             
             person = node.tag.charAt(2)-'0';
+            this.comments = "";
 
         }
         
@@ -198,6 +201,8 @@ public class Mention{
         return null;
     }
     
-
-    
+    public void addRefComm(Mention m, String s) {
+        comments += ";"+m.node.word +"#"+m.id + "\""+s+"\"";
+    }
+ 
 }

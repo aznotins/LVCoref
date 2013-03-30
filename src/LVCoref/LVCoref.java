@@ -22,9 +22,14 @@ public class LVCoref {
 		d = new Document();
 		
         //System.out.println(d.dict.firstNames);
-        d.readCONLL();
+
+        d.readCONLL("data/Sofija.conll");
+        //d.readCONLL("SofijasPasaule1996_11-28-dep-unlabeled.conll");
+       // d.readCONLL("data/intervija-unlabeled.conll");
+        //d.readCONLL("data/LETA_IzlaseFreimiem-dep-unlabeled.conll");
+        
         d.setMentions();
-        System.err.println(d.dict.getCategories("kas"));
+        d.visualizeParseTree();
         
 //        List<Node> tmp;
 //        tmp = d.traverse(d.tree.get(1), null, new ArrayList<Node>(Arrays.asList(d.tree.get(1))));
@@ -33,15 +38,15 @@ public class LVCoref {
         //d.printMentions();
         //d.printNodes(d.tree);
         
-		//Resolve.go(d);
+        Resolve.go(d);
         
-        //RefsToEntities.go(d);
+        RefsToEntities.go(d);
         
 		for (Node n: d.tree) {
 			System.out.print(" " + n.word);
 			if (n.mention != null && d.corefClusters.get(n.mention.corefClusterID).corefMentions.size() > 1) {
                 Mention ant = d.refGraph.getFinalResolutions().get(n.mention);
-                System.out.print("["+n.mention.corefClusterID+"/"+n.mention.id+"/"+((ant == null)?null:ant.id)+"/"+n.mention.type+"/"+n.mention.category+"]");
+                System.out.print("["+n.mention.corefClusterID+"/"+n.mention.id+"/"+((ant == null)?null:ant.id)+"/"+n.mention.type+"/"+n.mention.categories+"@"+n.mention.comments+"]");
             }
 			if (n.word.equals(".")) System.out.println();
 		}

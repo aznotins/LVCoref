@@ -5,6 +5,7 @@ import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -19,6 +20,8 @@ public class Document {
      * Document parse tree
      */
 	public ArrayList<Node> tree;
+    
+    public ArrayList<Integer> sentences; //node ids starting senteces
 
 	public ArrayList<Mention> mentions;
     
@@ -36,6 +39,7 @@ public class Document {
         dict = new Dictionaries();
         refGraph = new RefGraph();
         corefClusters = new HashMap<Integer, CorefCluster>();
+        sentences = new ArrayList<Integer>();
 	}
     
     public void printMentions(){
@@ -67,16 +71,14 @@ public class Document {
             
     }
     
-    public void readCONLL() throws Exception {
+    public void readCONLL(String filename) throws Exception {
         String s;
 		int node_id = 0;
         int sentence_id = 0;
 		int sentence_start_id = 0;
 		BufferedReader in = null;
-		//in = new BufferedReader(new FileReader("data/Sofija.conll"));
-		in = new BufferedReader(new FileReader("data/SofijasPasaule1996_11-28-dep-unlabeled.conll"));
-		//in = new BufferedReader(new FileReader("data/intervija-unlabeled.conll"));
-		//in = new BufferedReader(new FileReader("data/LETA_IzlaseFreimiem-dep-unlabeled.conll"));
+        
+        in = new BufferedReader(new FileReader(filename));
 		
 //		Mention m;
 //		String m_t = "", m_str="";
@@ -93,12 +95,15 @@ public class Document {
 				
 				Node node = new Node(token, lemma, tag, parent, node_id);
                 node.sentNum = sentence_id;
+                if (Integer.parseInt(fields[6]) == 0) node.sentRoot = true;
 
                 node_id++;
                 tree.add(node);
                
 				
 			} else {
+                tree.get(sentence_start_id).sentStart = true;
+                sentences.add(sentence_start_id);
 				for (int i = sentence_start_id; i < tree.size(); i++) {
 					//System.out.println(i);
                     Node n = tree.get(i);
@@ -119,6 +124,25 @@ public class Document {
 			}
 			
 		}
+        if (sentence_start_id != node_id) {
+            tree.get(sentence_start_id).sentStart = true;
+            sentences.add(sentence_start_id);
+            for (int i = sentence_start_id; i < tree.size(); i++) {
+                //System.out.println(i);
+                Node n = tree.get(i);
+                int p_id = n.parentID;
+                Node p;
+                try {
+                    p = tree.get(p_id);
+                } catch (ArrayIndexOutOfBoundsException e) {
+                    p = null;
+                }
+
+                n.parent = p;
+                if (p != null) {
+                    p.children.add(n);}
+            }
+        }
 		
 	}
     
@@ -140,17 +164,19 @@ public class Document {
     /**
      * 
      * @param p no kurienes iet uz augšu
-     * @param p_prev iepriekšejais mezlgs no kurienes gāja uz augšu
      * @param from mezgli no kuienes iet uz leju
      * @return 
      */
-    public List<Node> traverse(Node p, Node p_prev, List<Node> from) {
-        List <Node> res = new ArrayList();
-        res.add(p.parent);
+   public List<Node> traverse(Node p, List<Node> from) {
+        List <Node> res = new LinkedList<Node>();
+        Node p_prev = null;
+        if (p != null && p.parent != null) res.add(p.parent);
         for(Node n : from) {
             if (n != p) {
                 res.addAll(n.children);
-            } else {
+                if (n.parent != null && n.parent == p) p_prev = n;
+                
+            } else if (p != null) {
                 for(Node x : p.children) {
                     if (x != p_prev) res.add(x);
                 }
@@ -178,7 +204,31 @@ public class Document {
 //    }
     
     
+    public String nodeSubTree(Node n) {
+        String s = "";
+        int sent = n.sentNum;
+        Boolean singleton = true;
+        for(int i = sentences.get(sent); (i < tree.size()) && (tree.get(i).sentNum == sent); i++) {
+            if (tree.get(i).parent == n) {
+                if (singleton) {
+                    s = nodeSubTree(tree.get(i));
+                    singleton = false;
+                } else {
+                    s += ", " + nodeSubTree(tree.get(i));
+                }
+            }
+        }
+        if (!singleton) s = n.word + " ( "+s+ " ) "; 
+        else s = n.word;
+        return s;
+    }
     
-    
-
+    public void visualizeParseTree() {
+        for(Node n: tree) {
+            if (n.sentRoot) {
+                System.out.println(nodeSubTree(n));
+            }
+        }
+    }
+        
 }

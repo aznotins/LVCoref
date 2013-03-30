@@ -1,18 +1,11 @@
 package LVCoref;
 
-import LVCoref.Dictionaries.Animacy;
-import LVCoref.Dictionaries.Gender;
 import LVCoref.Dictionaries.MentionType;
-import LVCoref.Dictionaries.Number;
 import LVCoref.Dictionaries.Case;
-import LVCoref.Dictionaries.PronounType;
-
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.Map;
-import java.util.Queue;
+import java.util.List;
 import java.util.Set;
 
 
@@ -20,6 +13,16 @@ public class Resolve {
 	
 	public static void go(Document d){
         
+      headMatch(d);
+
+      appositive(d);
+
+      //relaxedPronounMatch(d);
+      //categoryPronounMatch(d);
+      relaxedSintaxPronounMatch(d);
+    }
+    
+    public static void headMatch(Document d){
         //Head match
         for (Mention m : d.mentions) {
             if (d.refGraph.needsReso(m)) {
@@ -37,6 +40,7 @@ public class Resolve {
                                  if (!genetiveBad(d, m) && !genetiveBad(d, prev)) {
                                      d.refGraph.setRef(m, prev);
                                      System.out.println("Head match :" + prev.headString +"("+prev.node.tag+")#"+prev.id+" <- " + m.headString+"("+m.node.tag+")#"+m.id);
+                                     m.addRefComm(prev, "headMatch");
                                      break;
                                  }
                              }
@@ -46,7 +50,9 @@ public class Resolve {
                 }
             }
         }
-        
+    }
+    
+    public static void appositive(Document d) {
         //Appositive construction
 		for (Mention m : d.mentions) {
             if (d.refGraph.needsReso(m)) {
@@ -63,14 +69,16 @@ public class Resolve {
                             if (genetiveTest(d, n, m)) {
                                 d.refGraph.setRef(m, n);
                                 System.out.println("Appositive :" + n.headString +"("+n.node.tag+") <- " + m.headString +"("+m.node.tag+")");
+                                m.addRefComm(n, "Appositive");
                             }
                         }
                     }
                 }
             }
         }
-        
-        
+    }
+    
+    public static void relaxedPronounMatch(Document d) {
         //Relaxed pronound match
         for (Mention m : d.mentions) {
             if (d.refGraph.needsReso(m)) {
@@ -86,6 +94,7 @@ public class Resolve {
                              if (prev.number == m.number && prev.gender == m.gender) {
                                  d.refGraph.setRef(m, prev);
                                 System.out.println("Relaxed pronoun match :" + prev.headString +"("+prev.node.tag+") <- " + m.headString+"("+m.node.tag+")");
+                                m.addRefComm(prev, "RelPronMatch");
                                 break;
                              }
                          }
@@ -94,93 +103,88 @@ public class Resolve {
                 }
             }
         }
-        
+    }
+    
+    
+    public static void categoryPronounMatch(Document d) {
+        //Relaxed pronound match
+        for (Mention m : d.mentions) {
+            if (d.refGraph.needsReso(m)) {
+                if (m.type == MentionType.PRONOMINAL) {
+
+                    //simple look at previous mentions (without using sintax tree)
+
+                    int sentenceWindow = 3;
+
+                    Mention prev = m.prev(d);
+                    while ( prev != null && m.sentNum - prev.sentNum <= sentenceWindow) {
+                        if (prev.type == MentionType.NOMINAL || prev.type == MentionType.PROPER) {
+                            if (prev.number == m.number && prev.gender == m.gender) {
+                                Set<String> cat = d.dict.categoryIntersection(prev.categories, m.categories);
+                                if (cat.size() > 0) {
+                                    m.categories = cat;
+                                    prev.categories = cat;
+                                    d.refGraph.setRef(m, prev);
+                                    System.out.println("Category pronoun match :" + prev.headString +"("+prev.node.tag+") <- " + m.headString+"("+m.node.tag+")");
+                                    m.addRefComm(prev, "CatPronMatch");
+                                    break;
+                                }
+                            }
+                        }
+                        prev = prev.prev(d);
+                    }
+                }
+            }
+        }
+    }
+    
+    
+        public static void relaxedSintaxPronounMatch(Document d) {
+        //Relaxed pronound match
+        for (Mention m : d.mentions) {
+            if (d.refGraph.needsReso(m)) {
+                if (m.type == MentionType.PRONOMINAL) {
+
+                    int sentenceWindow = 3;
+                    List<Node> q = new LinkedList<Node>(Arrays.asList(m.node));
+                    q = d.traverse(m.node, q);
+                    Boolean found = true;
+                    Node h = m.node; //the highest node from tree while traversing
+                    int level = 0;
+                    while (found) {
+                        found = false;
+                        Iterator<Node> i = q.iterator();
+                        while (i.hasNext()) {
+                            Node n = i.next();
+                            if (m.node.sentNum - n.sentNum <= sentenceWindow) {
+                                found = true;
+                                if (n.id < m.node.id && n.mention != null) {
+                                    Mention prev = n.mention;
+                                    if (prev.type == MentionType.NOMINAL || prev.type == MentionType.PROPER) {
+                                        if (prev.number == m.number && prev.gender == m.gender) {
+                                            d.refGraph.setRef(m, prev);
+                                            System.out.println("Relaxed sintax pronoun match :"+"level:"+level+" :"  + prev.headString +"("+prev.node.tag+") <- " + m.headString+"("+m.node.tag+")");
+                                            m.addRefComm(prev, "RelSintaxPronMatch");
+                                            found = false;
+                                            break;
+                                        }
+                                    }
+                                }
+                            } else {
+                                i.remove(); //outside sentece window
+                            }
+                        }
+                        if (found) {
+                            q = d.traverse( (h!= null) ? h.parent : null, q);
+                            h = (h != null) ? h.parent : null;
+                            level ++;
+                        }
+                    }
+                }
+            }
+        }
     }
         
-  
-//			
-//			Data.load_data();
-//			if (n.isMention && 
-//				(n.type == "PRONOUN") && 
-//				n.parent > 0) {
-//				
-//				Set<String> categories = Data.getPronounCategories(n.lemma);
-//				
-//				if (categories.size() > 0) {
-//					Set<Integer> visited = new HashSet<Integer>();
-//					visited.add(n.id);
-//					Queue<Node> q = new LinkedList<Node>(), q2 = new LinkedList<Node>();
-//					Node parent = d.tree.get(n.parent);
-//					q.add(parent);								
-//					for (Integer ch : n.children) {
-//						q.add(d.tree.get(ch));
-//					}
-//					int level = 0;
-//					
-//					
-//				
-//					Node ant;
-//					while (level < 20) {
-//						ant = q.poll();
-//						
-//						if (ant != null) {
-//							visited.add(ant.id);
-//							if (ant.isMention && 
-//							    (ant.type == "COMMON" || ant.type == "PROPER")) {
-//								
-//								if (ant.id < n.id && n.id - ant.id < 5000) {
-//								
-//									if (n.tag.charAt(3) == ant.tag.charAt(2) &&
-//										n.tag.charAt(4) == ant.tag.charAt(3)) {
-//										
-//										Boolean found = false;
-//										String cat2="";
-//										for(String cat: categories) {
-//											if (Data.proper.get(cat).contains(ant.lemma)) {
-//												found = true;
-//												cat2 = cat;
-//												break;
-//											}
-//											if (Data.common.get(cat).contains(ant.lemma)) {
-//												found = true;
-//												cat2 = cat;
-//												break;										
-//											}
-//										}
-//										if(found) {
-//											n.category = cat2;
-//											ant.category = cat2;
-//											n.var.add(ant.id);
-//											ant.successors.add(n.id);
-//											System.out.println("Pronoun match (level:"+level+" " +cat2+") :" + ant.word +"("+ant.tag+") <- " + n.word+"("+n.tag+")");
-//											break;
-//										}
-//										
-//										
-//									}
-//								}
-//							} 
-//							
-//							if (ant.parent > 0 && !visited.contains(ant.parent)) {
-//								q2.add(d.tree.get(ant.parent));
-//							}
-//							for (Integer ch : ant.children) {
-//								if(!visited.contains(ch)) q2.add(d.tree.get(ch));
-//							}
-//						
-//						} else {
-//							q = q2;
-//							q2 = new LinkedList<Node>();
-//							level++;
-//						}
-//						
-//					}
-//				}
-//			}
-//		}
-//	}
-	
-
 	
 	public static Boolean genetiveBad(Document d, Mention m) {
 		if (m.type == MentionType.NOMINAL && m.mentionCase == Case.GENITIVE) {
@@ -201,6 +205,6 @@ public class Resolve {
             return false;
         }
         return true;
-	}
+      }
 
 }

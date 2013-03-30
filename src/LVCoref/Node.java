@@ -34,6 +34,9 @@ public class Node {
 	public int ant;
 	
 	public Integer corefs_id;
+    
+    public Boolean sentStart = false; //new sentece
+    public Boolean sentRoot = false; //sentece root node
 	
 	
 	Node(String word, String lemma, String tag, int parent_id, Integer id) {

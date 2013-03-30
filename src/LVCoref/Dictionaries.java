@@ -141,7 +141,6 @@ public class Dictionaries {
                 else s = reader.readLine();
                 
                 if (s.trim().length() > 0) {
-                System.err.println(s);
                     String[] words = s.split(" ");
                     for (String word : words) {
                         if (resultSet.keySet().contains(word)) {
@@ -192,4 +191,11 @@ public class Dictionaries {
         }
         return null;
     }
+    
+    public Set<String> categoryIntersection(Set<String> s1, Set<String> s2){
+        Set<String> r = new HashSet(s1);
+        r.retainAll(s2);
+        return r;
+    }
+    
 }
