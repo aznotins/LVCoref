@@ -1,0 +1,11 @@
+skaits
+vārds
+gals
+laiks
+skaits
+interese
+gadījums
+reize
+sākums
+priekšā
+vieta
