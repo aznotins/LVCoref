@@ -267,15 +267,15 @@ public class Document {
             
             for (Node n: tree) {
                 
+                if (n.sentStart) out.println("<br />");
                 if (n.mention != null && corefClusters.get(n.mention.corefClusterID).corefMentions.size() > 1) {
                     Mention ant = refGraph.getFinalResolutions().get(n.mention);
-                    out.print("<span style='color:#"+corefColor.get(n.mention.corefClusterID)+";'id='"+n.mention.id+"' class='c"+n.mention.corefClusterID+"' title='"+n.mention.corefClusterID+"/"+n.mention.id+"("+n.tag+")"+"/"+((ant == null)?null:ant.id)+"/"+n.mention.type+"/"+n.mention.categories+"@"+n.mention.comments+"]'><em>"+" " + n.word+"</em></span>");
+                    out.print("<span style='color:#"+corefColor.get(n.mention.corefClusterID)+";'id='"+n.mention.id+"' class='c"+n.mention.corefClusterID+"' title='"+n.mention.corefClusterID+"/"+n.mention.id+"("+n.tag+")"+"/"+((ant == null)?null:ant.id)+"/"+n.mention.type+"/"+n.mention.categories+"@"+n.mention.comments+"]'><em>"+" " + n.word+"</em>["+n.mention.corefClusterID+"]</span>"/*+n.mention.categories*/);
                 } else if (n.mention != null) {
                     out.print(" <em title='#"+n.mention.id+"("+n.tag+")"+"/"+n.mention.type+"/"+n.mention.categories+"'>" + n.word+"</em>");
                 } else {
                     out.print(" " + n.word);
                 }
-                if (n.word.equals(".")) out.println("<br />");
             }
             System.out.println("<br />");
             out.print("</p></body></html>");

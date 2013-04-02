@@ -24,12 +24,14 @@ public class LVCoref {
         //System.out.println(d.dict.firstNames);
 
         //d.readCONLL("data/Sofija.conll");
-        //d.readCONLL("data/SofijasPasaule1996_11-28-dep-unlabeled.conll");
+        d.readCONLL("data/SofijasPasaule1996_11-28-dep-unlabeled.conll");
         //d.readCONLL("data/intervija-unlabeled.conll");
-        d.readCONLL("data/LETA_IzlaseFreimiem-dep-unlabeled.conll");
+        //d.readCONLL("data/LETA_IzlaseFreimiem-dep-unlabeled.conll");
         
         d.setMentions();
         d.visualizeParseTree();
+        
+        
         
 //        List<Node> tmp;
 //        tmp = d.traverse(d.tree.get(1), null, new ArrayList<Node>(Arrays.asList(d.tree.get(1))));
@@ -55,7 +57,6 @@ public class LVCoref {
 		}
 		System.out.println();
 		
-		System.out.println(Mention.getType("žondars", "n_"));
 	};
 	
 

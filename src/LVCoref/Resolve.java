@@ -31,18 +31,20 @@ public class Resolve {
 
                     //simple look at previous mentions (without using sintax tree)
 
-                    int sentenceWindow = 50; //need to be larger for proper heads
+                    int sentenceWindow = 30; //need to be larger for proper heads
 
                     Mention prev = m.prev(d);
-                    while ( prev != null && m.sentNum - prev.sentNum <= sentenceWindow) {
+                    while ( prev != null && (m.sentNum - prev.sentNum <= sentenceWindow || m.type == MentionType.PROPER)) {
                          if (prev.type == MentionType.NOMINAL || prev.type == MentionType.PROPER) {
                              if (prev.headString.equals(m.headString) ||
                                  d.dict.belongsToSameGroup(prev.headString, m.headString, d.dict.sinonyms)) {
-                                 if (!genetiveBad(d, m) && !genetiveBad(d, prev)) {
-                                     d.refGraph.setRef(m, prev);
-                                     System.out.println("Head match :" + prev.headString +"("+prev.node.tag+")#"+prev.id+" <- " + m.headString+"("+m.node.tag+")#"+m.id);
-                                     m.addRefComm(prev, "headMatch");
-                                     break;
+                                 if (   m.gender == prev.gender &&  m.number == prev.number ) {
+                                     if (!genetiveBad(d, m) && !genetiveBad(d, prev)) {
+                                        d.refGraph.setRef(m, prev);
+                                        System.out.println("Head match :" + prev.headString +"("+prev.node.tag+")#"+prev.id+" <- " + m.headString+"("+m.node.tag+")#"+m.id);
+                                        m.addRefComm(prev, "headMatch");
+                                        break;
+                                    }
                                  }
                              }
                          }
@@ -59,7 +61,7 @@ public class Resolve {
             if (d.refGraph.needsReso(m)) {
                 if (m.type == MentionType.NOMINAL || m.type == MentionType.PROPER) {
 
-                    int sentenceWindow = 50;
+                    int sentenceWindow = 30;
                     List<Node> q = new LinkedList<Node>(Arrays.asList(m.node));
                     q = d.traverse(m.node, q);
                     Boolean found = true;
@@ -70,7 +72,7 @@ public class Resolve {
                         Iterator<Node> i = q.iterator();
                         while (i.hasNext()) {
                             Node n = i.next();
-                            if (m.node.sentNum - n.sentNum <= sentenceWindow) {
+                            if (m.node.sentNum - n.sentNum <= sentenceWindow || m.type == MentionType.PROPER) {
                                 found = true;
                                 if (n.id < m.node.id && n.mention != null) {
                                     Mention prev = n.mention;
@@ -212,11 +214,18 @@ public class Resolve {
                                     Mention prev = n.mention;
                                     if (prev.type == MentionType.NOMINAL || prev.type == MentionType.PROPER) {
                                         if (prev.number == m.number && prev.gender == m.gender) {
-                                            d.refGraph.setRef(m, prev);
-                                            System.out.println("Relaxed sintax pronoun match :"+"level:"+level+" :"  + prev.headString +"("+prev.node.tag+") <- " + m.headString+"("+m.node.tag+")");
-                                            m.addRefComm(prev, "RelSintaxPronMatch");
-                                            found = false;
+                                            Set<String> cat = d.dict.categoryIntersection(m.categories, prev.categories);
+                                            if (cat.size() > 0) {
+                                                System.out.println("Relaxed sintax +category pronoun match :"+"level:"+level+" :"  + prev.headString +"("+prev.node.tag+" "+prev.categories+") <- " + m.headString+"("+m.node.tag+" "+m.categories+")");
+                                                //m.categories = cat;
+                                                //prev.categories = cat;//TODO pārbaudīt, vai nerodas kļūdas norādot uz vienu un to pašu obj
+                                            
+                                                d.refGraph.setRef(m, prev);
+                                                
+                                                m.addRefComm(prev, "RelSintaxPronMatch+Cat");
+                                                found = false;
                                             break;
+                                            }
                                         }
                                     }
                                 }
