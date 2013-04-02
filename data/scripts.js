@@ -12,10 +12,9 @@ $(function(){
 		return this;
 	    };
 
-	$('span').clickToggle(
+	$('span em').clickToggle(
 		function(){
 			$('.'+$(this).attr('class')).css('font-weight','bold').css('font-size','25px');
-console.log('te');
 		
 		},
 		function(){
