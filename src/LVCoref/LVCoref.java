@@ -29,6 +29,7 @@ public class LVCoref {
         //d.readCONLL("data/LETA_IzlaseFreimiem-dep-unlabeled.conll");
         
         d.setMentions();
+        
         d.visualizeParseTree();
         
         
@@ -44,18 +45,20 @@ public class LVCoref {
         
         RefsToEntities.go(d);
         
+        //d.printCoreferences();
+        
         d.htmlOutput("data/test.html");
         
         
-		for (Node n: d.tree) {
-			System.out.print(" " + n.word);
-			if (n.mention != null && d.corefClusters.get(n.mention.corefClusterID).corefMentions.size() > 1) {
-                Mention ant = d.refGraph.getFinalResolutions().get(n.mention);
-                System.out.print("["+n.mention.corefClusterID+"/"+n.mention.id+"/"+((ant == null)?null:ant.id)+"/"+n.mention.type+"/"+n.mention.categories+"@"+n.mention.comments+"]");
-            }
-			if (n.word.equals(".")) System.out.println();
-		}
-		System.out.println();
+//		for (Node n: d.tree) {
+//			System.out.print(" " + n.word);
+//			if (n.mention != null && d.corefClusters.get(n.mention.corefClusterID).corefMentions.size() > 1) {
+//                Mention ant = d.refGraph.getFinalResolutions().get(n.mention);
+//                System.out.print("["+n.mention.corefClusterID+"/"+n.mention.id+"/"+((ant == null)?null:ant.id)+"/"+n.mention.type+"/"+n.mention.categories+"@"+n.mention.comments+"]");
+//            }
+//			if (n.word.equals(".")) System.out.println();
+//		}
+//		System.out.println();
 		
 	};
 	

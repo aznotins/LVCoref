@@ -239,9 +239,10 @@ public class Document {
     
     public void htmlOutput(String filename){
         int cn = corefClusters.keySet().size();
-        String[] cols = new String[cn];
+        String[] cols = new String[cn];        
+        float step = (float) 360/cn;
         for (int i = 0; i < cn; i++)
-            cols[i] = Integer.toHexString(Color.HSBtoRGB((float) i / cn, 1, 1)).substring(2,8);
+            cols[i] = Integer.toHexString(Color.HSBtoRGB(step*i, 1, 1)).substring(2,8);//cols[i] = Integer.toHexString(Color.HSBtoRGB((float) i / cn, 1, 1)).substring(2,8);
         
         Map<Integer, String> corefColor = new HashMap<Integer,String>();
         
@@ -255,33 +256,51 @@ public class Document {
             
             PrintWriter out = new PrintWriter(new FileWriter(filename));
             out.print(
-                "<!DOCTYPE html>\n" +
-                "<meta http-equiv=\"content-type\" content=\"text/html; charset=UTF-8\">"+
-                "<html>\n" +
-                    "<style>"
+                "<!DOCTYPE html>\n"
+                    +"<html>\n"
+                    + "<head>"
+                    + "<meta http-equiv=\"content-type\" content=\"text/html; charset=UTF-8\">"
+               
+                    +"<style>"
                     + "body {font-size: 14px;}"
-                    + "</style>"+
-                    "<script src=\"http://code.jquery.com/jquery-latest.min.js\" type=\"text/javascript\"></script>\n"+
-                    "<script src=\"scripts.js\" type=\"text/javascript\"></script>\n"+
-                "<body><p class=text>");
-            
+                    + "</style>"
+                    +"<script src=\"http://code.jquery.com/jquery-latest.min.js\" type=\"text/javascript\"></script>\n"
+                    +"<script src=\"scripts.js\" type=\"text/javascript\"></script>\n"
+                    + "</head>" 
+                    
+                +"<body><p class=text>");
+            Node root = null;
             for (Node n: tree) {
                 
-                if (n.sentStart) out.println("<br />");
+                if (n.sentStart) {
+                    if (root != null) out.println(" <em id='"+root.sentNum+"' title='"+nodeSubTree(root) +"'>"+" &gt;</em>");
+                    out.println("<br />");
+                }
                 if (n.mention != null && corefClusters.get(n.mention.corefClusterID).corefMentions.size() > 1) {
                     Mention ant = refGraph.getFinalResolutions().get(n.mention);
-                    out.print("<span style='color:#"+corefColor.get(n.mention.corefClusterID)+";'id='"+n.mention.id+"' class='c"+n.mention.corefClusterID+"' title='"+n.mention.corefClusterID+"/"+n.mention.id+"("+n.tag+")"+"/"+((ant == null)?null:ant.id)+"/"+n.mention.type+"/"+n.mention.categories+"@"+n.mention.comments+"]'><em>"+" " + n.word+"</em>["+n.mention.corefClusterID+"]</span>"/*+n.mention.categories*/);
+                    out.print("<span style='color:#"+corefColor.get(n.mention.corefClusterID)+";'id='"+n.mention.id+"' title='"+n.mention.corefClusterID+"/"+n.mention.id+"("+n.tag+")"+"/"+((ant == null)?null:ant.id)+"/"+n.mention.type+"/"+n.mention.categories+"@"+n.mention.comments+"]'><em class='c"+n.mention.corefClusterID+"'>"+" " + n.word+"</em>["+n.mention.corefClusterID+"]</span>"/*+n.mention.categories*/);
                 } else if (n.mention != null) {
-                    out.print(" <em title='#"+n.mention.id+"("+n.tag+")"+"/"+n.mention.type+"/"+n.mention.categories+"'>" + n.word+"</em>");
+                    out.print(" <em title='#"+n.mention.id+"("+n.tag+")"+"/"+n.mention.type+"/"+n.mention.categories+"'><span>" + n.word+"</span></em>");
                 } else {
-                    out.print(" " + n.word);
+                    out.print(" <span title='"+n.tag+"'>" + n.word + "</span>");
                 }
+                if (n.sentRoot) root = n;
             }
-            System.out.println("<br />");
             out.print("</p></body></html>");
             out.close();
         } catch (IOException e) {
             
+        }
+    }
+    
+    public void printCoreferences() {
+        for (Integer i : corefClusters.keySet()) {
+            if ( corefClusters.get(i).corefMentions.size() > 1){
+                System.out.println("---C"+i+"---");
+                for (Mention m : corefClusters.get(i).corefMentions) {
+                    System.out.println(m.node);
+                }
+            }
         }
     }
         

@@ -14,13 +14,18 @@ public class Resolve {
 	public static void go(Document d){
         
       headMatch(d);
+      appositive(d);
+      roleAppositive(d);
+      relaxedSintaxPronounMatch(d);
+        
+      predicativeNominative(d);
+      
       //headMatchSintax(d);//not really better than headMatch
 
-      appositive(d);
-
+      
       //relaxedPronounMatch(d);
       //categoryPronounMatch(d);
-      relaxedSintaxPronounMatch(d);
+      
     }
     
     public static void headMatch(Document d){
@@ -130,6 +135,34 @@ public class Resolve {
         }
     }
     
+        public static void roleAppositive(Document d) {
+        //Appositive construction
+		for (Mention m : d.mentions) {
+            if (d.refGraph.needsReso(m)) {
+                for (Node node : m.node.children) {
+                    if (node.mention != null) {
+                        Mention n = node.mention;
+                        if ( n.type == MentionType.PROPER && m.type == MentionType.PROPER ||
+                             n.type == MentionType.NOMINAL && m.type == MentionType.PROPER ||
+                             n.type == MentionType.PROPER && m.type == MentionType.NOMINAL ){
+
+                            if ( n.gender == m.gender &&
+                                 n.mentionCase == m.mentionCase &&
+                                 n.number == m.number ) {
+
+                                if (genetiveTest(d, n, m)) {
+                                    d.refGraph.setRef(m, n);
+                                    System.out.println("Reverse Appositive :" + n.headString +"("+n.node.tag+") <- " +m.headString +"("+m.node.tag+")");
+                                    m.addRefComm(n, "RevAppositive");
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
     public static void relaxedPronounMatch(Document d) {
         //Relaxed pronound match
         for (Mention m : d.mentions) {
@@ -197,13 +230,14 @@ public class Resolve {
             if (d.refGraph.needsReso(m)) {
                 if (m.type == MentionType.PRONOMINAL) {
 
-                    int sentenceWindow = 3;
+                    int sentenceWindow = 10;
+                    int maxLevel = 30;
                     List<Node> q = new LinkedList<Node>(Arrays.asList(m.node));
                     q = d.traverse(m.node, q);
                     Boolean found = true;
                     Node h = m.node; //the highest node from tree while traversing
                     int level = 0;
-                    while (found) {
+                    while (found && level <= maxLevel) {
                         found = false;
                         Iterator<Node> i = q.iterator();
                         while (i.hasNext()) {
@@ -241,6 +275,27 @@ public class Resolve {
                     }
                 }
             }
+        }
+    }
+        
+    public static void predicativeNominative(Document d) {
+        //Predicative nominative construction
+		for (Mention m : d.mentions) {
+            //if (d.refGraph.needsReso(m)) {
+                if (m.node.parent != null && m.node.parent.lemma.equals("būt")) {
+                    for (Node node : m.node.parent.children) {
+                        if (node != m.node && node.mention != null) {
+                            Mention n = node.mention;
+                            if (m.mentionCase == Case.NOMINATIVE && n.mentionCase == Case.NOMINATIVE) {
+                                d.refGraph.setRef(m, n);
+                                System.out.println("PredicativeNominative :" + n.headString +"("+n.node.tag+") <- " + m.headString +"("+m.node.tag+")");
+                                m.addRefComm(n, "PredicativeNominative");
+                                break;
+                            }
+                        }
+                    }
+                }
+            //}
         }
     }
         

@@ -20,7 +20,7 @@ public class RefsToEntities {
             if (n != null) {
                 int removeID = n.corefClusterID;
                 CorefCluster.mergeClusters(d.corefClusters.get(m.corefClusterID), d.corefClusters.get(n.corefClusterID));
-                d.corefClusters.remove(removeID);
+                if (m.corefClusterID != removeID) d.corefClusters.remove(removeID); //trying to merge cluster with itself
             }
         }
     }
