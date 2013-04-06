@@ -1,0 +1,27 @@
+/* 
+    Document   : style
+    Created on : Apr 6, 2013, 11:29:34 AM
+    Author     : Artūrs
+    Description:
+        Purpose of the stylesheet follows.
+*/
+
+body {
+    font-size: 16px;
+}
+
+.sentence {
+    line-height: 1.5em;
+}
+.sentence .parsetree{
+    line-height: 1em;
+    padding-bottom:5px;
+}
+
+.selected em {
+    line-height:0px;
+    font-size:1.5em;
+    font-weight: bold;
+    vertical-align: baseline;
+}
+
