@@ -26,7 +26,8 @@ public class LVCoref {
         //d.readCONLL("data/Sofija.conll");
         d.readCONLL("data/SofijasPasaule1996_11-28-dep-unlabeled.conll");
         //d.readCONLL("data/intervija-unlabeled.conll");
-        //d.readCONLL("data/LETA_IzlaseFreimiem-dep-unlabeled.conll");
+       //d.readCONLL("data/LETA_IzlaseFreimiem-dep-unlabeled.conll");
+       //d.readCONLL("data/output.conll");
         
         d.setMentions();
         

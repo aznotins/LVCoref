@@ -124,6 +124,7 @@ public class Document {
 					if (p != null) {
 						p.children.add(n);}
 				}
+                tree.get(node_id-1).sentEnd = true;
 				sentence_start_id = node_id;
                 sentence_id++;
 			}
@@ -147,6 +148,7 @@ public class Document {
                 if (p != null) {
                     p.children.add(n);}
             }
+            tree.get(node_id-1).sentEnd = true;
         }
 		
 	}
@@ -219,7 +221,7 @@ public class Document {
                     s = nodeSubTree(tree.get(i));
                     singleton = false;
                 } else {
-                    s += ", " + nodeSubTree(tree.get(i));
+                    s += " " + nodeSubTree(tree.get(i));
                 }
             }
         }
@@ -261,31 +263,38 @@ public class Document {
                     + "<head>"
                     + "<meta http-equiv=\"content-type\" content=\"text/html; charset=UTF-8\">"
                
-                    +"<style>"
-                    + "body {font-size: 14px;}"
-                    + "</style>"
+                    +"<link rel='stylesheet' type='text/css' href='style.css'>"
                     +"<script src=\"http://code.jquery.com/jquery-latest.min.js\" type=\"text/javascript\"></script>\n"
                     +"<script src=\"scripts.js\" type=\"text/javascript\"></script>\n"
                     + "</head>" 
                     
                 +"<body><p class=text>");
             Node root = null;
-            for (Node n: tree) {
+            for (Integer s: sentences) {
                 
-                if (n.sentStart) {
-                    if (root != null) out.println(" <em id='"+root.sentNum+"' title='"+nodeSubTree(root) +"'>"+" &gt;</em>");
-                    out.println("<br />");
+                out.println("<div class='sentence'>"); 
+                
+                for (Integer i = s; ;i++) {
+                    Node n = tree.get(i);
+                    
+                    if (n.mention != null && corefClusters.get(n.mention.corefClusterID).corefMentions.size() > 1) {
+                        Mention ant = refGraph.getFinalResolutions().get(n.mention);
+                        out.print("<span style='color:#"+corefColor.get(n.mention.corefClusterID)+";'id='"+n.mention.id+"' title='"+n.mention.corefClusterID+"/"+n.mention.id+"("+n.tag+")"+"/"+((ant == null)?null:ant.id)+"/"+n.mention.type+"/"+n.mention.categories+"@"+n.mention.comments+"]'><em class='c"+n.mention.corefClusterID+"'>"+" " + n.word+"</em>["+n.mention.corefClusterID+"]</span>"/*+n.mention.categories*/);
+                    } else if (n.mention != null) {
+                        out.print(" <em title='#"+n.mention.id+"("+n.tag+")"+"/"+n.mention.type+"/"+n.mention.categories+"'><span>" + n.word+"</span></em>");
+                    } else {
+                        out.print(" <span title='"+n.tag+"'>" + n.word + "</span>");
+                    }
+                    if (n.sentRoot) root = n;
+                    
+                    if (n.sentEnd) break;
                 }
-                if (n.mention != null && corefClusters.get(n.mention.corefClusterID).corefMentions.size() > 1) {
-                    Mention ant = refGraph.getFinalResolutions().get(n.mention);
-                    out.print("<span style='color:#"+corefColor.get(n.mention.corefClusterID)+";'id='"+n.mention.id+"' title='"+n.mention.corefClusterID+"/"+n.mention.id+"("+n.tag+")"+"/"+((ant == null)?null:ant.id)+"/"+n.mention.type+"/"+n.mention.categories+"@"+n.mention.comments+"]'><em class='c"+n.mention.corefClusterID+"'>"+" " + n.word+"</em>["+n.mention.corefClusterID+"]</span>"/*+n.mention.categories*/);
-                } else if (n.mention != null) {
-                    out.print(" <em title='#"+n.mention.id+"("+n.tag+")"+"/"+n.mention.type+"/"+n.mention.categories+"'><span>" + n.word+"</span></em>");
-                } else {
-                    out.print(" <span title='"+n.tag+"'>" + n.word + "</span>");
-                }
-                if (n.sentRoot) root = n;
+ 
+                if (root != null) { out.println(" <div class='parsetree' style='color:#bbb; display:none;' title='"+nodeSubTree(root) +"'>"+nodeSubTree(root)+"</div>"); }
+                out.println("</div>");
+                
             }
+            
             out.print("</p></body></html>");
             out.close();
         } catch (IOException e) {

@@ -37,6 +37,7 @@ public class Node {
     
     public Boolean sentStart = false; //new sentece
     public Boolean sentRoot = false; //sentece root node
+    public Boolean sentEnd = false; //sentece end
 	
 	
 	Node(String word, String lemma, String tag, int parent_id, Integer id) {
