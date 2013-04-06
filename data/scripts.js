@@ -14,11 +14,23 @@ $(function(){
 
 	$('span em').clickToggle(
 		function(){
-			$('.'+$(this).attr('class')).css('font-weight','bold').css('font-size','25px');
+			$('.'+$(this).attr('class')).parent().addClass('selected');
+            event.stopPropagation();
 		
 		},
 		function(){
-			$('.'+$(this).attr('class')).css('font-weight','normal').css('font-size','16px');		
+			$('.'+$(this).attr('class')).parent().removeClass('selected');
+            event.stopPropagation();
+		}
+	)
+        
+    $('.sentence').clickToggle(
+    
+		function(){
+			$('.parsetree', this).show();
+		},
+		function(){
+			$('.parsetree', this).hide();		
 		}
 	)
 })
