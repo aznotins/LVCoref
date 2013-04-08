@@ -279,11 +279,11 @@ public class Document {
                     
                     if (n.mention != null && corefClusters.get(n.mention.corefClusterID).corefMentions.size() > 1) {
                         Mention ant = refGraph.getFinalResolutions().get(n.mention);
-                        out.print("<span style='color:#"+corefColor.get(n.mention.corefClusterID)+";'id='"+n.mention.id+"' title='"+n.mention.corefClusterID+"/"+n.mention.id+"("+n.tag+")"+"/"+((ant == null)?null:ant.id)+"/"+n.mention.type+"/"+n.mention.categories+"@"+n.mention.comments+"]'><em class='c"+n.mention.corefClusterID+"'>"+" " + n.word+"</em>["+n.mention.corefClusterID+"]</span>"/*+n.mention.categories*/);
+                        out.print("<span style='color:#"+corefColor.get(n.mention.corefClusterID)+";'id='"+n.mention.id+"' title='"+n.mention.corefClusterID+"/"+n.mention.id+"("+n.tag+":"+n.lemma+")"+"/"+((ant == null)?null:ant.id)+"/"+n.mention.type+"/"+n.mention.categories+"@"+n.mention.comments+"]'><em class='c"+n.mention.corefClusterID+"'>"+" " + n.word+"</em>["+n.mention.corefClusterID+"]</span>"/*+n.mention.categories*/);
                     } else if (n.mention != null) {
-                        out.print(" <em title='#"+n.mention.id+"("+n.tag+")"+"/"+n.mention.type+"/"+n.mention.categories+"'><span>" + n.word+"</span></em>");
+                        out.print(" <em title='#"+n.mention.id+"("+n.tag+":"+n.lemma+")"+"/"+n.mention.type+"/"+n.mention.categories+"'><span>" + n.word+"</span></em>");
                     } else {
-                        out.print(" <span title='"+n.tag+"'>" + n.word + "</span>");
+                        out.print(" <span title='"+n.tag+":"+n.lemma+"'>" + n.word + "</span>");
                     }
                     if (n.sentRoot) root = n;
                     
