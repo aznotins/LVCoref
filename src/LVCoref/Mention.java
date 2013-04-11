@@ -16,6 +16,8 @@ public class Mention{
     
 	public Integer id;
     
+    public Boolean resolved = false;
+    
 	public String headString;
     public String nerString = "";
     
@@ -60,10 +62,8 @@ public class Mention{
     Set<String> categories;
   
     
-    Mention(Document d, int id, int start, int end, Node node, String ner) {
+    Mention(Document d, int id, Node node, String ner) {
         this.id = id;
-		this.start = start;
-		this.end = end;
 		this.root = node.id;
         this.node = node;
         this.headString = node.lemma;
@@ -134,8 +134,12 @@ public class Mention{
             
             person = node.tag.charAt(2)-'0';
             this.comments = "";
+           
+            
 
         }
+        this.start = node.getSpanStart(d).id;
+        this.end = node.getSpanEnd(d).id;
         
     }
 
@@ -210,6 +214,19 @@ public class Mention{
     
     public void addRefComm(Mention m, String s) {
         comments += ";"+m.node.word +"#"+m.id + "\""+s+"\"";
+    }
+    
+    public Boolean needsReso() {
+        return !this.resolved;
+    }
+    
+    public void setAsResolved() {
+        this.resolved = true;
+    }
+    
+    public Boolean isSingleton(Document d) {
+        if (d.corefClusters.get(this.corefClusterID).corefMentions.size() < 2) return true;
+        else return false;
     }
  
 }

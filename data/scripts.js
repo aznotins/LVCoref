@@ -11,8 +11,10 @@ $(function(){
 		});
 		return this;
 	    };
+        
+        
 
-	$('span em').clickToggle(
+	$('span.coref em').clickToggle(
 		function(){
 			$('.'+$(this).attr('class')).parent().addClass('selected');
             event.stopPropagation();
@@ -33,6 +35,27 @@ $(function(){
 			$('.parsetree', this).hide();		
 		}
 	)
+        
+        
+//    $('span.span').hover(
+//        function(){
+//            $(this).css('background','#666');
+//            event.stopPropagation();
+//        },
+//        function(){
+//            $(this).css('background','none');
+//            //event.stopPropagation();
+//        }
+//    )
+    $('span.span').mouseleave(function(){
+        $(this).css('background','none');
+    })
+    $('span.span').mouseover(function(){
+        $(this).css('background','#333');
+        $(this).parents('.span').css('background','none');
+        event.stopPropagation();
+    })
+        
 })
 
 
@@ -45,7 +68,7 @@ function randomColors(total)
         r.push(hsvToRgb(i * x, 100, 100)); // you can also alternate the saturation and value for even more contrast between the colors
     }
     return r;
-}
+};
 
 
 	/*$('span').hover(

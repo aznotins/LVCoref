@@ -8,6 +8,8 @@
 
 body {
     font-size: 16px;
+    color: #fff;
+    background-color: #0c0c0c;
 }
 
 .sentence {
@@ -25,3 +27,17 @@ body {
     vertical-align: baseline;
 }
 
+/*.span {
+    display: inline;
+    border-bottom: 1px solid #fff;
+    margin-bottom: 2px;
+    padding: 0 5px;
+}*/
+
+.mentionCluster div a {
+	text-decoration: none;
+	color: #fff;
+}
+.mentionCluster div a:hover {
+	text-decoration: underline;
+}

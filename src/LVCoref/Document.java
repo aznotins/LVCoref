@@ -14,6 +14,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Document class contains document parse tree structure, 
@@ -153,19 +154,59 @@ public class Document {
 		
 	}
     
+    
+    public boolean mergeClusters(Mention m, Mention n) {
+        // put all mentions from m corefCluster to n corefCluster
+        
+        if (corefClusters.get(m.corefClusterID) != corefClusters.get(n.corefClusterID)) {
+        
+            int removeID = m.corefClusterID;
+
+            Set<Mention> cm = corefClusters.get(m.corefClusterID).corefMentions;
+            Set<Mention> cn = corefClusters.get(n.corefClusterID).corefMentions;
+
+            for (Mention mm : cm) {
+                cn.add(mm);
+                mm.corefClusterID = n.corefClusterID;
+            }
+
+            System.out.println("Merge clusters from " +removeID +" to " + n.corefClusterID +" " + Utils.linearizeMentionSet(cn));
+
+            corefClusters.remove(removeID);
+            return true;
+        } else {
+            return false;
+        }
+    }
+    
     public void setMentions() {
         int mention_id = 0;
         for (Node node : tree) {
             if (node.tag.charAt(0) == 'n' || node.tag.charAt(0) == 'p') {
                 if (!dict.excludeWords.contains(node.lemma)) {
                     node.isMention = true;
-                    Mention m = new Mention(this, mention_id++, node.id, node.id, node, getSubString(node.id, node.id));
+                    Mention m = new Mention(this, mention_id++, node, node.word);
                     mentions.add(m);
                     node.mention = m;
                 }
             }
         }
     }
+    
+   
+    
+    
+    public void initializeEntities() {
+        //initialize new cluster for each mention
+        for (Mention m: mentions) {
+            corefClusters.put(m.id, new CorefCluster(m.id));
+            corefClusters.get(m.id).add(m);
+            m.corefClusterID = m.id;
+        }
+    }
+    
+    
+    
     
     
     /**
@@ -262,9 +303,9 @@ public class Document {
                     +"<html>\n"
                     + "<head>"
                     + "<meta http-equiv=\"content-type\" content=\"text/html; charset=UTF-8\">"
-               
+                    +"<script src=\"jquery-1.8.3.min.js\" type=\"text/javascript\"></script>\n"
                     +"<link rel='stylesheet' type='text/css' href='style.css'>"
-                    +"<script src=\"http://code.jquery.com/jquery-latest.min.js\" type=\"text/javascript\"></script>\n"
+                    //+"<script src=\"http://code.jquery.com/jquery-latest.min.js\" type=\"text/javascript\"></script>\n"
                     +"<script src=\"scripts.js\" type=\"text/javascript\"></script>\n"
                     + "</head>" 
                     
@@ -274,16 +315,65 @@ public class Document {
                 
                 out.println("<div class='sentence'>"); 
                 
+                
                 for (Integer i = s; ;i++) {
                     Node n = tree.get(i);
                     
+                    //if (n.mentionStartList.size()>0) out.print(n.mentionStartList);
+                    int count = n.mentionStartList.size();
+                    for (int mid = 0; mid < count; mid++) {
+                        out.println("<span class='span' id='s"+n.mentionStartList.get(mid)+"'> [ ");
+                    }
+                    
                     if (n.mention != null && corefClusters.get(n.mention.corefClusterID).corefMentions.size() > 1) {
                         Mention ant = refGraph.getFinalResolutions().get(n.mention);
-                        out.print("<span style='color:#"+corefColor.get(n.mention.corefClusterID)+";'id='"+n.mention.id+"' title='"+n.mention.corefClusterID+"/"+n.mention.id+"("+n.tag+":"+n.lemma+")"+"/"+((ant == null)?null:ant.id)+"/"+n.mention.type+"/"+n.mention.categories+"@"+n.mention.comments+"]'><em class='c"+n.mention.corefClusterID+"'>"+" " + n.word+"</em>["+n.mention.corefClusterID+"]</span>"/*+n.mention.categories*/);
+                        
+                        
+                        out.print(" <span "
+                                    + "class='coref'"
+                                    + "style='color:#"+corefColor.get(n.mention.corefClusterID)+";'"
+                                    + "id='"+n.mention.id+"' "
+                                    + "title='"
+                                        + "@cID=" + n.mention.corefClusterID
+                                        + " @mID=" + n.mention.id
+                                        + " @POS=" + n.tag+":"+n.lemma                                       
+                                        + " @antID="+((ant == null)?null:ant.id)
+                                        + " @type="+n.mention.type
+                                        + " @cat="+n.mention.categories
+                                        + " @resoInfo="+n.mention.comments+"]"
+                                        + " @span=["+n.nodeProjection(this) +"]"
+                                        + " @startM="+n.mention.start
+                                        + " @endM="+n.mention.end
+                                + "'>"
+                                + " <em class='c"+n.mention.corefClusterID+"'>"+" " + n.word+"</em>"
+                                + "["+n.mention.corefClusterID+"]"
+                            + "</span>"/*+n.mention.categories*/);
+                        
                     } else if (n.mention != null) {
-                        out.print(" <em title='#"+n.mention.id+"("+n.tag+":"+n.lemma+")"+"/"+n.mention.type+"/"+n.mention.categories+"'><span>" + n.word+"</span></em>");
+                        out.print(" <span "
+                                    + "title='"
+                                        + " @mID="+n.mention.id
+                                        + " @POS=" + n.tag+":"+n.lemma
+                                        + " @type="+n.mention.type
+                                        + " @cat"+n.mention.categories
+                                        + " @span=["+n.nodeProjection(this) +"]"
+                                    +"'>"
+                                + "<em>" + n.word+"</em>"
+                            + "</span>");
                     } else {
-                        out.print(" <span title='"+n.tag+":"+n.lemma+"'>" + n.word + "</span>");
+                        out.print(" <span "
+                                + "title='"
+                                + " @POS=" + n.tag+":"+n.lemma
+                                + " @span=["+n.nodeProjection(this) +"]"
+                            +"'>"
+                                + n.word 
+                            + "</span>");
+                    }
+                    
+                    //if (n.mentionEndList.size()>0) out.print(n.mentionEndList);
+                    count = n.mentionEndList.size();
+                    for (int mid = 0; mid < count; mid++) {
+                        out.println(" ] </span>");
                     }
                     if (n.sentRoot) root = n;
                     
@@ -295,7 +385,26 @@ public class Document {
                 
             }
             
-            out.print("</p></body></html>");
+            out.print("</p>");
+            
+            for (Integer c_i : this.corefClusters.keySet()) {
+                CorefCluster c = this.corefClusters.get(c_i);
+                if (c.corefMentions.size() > 1) {
+                    out.println("<div class='mentionCluster'>");
+                    out.println("========== " + c_i + " ==========");
+                    for (Mention m : c.corefMentions) {
+                        out.println
+                                ("<div>"
+                                + "<a href='#"+m.id+"'>"
+                                + m.node.nodeProjection(this)
+                                + "</a>"
+                                + "</div>");
+                    }
+                    out.println("</div>");
+                }                
+            }
+            
+            out.print("</body></html>");
             out.close();
         } catch (IOException e) {
             

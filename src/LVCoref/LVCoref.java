@@ -24,10 +24,10 @@ public class LVCoref {
         //System.out.println(d.dict.firstNames);
 
         //d.readCONLL("data/Sofija.conll");
-        d.readCONLL("data/SofijasPasaule1996_11-28-dep-unlabeled.conll");
+       // d.readCONLL("data/SofijasPasaule1996_11-28-dep-unlabeled.conll");
         //d.readCONLL("data/intervija-unlabeled.conll");
        //d.readCONLL("data/LETA_IzlaseFreimiem-dep-unlabeled.conll");
-       //d.readCONLL("data/output.conll");
+       d.readCONLL("data/input.conll");
         
         d.setMentions();
         
@@ -42,9 +42,18 @@ public class LVCoref {
         //d.printMentions();
         //d.printNodes(d.tree);
         
+        
+        d.initializeEntities();
         Resolve.go(d);
         
-        RefsToEntities.go(d);
+        
+        for (Node n : d.tree) {
+            n.markMentionBorders(d, false);
+        }
+        
+        
+        
+        //RefsToEntities.go(d);
         
         //d.printCoreferences();
         

@@ -38,6 +38,9 @@ public class Node {
     public Boolean sentStart = false; //new sentece
     public Boolean sentRoot = false; //sentece root node
     public Boolean sentEnd = false; //sentece end
+    
+    public List<Integer> mentionStartList;
+    public List<Integer> mentionEndList;
 	
 	
 	Node(String word, String lemma, String tag, int parent_id, Integer id) {
@@ -54,7 +57,77 @@ public class Node {
 		this.type = type;
 		this.successors = new ArrayList<Integer>();
         this.mention = null;
+        
+        this.mentionStartList = new ArrayList<Integer>();
+        this.mentionEndList = new ArrayList<Integer>();
 	}
+    
+    
+    public Node prev(Document d) {
+        if (id > 0) return d.tree.get(id-1);
+        return null;
+    }
+    
+    public Node next(Document d) {
+        if (id + 1 < d.tree.size()) return d.tree.get(id+1);
+        return null;
+    }
+    
+    
+    public Node getSpanStart(Document d) {
+        Node min = this;
+        for (Node n: this.children) {
+            if (n.id > min.id) continue;
+            if (n.sentNum != this.sentNum) continue;
+            Node x = n.getSpanStart(d);
+           if (x.id < min.id) min = x;
+        }
+        return min; 
+    }
+    
+    public Node getSpanEnd(Document d) {
+        Node max = this;
+        for (Node n: this.children) {
+            if (n.id < max.id) continue;
+            if (n.sentNum != this.sentNum) continue;
+            Node x = n.getSpanEnd(d);
+            if (x.id > max.id) max = x; 
+        }
+        return max;
+    }
+    
+    
+    public String nodeProjection(Document d) {
+        String s = "";
+        Node n = getSpanStart(d);
+        Node spanEnd = getSpanEnd(d);
+        s = n.word;
+        while (n != spanEnd) {
+            n = n.next(d);
+            s += " " + n.word;
+        }
+        return s;
+    }
+    
+    /**
+     * Could be optimized
+     * @param d 
+     */
+    public void markMentionBorders(Document d, Boolean allowSingletonMentions) {
+        Node n = this;
+        while (n != null && n.sentNum == this.sentNum) {
+            if (n.mention != null && (allowSingletonMentions || !n.mention.isSingleton(d)) ) {
+                if (this.id == n.mention.start) {
+                    this.mentionStartList.add(n.mention.id);
+                }
+                if (this.id == n.mention.end) {
+                    this.mentionEndList.add(n.mention.id);
+                }
+            }
+            n = n.parent;
+        }
+    }
+ 
     
     
     public String toString() {
