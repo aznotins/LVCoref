@@ -18,8 +18,10 @@ public class Node {
 	public String word;
     
     public int sentNum = -1;
+    public int position;
 	
-	
+	public String conll_string;
+    
     public Mention mention;
     
     

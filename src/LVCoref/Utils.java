@@ -4,6 +4,7 @@
  */
 package LVCoref;
 
+import java.util.Collection;
 import java.util.Set;
 
 /**
@@ -20,5 +21,19 @@ public class Utils {
         }
         r+="]";
         return r;
+    }
+    
+    
+    
+    public static String implode(Set<String> c, String glueString){
+        StringBuilder s = new StringBuilder();
+        for( String ss : c ) {
+            s.append(ss);
+            s.append('|');
+        }
+        if (c.size() > 0) {
+            s.deleteCharAt(s.length()-1);
+        }
+        return s.toString();
     }
 }

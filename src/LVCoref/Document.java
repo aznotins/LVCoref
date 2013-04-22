@@ -78,6 +78,28 @@ public class Document {
             
     }
     
+    
+    public void outputCONLL(String filename) throws IOException {
+        PrintWriter out = new PrintWriter(new FileWriter(filename));
+         
+        for (Node n : tree) {
+            out.print(n.conll_string);
+            if (n.mention != null) {
+                out.print("\t" + n.mention.id);
+                out.print("\t" + Utils.implode(n.mention.categories, "|"));
+                if (corefClusters.get(n.mention.corefClusterID).corefMentions.size() > 1) out.print("\t" + n.mention.corefClusterID);
+                else out.print("\t_");
+            }
+            else out.print("\t_\t_\t_");
+            out.print('\n');
+            
+            if (n.sentEnd) out.print('\n');
+        }
+        
+        
+                    
+    }
+    
     public void readCONLL(String filename) throws Exception {
         String s;
 		int node_id = 0;
@@ -98,9 +120,12 @@ public class Document {
 				String lemma = fields[2];
 				String tag = fields[4];		
 				int parent = Integer.parseInt(fields[6]) + sentence_start_id - 1;
+                
 				String category = fields[7];
 				
 				Node node = new Node(token, lemma, tag, parent, node_id);
+                node.conll_string = s;
+                node.position = Integer.parseInt(fields[0]);
                 node.sentNum = sentence_id;
                 if (Integer.parseInt(fields[6]) == 0) node.sentRoot = true;
 
@@ -285,7 +310,7 @@ public class Document {
         String[] cols = new String[cn];        
         float step = (float) 360/cn;
         for (int i = 0; i < cn; i++)
-            cols[i] = Integer.toHexString(Color.HSBtoRGB(step*i, 1, 1)).substring(2,8);//cols[i] = Integer.toHexString(Color.HSBtoRGB((float) i / cn, 1, 1)).substring(2,8);
+            cols[i] = Integer.toHexString(Color.HSBtoRGB(step*i, 0.5f, 1f )).substring(2,8);//cols[i] = Integer.toHexString(Color.HSBtoRGB((float) i / cn, 1, 1)).substring(2,8);
         
         Map<Integer, String> corefColor = new HashMap<Integer,String>();
         
@@ -302,7 +327,7 @@ public class Document {
                 "<!DOCTYPE html>\n"
                     +"<html>\n"
                     + "<head>"
-                    + "<meta http-equiv=\"content-type\" content=\"text/html; charset=UTF-8\">"
+                    + "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\">"
                     +"<script src=\"jquery-1.8.3.min.js\" type=\"text/javascript\"></script>\n"
                     +"<link rel='stylesheet' type='text/css' href='style.css'>"
                     //+"<script src=\"http://code.jquery.com/jquery-latest.min.js\" type=\"text/javascript\"></script>\n"
@@ -331,7 +356,7 @@ public class Document {
                         
                         out.print(" <span "
                                     + "class='coref'"
-                                    + "style='color:#"+corefColor.get(n.mention.corefClusterID)+";'"
+                                    + "style='background-color:#"+corefColor.get(n.mention.corefClusterID)+";'"
                                     + "id='"+n.mention.id+"' "
                                     + "title='"
                                         + "@cID=" + n.mention.corefClusterID
@@ -380,7 +405,7 @@ public class Document {
                     if (n.sentEnd) break;
                 }
  
-                if (root != null) { out.println(" <div class='parsetree' style='color:#bbb; display:none;' title='"+nodeSubTree(root) +"'>"+nodeSubTree(root)+"</div>"); }
+                if (root != null) { out.println(" <div class='parsetree' style='display:none;'>"+nodeSubTree(root)+"</div>"); }
                 out.println("</div>");
                 
             }
@@ -393,10 +418,13 @@ public class Document {
                     out.println("<div class='mentionCluster'>");
                     out.println("========== " + c_i + " ==========");
                     for (Mention m : c.corefMentions) {
+                        String projection = m.node.nodeProjection(this);
+                        projection = projection.replace(m.node.word, "<b>"+m.node.word+"</b>");
+                        
                         out.println
                                 ("<div>"
                                 + "<a href='#"+m.id+"'>"
-                                + m.node.nodeProjection(this)
+                                + projection
                                 + "</a>"
                                 + "</div>");
                     }
