@@ -25,16 +25,16 @@ public class Dictionaries {
 	public enum PronounType { PERSONAL, REFLEXIVE, POSSESIVE, DEMONSTRATIVE, INDEFINITE, INTERROGATIVE, RELATIVE, DEFINITE, UNKNOWN };
     
     
-    public static final Map<String, Set<String>> pronouns = new HashMap<String, Set<String>>();
-	public static final Map<String, Set<String>> commonNouns = new HashMap<String, Set<String>>();
-	public static final Map<String, Set<String>> properNouns = new HashMap<String, Set<String>>();
+    public static final Map<String, Set<String>> pronouns = new HashMap<>();
+	public static final Map<String, Set<String>> commonNouns = new HashMap<>();
+	public static final Map<String, Set<String>> properNouns = new HashMap<>();
     
-    public final Set<String> firstNames = new HashSet<String>();
-    public final Set<String> lastNames = new HashSet<String>();
-    public final Map<String, Set<Integer>> sinonyms = new HashMap<String, Set<Integer>>();
+    public final Set<String> firstNames = new HashSet<>();
+    public final Set<String> lastNames = new HashSet<>();
+    public final Map<String, Set<Integer>> sinonyms = new HashMap<>();
     
-    public final Set<String> excludeWords = new HashSet<String>();
-    public final Map<String, Set<Integer>> genetives = new HashMap<String, Set<Integer>>();
+    public final Set<String> excludeWords = new HashSet<>();
+    public final Map<String, Set<Integer>> genetives = new HashMap<>();
     
 
     public Dictionaries(
