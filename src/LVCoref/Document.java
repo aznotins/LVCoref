@@ -2,6 +2,7 @@ package LVCoref;
 
 import java.awt.Color;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -11,10 +12,15 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
 
 /**
  * Document class contains document parse tree structure, 
@@ -31,6 +37,7 @@ public class Document {
     public ArrayList<Integer> sentences; //node ids starting senteces
 
 	public ArrayList<Mention> mentions;
+    public ArrayList<Mention> goldMentions;
     
     public RefGraph refGraph;
     
@@ -41,11 +48,13 @@ public class Document {
     
 	
     Document(){
-		tree = new ArrayList<Node>();
-		mentions = new ArrayList<Mention>();
+		tree = new ArrayList<>();
+		mentions = new ArrayList<>();
+        goldMentions = new ArrayList<>();
         dict = new Dictionaries();
         refGraph = new RefGraph();
-        corefClusters = new HashMap<Integer, CorefCluster>();
+        corefClusters = new HashMap<>();
+        goldCorefClusters = new HashMap<>();
         sentences = new ArrayList<Integer>();
 	}
     
@@ -86,19 +95,46 @@ public class Document {
             out.print(n.conll_string);
             if (n.mention != null) {
                 out.print("\t" + n.mention.id);
-                out.print("\t" + Utils.implode(n.mention.categories, "|"));
+                if (n.mention.categories.size() > 0) out.print("\t" + Utils.implode(n.mention.categories, "|"));
+                else out.print("\t_");
                 if (corefClusters.get(n.mention.corefClusterID).corefMentions.size() > 1) out.print("\t" + n.mention.corefClusterID);
                 else out.print("\t_");
             }
             else out.print("\t_\t_\t_");
+            
+            if (n.goldMention != null) {
+                System.out.println(n.goldMention);
+                out.print("\t" + n.goldMention.id);
+                out.print("\t" + Utils.implode(n.goldMention.categories, "|"));
+                if (goldCorefClusters.get(n.goldMention.goldCorefClusterID).corefMentions.size() > 0) out.print("\t" + n.goldMention.goldCorefClusterID);
+                else out.print("\t_");
+            }
+            else out.print("\t_\t_\t_");
+            
+            
             out.print('\n');
             
             if (n.sentEnd) out.print('\n');
-        }
-        
-        
-                    
+        }     
     }
+    
+    
+    public void outputCONLLforDavis(String filename) throws IOException {
+        PrintWriter out = new PrintWriter(new FileWriter(filename));
+         
+        for (Node n : tree) {
+            out.print(n.conll_string);
+            if (n.mention != null) {
+                out.print("\t" + n.mention.corefClusterID);
+                if (n.mention.categories.size() > 0) out.print("\t" + Utils.implode(n.mention.categories, "|"));
+                else out.print("\t_");
+            }
+            else out.print("\t_\t_");
+            out.print('\n');
+            if (n.sentEnd) out.print('\n');
+        }     
+    }
+    
     
     public void readCONLL(String filename) throws Exception {
         String s;
@@ -178,6 +214,85 @@ public class Document {
         }
 		
 	}
+    
+    
+    public Boolean addAnnotationMMAX(String filename) {
+        try {
+            File mmax_file = new File(filename);
+            DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+ 
+            org.w3c.dom.Document doc = dBuilder.parse(mmax_file);
+            //optional, but recommended - http://stackoverflow.com/questions/13786607/normalization-in-dom-parsing-with-java-how-does-it-work	
+            //doc.getDocumentElement().normalize();
+            
+            //org.w3c.dom.Element root = doc.getDocumentElement();
+            //NodeList markables = root.getChildNodes();
+            NodeList markables = doc.getElementsByTagName("markable");
+            Map<String, Integer> classToInt = new HashMap<>();
+            Integer cluster_c = 0;
+            Integer cluster_id;
+            
+            for (int i = 0; i < markables.getLength(); i++) {
+                org.w3c.dom.Node markable = markables.item(i);
+
+                String span = markable.getAttributes().getNamedItem("span").getNodeValue();
+                String cluster = markable.getAttributes().getNamedItem("coref_class").getNodeValue();
+                String category = markable.getAttributes().getNamedItem("np_cat").getNodeValue();
+                
+                String[] intervals = span.split(",");
+                String[] interval = intervals[0].split("\\.\\.");
+                //TODO: more intervals w1..w2,w3
+                int start = Integer.parseInt(interval[0].substring(5)) - 1 ;
+                int end = start;
+                if (interval.length > 1) {
+                    end = Integer.parseInt(interval[1].substring(5)) - 1;
+                }
+                
+                Node head = getHead(start, end);
+                
+                //currently supports only one mention per node as head
+                if (head.goldMention == null) {
+                    
+                    Mention goldMention = new Mention(this, i, head, getSubString(start, end));
+                    goldMentions.add(goldMention);
+                    head.goldMention = goldMention;
+                    goldMention.categories = new HashSet<>();
+                    goldMention.categories.add(category);
+                                        
+                    if (cluster.equals("empty")) {
+                        cluster_id = cluster_c++;
+                        goldCorefClusters.put(cluster_id, new CorefCluster(cluster_id));
+                    } else {
+                        cluster_id = classToInt.get(cluster);
+                        if (cluster_id == null) {
+                            cluster_id = cluster_c++;
+                            classToInt.put(cluster, cluster_id);
+                            goldCorefClusters.put(cluster_id, new CorefCluster(cluster_id));
+                        }
+                    }
+                    goldCorefClusters.get(cluster_id).add(goldMention);
+                    goldMention.goldCorefClusterID = cluster_id;
+                    
+
+                    System.out.println("#" + cluster_id +"(size="+goldCorefClusters.get(cluster_id).corefMentions.size()+")" + " " + getSubString(start, end) +" : \""+ head.nodeProjection(this)+ "\"");
+                    System.out.println(tree.get(head.id));
+                } else {
+                    System.err.println("Could not add mention because of same head: " + getSubString(start, end));
+                    System.err.flush();
+                }
+                
+            }
+            for(int i : goldCorefClusters.keySet() ) {
+                System.out.println(i);
+                System.out.println(Utils.linearizeMentionSet(goldCorefClusters.get(i).corefMentions));
+            }
+                
+        } catch (Exception e) {
+            System.out.println("Error adding MMAX2 annotation:" + e.getMessage());
+            return false;
+        }
+        return true;
+    }
     
     
     public boolean mergeClusters(Mention m, Mention n) {
@@ -294,6 +409,48 @@ public class Document {
         if (!singleton) s = n.word + " ( "+s+ " ) "; 
         else s = n.word;
         return s;
+    }
+    
+    
+    public Node getCommonAncestor(Node n, Node m) {
+        Set<Node> path = new HashSet<>(); //all path nodes traversed by going up
+        path.add(n);
+        path.add(m);
+        Node nn = n, mm = m;
+        while (nn != null && mm != null) {
+            nn = nn.parent;
+            mm = mm.parent;
+            if (nn != null) {
+                if (path.contains(nn)) {
+                    return nn;
+                } else {
+                    path.add(nn);
+                }
+                if (path.contains(mm)) {
+                    return mm;
+                } else {
+                    path.add(mm);
+                }
+            }
+        }
+        return null; //something went wrong
+    }
+    
+    public Node getHead(int start, int end) {
+        List<Node> cand = new ArrayList<>();
+        for (int i = start; i <= end; i++) {
+            Node n = tree.get(i);
+            if (n.parent != null && ( n.parent.id < start || n.parent.id > end)) {
+                cand.add(n);
+            }
+        }
+        Node head = cand.get(0);
+        //needed if markable contains multiple head candidates
+        //lowest common ancestor is returned
+        for (int i = 1; i < cand.size(); i++) {
+            head = getCommonAncestor(head, cand.get(i));
+        }
+        return head;
     }
     
     public void visualizeParseTree() {

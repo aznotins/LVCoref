@@ -74,7 +74,7 @@ public class Mention{
         this.type = getType(node, node.tag);
         
         //this.category = d.dict.getCategory(node.lemma);
-        this.categories = d.dict.getCategories(node.lemma);
+        //this.categories = d.dict.getCategories(node.lemma);
         
         //Nomial word
         if (node.tag.charAt(0) == 'n') {
@@ -228,5 +228,10 @@ public class Mention{
         if (d.corefClusters.get(this.corefClusterID).corefMentions.size() < 2) return true;
         else return false;
     }
+    
+    public void setCategories(Document d) {
+        this.categories = d.dict.getCategories(node.lemma);
+    }
+            
  
 }

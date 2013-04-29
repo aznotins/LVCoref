@@ -48,6 +48,9 @@ public class LVCoref {
            d.readCONLL(input_file);
 
             d.setMentions();
+            for (Mention m : d.mentions) {
+                m.setCategories(d);
+            }
 
             //d.visualizeParseTree();
 
@@ -73,14 +76,17 @@ public class LVCoref {
 
             //d.printCoreferences();
 
+            d.addAnnotationMMAX("data/LVCoref_coref_level.xml");
             
             if (!output_file.isEmpty()) {
                d.outputCONLL(output_file);
+               d.outputCONLLforDavis(output_file+".davis");
             }
             
             if (!output_html.isEmpty()) {
                d.htmlOutput(output_html);
             }
+            
             
 
 

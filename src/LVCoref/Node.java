@@ -23,6 +23,7 @@ public class Node {
 	public String conll_string;
     
     public Mention mention;
+    public Mention goldMention = null;
     
     
 	public String m_s;
