@@ -3,6 +3,8 @@ package LVCoref;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.TreeMap;
+import java.util.logging.Logger;
 
 /*
  * To change this template, choose Tools | Templates
@@ -35,14 +37,33 @@ public class CorefCluster {
      */
     public Set<String> heads;
     
-    
+      private static final long serialVersionUID = 8655265337578515592L;
+
+//    // Attributes for cluster - can include multiple attribute e.g., {singular, plural}
+//    protected Set<Number> numbers;
+//    protected Set<Gender> genders;
+//    protected Set<Animacy> animacies;
+    protected Set<String> nerStrings;
+
+    /** All words in this cluster - for word inclusion feature  */
+    public Set<String> words;
+
+
+    public int getClusterID(){ return id; }
+    public Set<Mention> getCorefMentions() { return corefMentions; }
+    public Mention getFirstMention() { return firstMention; }
+    public Mention getRepresentativeMention() { return representative; }
 
     public CorefCluster(int ID) {
-        this.id = ID;
+        id = ID;
         corefMentions = new HashSet<Mention>();
+        nerStrings = new HashSet<String>();
+        heads = new HashSet<String>();
+        words = new HashSet<String>();
+        firstMention = null;
+        representative = null;
     }
-    
-
+   
     public void add(Mention m) {
         corefMentions.add(m);
     }
@@ -55,4 +76,19 @@ public class CorefCluster {
         to.corefMentions.addAll(from.corefMentions);
         System.out.println("Merge clusters from " +from.id +" to " + to.id +" " + Utils.linearizeMentionSet(to.corefMentions));
     }
+    
+    
+      /** Print cluster information */
+//  public void printCorefCluster(Logger logger){
+//    logger.finer("Cluster ID: "+id);//+"\tNumbers: "+numbers+"\tGenders: "+genders+"\tanimacies: "+animacies);
+//    logger.finer("NE: "+nerStrings+"\tfirst Mention's ID: "+firstMention.id+"\tHeads: "+heads+"\twords: "+words);
+//    TreeMap<Integer, edu.stanford.nlp.dcoref.Mention> forSortedPrint = new TreeMap<Integer, edu.stanford.nlp.dcoref.Mention>();
+//    for(Mention m : this.corefMentions){
+//      if(m.goldCorefClusterID==-1){
+//        logger.finer("mention-> id:"+m.id+"\toriginalRef: "+/*m.originalRef+*/"\t"+m.node.nodeProjection(d) +"\tsentNum: "+m.sentNum+"\tstartIndex: "+m.start);
+//      } else{
+//        logger.finer("mention-> id:"+m.mentionID+"\toriginalClusterID: "+m.goldCorefClusterID+"\t"+m.spanToString() +"\tsentNum: "+m.sentNum+"\tstartIndex: "+m.startIndex +"\toriginalRef: "+m.originalRef+"\tType: "+m.mentionType);
+//      }
+//    }
+//  }
 }

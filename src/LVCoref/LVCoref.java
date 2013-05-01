@@ -1,14 +1,17 @@
 package LVCoref;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
+import LVCoref.ScorerBCubed.BCubedType;
+import LVCoref.util.Pair;
+
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashSet;
+import java.util.Calendar;
 import java.util.List;
-import java.util.Set;
+import java.util.logging.FileHandler;
+import java.util.logging.Formatter;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
+
 
 
 /**
@@ -16,11 +19,102 @@ import java.util.Set;
  * @author arturs
  */
 public class LVCoref {
+    
+    
+    public static final Logger logger = Logger.getLogger(LVCoref.class.getName());
+
+  /**
+   * If true, we score the output of the given test document
+   * Assumes gold annotations are available
+   */
+  private boolean doScore;
+
+  /**
+   * If true, we do post processing.
+   */
+  private boolean doPostProcessing;
+
+  /**
+   * maximum sentence distance between two mentions for resolution (-1: no constraint on distance)
+   */
+  private int maxSentDist;
+
+  /**
+   * automatically set by looking at sieves
+   */
+  private boolean useSemantics;
+
+  /** Final score to use for sieve optimization (default is pairwise.Precision) */
+  private String optimizeScoreType;
+  /** More useful break down of optimizeScoreType */
+  private boolean optimizeConllScore;
+  private String optimizeMetricType;
+  private CorefScorer.SubScoreType optimizeSubScoreType;
+
+  /**
+   * Array of sieve passes to be used in the system
+   * Ordered from highest precision to lowest!
+   */
+  //private /*final */DeterministicCorefSieve [] sieves;
+  //private /*final*/ String [] sieveClassNames;
+
+  /** Current sieve index */
+//  public int currentSieve;
+
+  /** counter for links in passes (Pair<correct links, total links>)  */
+  public List<Pair<Integer, Integer>> linksCountInPass;
+
+
+  /** Scores for each pass */
+  public List<CorefScorer> scorePairwise;
+  public List<CorefScorer> scoreBcubed;
+  public List<CorefScorer> scoreMUC;
+
+  private List<CorefScorer> scoreSingleDoc;
+
+  /** Additional scoring stats */
+  int additionalCorrectLinksCount;
+  int additionalLinksCount;
+
+  public static class LogFormatter extends Formatter {
+    @Override
+    public String format(LogRecord rec) {
+      StringBuilder buf = new StringBuilder(1000);
+      buf.append(formatMessage(rec));
+      buf.append('\n');
+      return buf.toString();
+    }
+  }
 
 	public static void main(String[] args) throws Exception {
         String input_file = "data/input.conll";
         String output_file = "data/output.conll";
         String output_html = "data/output.html";
+        
+        String timeStamp = Calendar.getInstance().getTime().toString().replaceAll("\\s", "-").replaceAll(":", "-");
+        
+        try {
+            String logFileName = "data/logs/log.txt";
+            if(logFileName.endsWith(".txt")) {
+                logFileName = logFileName.substring(0, logFileName.length()-4) +"_"+ timeStamp+".txt";
+            } else {
+                logFileName = logFileName + "_"+ timeStamp+".txt";
+            }
+            FileHandler fh = new FileHandler(logFileName, false);
+            logger.addHandler(fh);
+            logger.setLevel(Level.FINE);
+            fh.setFormatter(new LogFormatter());
+        } catch (SecurityException e) {
+        System.err.println("ERROR: cannot initialize logger!");
+        throw e;
+        } catch (IOException e) {
+            System.err.println("ERROR: cannot initialize logger!");
+            throw e;
+        }
+
+        logger.fine(timeStamp);
+        //logger.fine(props.toString());
+        //Constants.printConstants(logger);
         
         
         if (args.length > 2) {
@@ -65,7 +159,7 @@ public class LVCoref {
 
 
             d.initializeEntities();
-            Resolve.go(d);
+            Resolve.go(d, logger);
 
 
             for (Node n : d.tree) {
@@ -76,7 +170,7 @@ public class LVCoref {
 
             //d.printCoreferences();
 
-            d.addAnnotationMMAX("data/LVCoref_coref_level.xml");
+            d.addAnnotationMMAX("data/sample_coref_level.xml");
             
             if (!output_file.isEmpty()) {
                d.outputCONLL(output_file);
@@ -87,6 +181,21 @@ public class LVCoref {
                d.htmlOutput(output_html);
             }
             
+            
+            CorefScorer scorer = new ScorerPairwise();
+            scorer.calculateScore(d);
+            scorer.printF1(logger, true);
+            System.out.println(scorer.getF1String(true));
+            
+            CorefScorer scorerMUC = new ScorerMUC();
+            scorerMUC.calculateScore(d);
+            scorerMUC.printF1(logger, true);
+            System.out.println(scorerMUC.getF1String(true));
+            
+            CorefScorer scorerB3 = new ScorerBCubed(BCubedType.Bconll);
+            scorerB3.calculateScore(d);
+            scorerB3.printF1(logger, true);
+            System.out.println(scorerB3.getF1String(true));
             
 
 

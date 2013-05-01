@@ -7,12 +7,13 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Logger;
 
 
 public class Resolve {
+       
 	
-	public static void go(Document d){
-        
+	public static void go(Document d, Logger logger){
         
       appositive(d);
       predicativeNominative(d);
@@ -52,7 +53,7 @@ public class Resolve {
                                      if (!genetiveBad(d, m) && !genetiveBad(d, prev)) {
                                         //d.refGraph.setRef(m, prev);
                                         d.mergeClusters(m, prev);
-                                        System.out.println("Head match :" + prev.headString +"("+prev.node.tag+")#"+prev.id+" <- " + m.headString+"("+m.node.tag+")#"+m.id);
+                                        LVCoref.logger.fine("Head match :" + prev.headString +"("+prev.node.tag+")#"+prev.id+" <- " + m.headString+"("+m.node.tag+")#"+m.id);
                                         m.addRefComm(prev, "headMatch");
                                         m.setAsResolved();
                                         break;
@@ -134,7 +135,7 @@ public class Resolve {
                             if (genetiveTest(d, n, m)) {
                                 //d.refGraph.setRef(m, n);
                                 d.mergeClusters(m, n);
-                                System.out.println("Appositive :" + n.headString +"("+n.node.tag+") <- " + m.headString +"("+m.node.tag+")");
+                                LVCoref.logger.fine("Appositive :" + n.headString +"("+n.node.tag+") <- " + m.headString +"("+m.node.tag+")");
                                 m.addRefComm(n, "Appositive");
                             }
                         }
@@ -162,7 +163,7 @@ public class Resolve {
                                 if (genetiveTest(d, n, m)) {
                                     //d.refGraph.setRef(m, n);
                                     d.mergeClusters(n, m);
-                                    System.out.println("Reverse Appositive :" + n.headString +"("+n.node.tag+") <- " +m.headString +"("+m.node.tag+")");
+                                    LVCoref.logger.fine("Reverse Appositive :" + n.headString +"("+n.node.tag+") <- " +m.headString +"("+m.node.tag+")");
                                     m.addRefComm(n, "RevAppositive");
                                     
                                 }
@@ -190,7 +191,7 @@ public class Resolve {
                              if (prev.number == m.number && prev.gender == m.gender) {
                                 //d.refGraph.setRef(m, prev);
                                 d.mergeClusters(prev, m);
-                                System.out.println("Relaxed pronoun match :" + prev.headString +"("+prev.node.tag+") <- " + m.headString+"("+m.node.tag+")");
+                                LVCoref.logger.fine("Relaxed pronoun match :" + prev.headString +"("+prev.node.tag+") <- " + m.headString+"("+m.node.tag+")");
                                 m.addRefComm(prev, "RelPronMatch");
                                 m.setAsResolved();
                                 break;
@@ -224,7 +225,7 @@ public class Resolve {
                                     prev.categories = cat;
                                     //d.refGraph.setRef(m, prev);
                                     d.mergeClusters(m, prev);
-                                    System.out.println("Category pronoun match :" + prev.headString +"("+prev.node.tag+") <- " + m.headString+"("+m.node.tag+")");
+                                    LVCoref.logger.fine("Category pronoun match :" + prev.headString +"("+prev.node.tag+") <- " + m.headString+"("+m.node.tag+")");
                                     m.addRefComm(prev, "CatPronMatch");
                                     m.setAsResolved();
                                     break;
@@ -265,7 +266,7 @@ public class Resolve {
                                         if (prev.number == m.number && prev.gender == m.gender) {
                                             Set<String> cat = d.dict.categoryIntersection(m.categories, prev.categories);
                                             if (cat.size() > 0) {
-                                                System.out.println("Relaxed sintax +category pronoun match :"+"level:"+level+" :"  + prev.headString +"("+prev.node.tag+" "+prev.categories+") <- " + m.headString+"("+m.node.tag+" "+m.categories+")");
+                                                LVCoref.logger.fine("Relaxed sintax +category pronoun match :"+"level:"+level+" :"  + prev.headString +"("+prev.node.tag+" "+prev.categories+") <- " + m.headString+"("+m.node.tag+" "+m.categories+")");
                                                 //m.categories = cat;
                                                 //prev.categories = cat;//TODO pārbaudīt, vai nerodas kļūdas norādot uz vienu un to pašu obj
                                             
@@ -306,7 +307,7 @@ public class Resolve {
                                 m.number == n.number) {
                                 //d.refGraph.setRef(m, n);
                                 d.mergeClusters(m, n);
-                                System.out.println("PredicativeNominative :" + n.headString +"("+n.node.tag+") <- " + m.headString +"("+m.node.tag+")");
+                                LVCoref.logger.fine("PredicativeNominative :" + n.headString +"("+n.node.tag+") <- " + m.headString +"("+m.node.tag+")");
                                 m.addRefComm(n, "PredicativeNominative");                                
                                 break;
                             }

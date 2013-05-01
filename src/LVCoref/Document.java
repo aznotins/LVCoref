@@ -103,7 +103,7 @@ public class Document {
             else out.print("\t_\t_\t_");
             
             if (n.goldMention != null) {
-                System.out.println(n.goldMention);
+                //System.out.println(n.goldMention);
                 out.print("\t" + n.goldMention.id);
                 out.print("\t" + Utils.implode(n.goldMention.categories, "|"));
                 if (goldCorefClusters.get(n.goldMention.goldCorefClusterID).corefMentions.size() > 0) out.print("\t" + n.goldMention.goldCorefClusterID);
@@ -237,7 +237,7 @@ public class Document {
 
                 String span = markable.getAttributes().getNamedItem("span").getNodeValue();
                 String cluster = markable.getAttributes().getNamedItem("coref_class").getNodeValue();
-                String category = markable.getAttributes().getNamedItem("np_cat").getNodeValue();
+                String category = markable.getAttributes().getNamedItem("category").getNodeValue();
                 
                 String[] intervals = span.split(",");
                 String[] interval = intervals[0].split("\\.\\.");
@@ -274,21 +274,16 @@ public class Document {
                     goldMention.goldCorefClusterID = cluster_id;
                     
 
-                    System.out.println("#" + cluster_id +"(size="+goldCorefClusters.get(cluster_id).corefMentions.size()+")" + " " + getSubString(start, end) +" : \""+ head.nodeProjection(this)+ "\"");
-                    System.out.println(tree.get(head.id));
+                    LVCoref.logger.fine("goldCluster #" + cluster_id +"(size="+goldCorefClusters.get(cluster_id).corefMentions.size()+")" + " " + getSubString(start, end) +" : \""+ head.nodeProjection(this)+ "\"");
                 } else {
                     System.err.println("Could not add mention because of same head: " + getSubString(start, end));
                     System.err.flush();
                 }
                 
             }
-            for(int i : goldCorefClusters.keySet() ) {
-                System.out.println(i);
-                System.out.println(Utils.linearizeMentionSet(goldCorefClusters.get(i).corefMentions));
-            }
                 
         } catch (Exception e) {
-            System.out.println("Error adding MMAX2 annotation:" + e.getMessage());
+            System.err.println("Error adding MMAX2 annotation:" + e.getMessage());
             return false;
         }
         return true;
@@ -310,7 +305,7 @@ public class Document {
                 mm.corefClusterID = n.corefClusterID;
             }
 
-            System.out.println("Merge clusters from " +removeID +" to " + n.corefClusterID +" " + Utils.linearizeMentionSet(cn));
+            LVCoref.logger.fine("Merge clusters from " +removeID +" to " + n.corefClusterID +" " + Utils.linearizeMentionSet(cn));
 
             corefClusters.remove(removeID);
             return true;
@@ -465,12 +460,12 @@ public class Document {
     public void htmlOutput(String filename){
         int cn = corefClusters.keySet().size();
         String[] cols = new String[cn];        
-        float step = (float) 360/cn;
-        for (int i = 0; i < cn; i++)
+        float step = ((float) 1.0) / cn;
+        for (int i = 0; i < cn; i++) {
             cols[i] = Integer.toHexString(Color.HSBtoRGB(step*i, 0.5f, 1f )).substring(2,8);//cols[i] = Integer.toHexString(Color.HSBtoRGB((float) i / cn, 1, 1)).substring(2,8);
-        
-        Map<Integer, String> corefColor = new HashMap<Integer,String>();
-        
+            System.out.println(i + " "+ i*step+ " " + cols[i]);
+        }
+        Map<Integer, String> corefColor = new HashMap<>();
         Collections.shuffle(Arrays.asList(cols));
         
         for (Integer id: corefClusters.keySet()) {
