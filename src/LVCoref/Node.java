@@ -66,6 +66,23 @@ public class Node {
 	}
     
     
+    public  Dictionaries.MentionType getType() {
+		if (tag.charAt(0) == 'n') {
+			if (tag.charAt(1)=='p') {
+				return Dictionaries.MentionType.PROPER;
+            }
+            if (Character.isUpperCase(lemma.charAt(0))) {
+                return Dictionaries.MentionType.PROPER;
+            }
+            if (Character.isUpperCase(word.charAt(0))) {
+                return Dictionaries.MentionType.PROPER;
+            }
+		} else if (tag.charAt(0) == 'p') {
+			return Dictionaries.MentionType.PRONOMINAL;
+		}
+        return Dictionaries.MentionType.NOMINAL;
+	}
+    
     public Node prev(Document d) {
         if (id > 0) return d.tree.get(id-1);
         return null;

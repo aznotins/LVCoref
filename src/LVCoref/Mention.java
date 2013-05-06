@@ -7,12 +7,10 @@ import LVCoref.Dictionaries.Number;
 import LVCoref.Dictionaries.Case;
 import LVCoref.Dictionaries.PronounType;
 import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Set;
 
-public class Mention{
+public class Mention implements Comparable{
     
 	public Integer id;
     
@@ -62,7 +60,7 @@ public class Mention{
     Set<String> categories;
   
     
-    Mention(Document d, int id, Node node, String ner) {
+    Mention(Document d, int id, Node node, MentionType type, String ner) {
         this.id = id;
 		this.root = node.id;
         this.node = node;
@@ -70,8 +68,8 @@ public class Mention{
         this.nerString = ner;
                 
         this.sentNum = node.sentNum;
-        
-        this.type = getType(node, node.tag);
+        categories = new HashSet<>();
+        this.type = type;
         
         //this.category = d.dict.getCategory(node.lemma);
         //this.categories = d.dict.getCategories(node.lemma);
@@ -136,31 +134,16 @@ public class Mention{
             this.comments = "";
            
             
+            
 
+        } else {
+            System.err.println("Unsuported tag: " + node.tag);
         }
         this.start = node.getSpanStart(d).id;
         this.end = node.getSpanEnd(d).id;
         
     }
 
-    
-    public static MentionType getType(Node n, String tag) {
-        String lemma = n.lemma;
-		if (tag.charAt(0) == 'n') {
-			if (tag.charAt(1)=='p') {
-				return MentionType.PROPER;
-            }
-            if (Character.isUpperCase(lemma.charAt(0))) {
-                return MentionType.PROPER;
-            }
-            if (Character.isUpperCase(n.word.charAt(0))) {
-                return MentionType.PROPER;
-            }
-		} else if (tag.charAt(0) == 'p') {
-			return MentionType.PRONOMINAL;
-		}
-        return MentionType.NOMINAL;
-	}
     
     public String toString() {
       StringBuilder result = new StringBuilder();
@@ -232,6 +215,11 @@ public class Mention{
     public void setCategories(Document d) {
         this.categories = d.dict.getCategories(node.lemma);
     }
-            
+    
+    @Override 
+    public int compareTo(Object o) {
+        Mention m = (Mention) o;
+        return this.node.id - m.node.id;
+    }  
  
 }

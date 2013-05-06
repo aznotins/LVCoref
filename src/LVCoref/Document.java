@@ -1,8 +1,10 @@
 package LVCoref;
 
+import LVCoref.Dictionaries.MentionType;
 import java.awt.Color;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -19,7 +21,6 @@ import java.util.Map;
 import java.util.Set;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
 /**
@@ -253,7 +254,7 @@ public class Document {
                 //currently supports only one mention per node as head
                 if (head.goldMention == null) {
                     
-                    Mention goldMention = new Mention(this, i, head, getSubString(start, end));
+                    Mention goldMention = new Mention(this, i, head, Dictionaries.MentionType.NOMINAL, getSubString(start, end)); // @FIXME
                     goldMentions.add(goldMention);
                     head.goldMention = goldMention;
                     goldMention.categories = new HashSet<>();
@@ -291,6 +292,9 @@ public class Document {
     
     
     public boolean mergeClusters(Mention m, Mention n) {
+        assert(m != null && n != null);
+        assert(corefClusters.get(m.corefClusterID) != null && corefClusters.get(n.corefClusterID) != null);
+
         // put all mentions from m corefCluster to n corefCluster
         
         if (corefClusters.get(m.corefClusterID) != corefClusters.get(n.corefClusterID)) {
@@ -317,15 +321,86 @@ public class Document {
     public void setMentions() {
         int mention_id = 0;
         for (Node node : tree) {
-            if (node.tag.charAt(0) == 'n' || node.tag.charAt(0) == 'p') {
-                if (!dict.excludeWords.contains(node.lemma)) {
-                    node.isMention = true;
-                    Mention m = new Mention(this, mention_id++, node, node.word);
-                    mentions.add(m);
-                    node.mention = m;
+            if (node.mention == null) {
+                if (node.tag.charAt(0) == 'n' || node.tag.charAt(0) == 'p') {
+                    if (!dict.excludeWords.contains(node.lemma)) {
+                        node.isMention = true;
+                        Mention m = new Mention(this, mention_id++, node, node.getType(), node.word);
+                        mentions.add(m);
+                        node.mention = m;
+                    }
                 }
             }
         }
+    }
+    
+    
+    public void setMentionsNER(String filename) throws FileNotFoundException, IOException {
+        BufferedReader in = null;
+        
+        in = new BufferedReader(new FileReader(filename));
+		
+		String s;
+        int id  = 0;
+        int start = 0;
+        String cur_cat = "O";
+        Boolean isMention = false;
+		while ((s = in.readLine()) != null) {
+            if (s.trim().length() > 0) {
+                
+				String[] fields = s.split("\t");
+				String word = fields[0];
+				String cat = fields[2];	
+                assert(word.substring(0,1).equals(tree.get(id).word.substring(0,1)));//assert(word.equals(tree.get(id).word)); ner dont suuport multiple words ?? FIXME
+                if (isMention && (cat.equals("O") || !cur_cat.equals(cat) || tree.get(id).sentStart)) {
+                    
+                    if (cur_cat.equals("PERSONA")) setMention(start, id-1, "PERSON", MentionType.PROPER);
+                    else if (cur_cat.equals("LOKACIJA")) setMention(start, id-1, "LOCATION", MentionType.PROPER);
+                    else if (cur_cat.equals("ORGANIZACIJA")) setMention(start, id-1, "ORG", MentionType.PROPER);
+                    else System.err.println("Unsupported category @" + cat);
+                    isMention = !cat.equals("O");
+                    if (isMention) {
+                        start = id;
+                        cur_cat = cat;
+                    } else {
+                        cur_cat = "O";
+                    }
+                } else if (!cat.equals("O") && !cat.equals(cur_cat)) {
+                    isMention = true;
+                    start = id;
+                    cur_cat = cat;
+                }
+                id++;
+            }
+        }
+    }
+    
+    public void setMention(int from, int to, String cat, MentionType t) {
+        
+        if (tree.get(to).tag.equals("zs")) to--; //FIXME 
+//        if (cat.equals("PERSON") && from > 0) {
+//            Node x = tree.get(from-1);
+//            if (x.tag.equals("y") || true) {
+//                from--;
+//            }
+//            
+//            System.out.println(getSubString(from, to));
+//        }
+        
+        
+        Node head = getHead(from, to);
+        System.out.println("New NER Mention \""+getSubString(from, to)+"\" head="+head.word);
+        assert(head.mention == null);
+        int id = mentions.size();
+        Mention m = new Mention(this, id, head, t, getSubString(from, to));        
+        mentions.add(m);
+        head.mention = m;
+        
+        m.start = from;
+        m.end = to;
+        m.root = head.id;
+        m.categories.add(cat);
+        
     }
     
    
@@ -463,7 +538,6 @@ public class Document {
         float step = ((float) 1.0) / cn;
         for (int i = 0; i < cn; i++) {
             cols[i] = Integer.toHexString(Color.HSBtoRGB(step*i, 0.5f, 1f )).substring(2,8);//cols[i] = Integer.toHexString(Color.HSBtoRGB((float) i / cn, 1, 1)).substring(2,8);
-            System.out.println(i + " "+ i*step+ " " + cols[i]);
         }
         Map<Integer, String> corefColor = new HashMap<>();
         Collections.shuffle(Arrays.asList(cols));
@@ -521,6 +595,7 @@ public class Document {
                                         + " @span=["+n.nodeProjection(this) +"]"
                                         + " @startM="+n.mention.start
                                         + " @endM="+n.mention.end
+                                        + " @string="+n.mention.nerString
                                 + "'>"
                                 + " <em class='c"+n.mention.corefClusterID+"'>"+" " + n.word+"</em>"
                                 + "["+n.mention.corefClusterID+"]"
