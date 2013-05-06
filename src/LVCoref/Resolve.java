@@ -16,19 +16,15 @@ public class Resolve {
 	public static void go(Document d, Logger logger){
         
       appositive(d);
-      predicativeNominative(d);
+      predicativeNominative(d);      
       
-      
-      headMatch(d);
-      
+      headMatch(d);      
       
       relaxedSintaxPronounMatch(d);
             
       
       //roleAppositive(d);
       //headMatchSintax(d);//not really better than headMatch
-
-      
       //relaxedPronounMatch(d);
       //categoryPronounMatch(d);
       
@@ -295,17 +291,22 @@ public class Resolve {
         }
     }
         
+        
+        
     public static void predicativeNominative(Document d) {
         //Predicative nominative construction
 		for (Mention m : d.mentions) {
             //if (d.refGraph.needsReso(m)) {
-                if (m.node.parent != null && m.node.parent.lemma.equals("būt")) {
-                    for (Node node : m.node.parent.children) {
-                        if (node != m.node && node.mention != null) {
+            Node parent = m.node.parent;
+            if (parent != null && m.node.parent.isConjuction()) parent = m.node.parent.parent;
+                if (parent != null && parent.lemma.equals("būt")) {
+                    for (Node node : parent.children) {
+                        if (    m.node.id > m.node.parent.id &&  m.node.parent.id > node.id &&
+                                node != m.node && node.mention != null) {
                             Mention n = node.mention;
+                            //System.out.println(m.nerString + "("+ m.mentionCase + ")"+ " :- " + n.nerString + "("+ n.mentionCase + ")");
                             if (m.mentionCase == Case.NOMINATIVE && n.mentionCase == Case.NOMINATIVE &&
                                 m.number == n.number) {
-                                //d.refGraph.setRef(m, n);
                                 d.mergeClusters(m, n);
                                 LVCoref.logger.fine("PredicativeNominative :" + n.headString +"("+n.node.tag+") <- " + m.headString +"("+m.node.tag+")");
                                 m.addRefComm(n, "PredicativeNominative");                                

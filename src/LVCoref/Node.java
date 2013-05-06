@@ -129,6 +129,12 @@ public class Node {
         return s;
     }
     
+    
+    public Boolean isConjuction() {
+        return word.equals("un");
+    }
+    
+    
     /**
      * Could be optimized
      * @param d 

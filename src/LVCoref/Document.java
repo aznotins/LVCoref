@@ -353,11 +353,14 @@ public class Document {
 				String cat = fields[2];	
                 assert(word.substring(0,1).equals(tree.get(id).word.substring(0,1)));//assert(word.equals(tree.get(id).word)); ner dont suuport multiple words ?? FIXME
                 if (isMention && (cat.equals("O") || !cur_cat.equals(cat) || tree.get(id).sentStart)) {
-                    
+                    LVCoref.logger.fine("NER Mention :("+start+" " + (id-1)+") " + getSubString(start, id-1));
                     if (cur_cat.equals("PERSONA")) setMention(start, id-1, "PERSON", MentionType.PROPER);
                     else if (cur_cat.equals("LOKACIJA")) setMention(start, id-1, "LOCATION", MentionType.PROPER);
                     else if (cur_cat.equals("ORGANIZACIJA")) setMention(start, id-1, "ORG", MentionType.PROPER);
-                    else System.err.println("Unsupported category @" + cat);
+                    else {
+                        System.err.println("Unsupported category @" + cat);
+                        LVCoref.logger.fine("Unsupported category @" + cat);
+                    }
                     isMention = !cat.equals("O");
                     if (isMention) {
                         start = id;
@@ -375,34 +378,75 @@ public class Document {
         }
     }
     
+    
+    public void setQuoteMentions1() {
+        int max_l = 10;
+        int start = 0;
+        Boolean isMention = false;
+        
+        int i = -1;
+        while (++i < tree.size()) {
+            if (tree.get(i).tag.equals("zq")) {
+                if (isMention) {
+                    
+                    if (i-start < max_l) setMention(start, i-1, "ORG", MentionType.PROPER);
+                    isMention = false;
+                } else {
+                    start = i+1;
+                    isMention = true;
+                }
+            }
+        }
+
+    }
+    
+    
+    public void setQuoteMentions() {
+        int max_l = 10;
+        int i = -1;
+        while (++i < tree.size()) {
+            Node n =tree.get(i);
+            if (n.tag.equals("zq") || n.word.equals("\'")) {
+                int j = i;
+                while (++j - i <= max_l) {
+                    
+                    if (tree.get(j).tag.charAt(0) == 'v') break; //nesatur d.v.
+                    
+                    if (tree.get(j).tag.equals("zq") || tree.get(j).word.equals("\'")) {
+                        LVCoref.logger.fine("Quote Mention :("+i+" " + j+") " + getSubString(i+1, j-1));
+                        assert(i+1 <= j-1);
+                        setMention(i+1, j-1, "ORG", MentionType.PROPER);
+                        i = j;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    
+    
     public void setMention(int from, int to, String cat, MentionType t) {
         
         if (tree.get(to).tag.equals("zs")) to--; //FIXME 
-//        if (cat.equals("PERSON") && from > 0) {
-//            Node x = tree.get(from-1);
-//            if (x.tag.equals("y") || true) {
-//                from--;
-//            }
-//            
-//            System.out.println(getSubString(from, to));
-//        }
-        
-        
+
         Node head = getHead(from, to);
-        System.out.println("New NER Mention \""+getSubString(from, to)+"\" head="+head.word);
-        assert(head.mention == null);
-        int id = mentions.size();
-        Mention m = new Mention(this, id, head, t, getSubString(from, to));        
-        mentions.add(m);
-        head.mention = m;
-        
-        m.start = from;
-        m.end = to;
-        m.root = head.id;
-        m.categories.add(cat);
-        
+        if (head.mention == null) {
+            //System.out.println("Mention \""+getSubString(from, to)+"\" head="+head.word);
+            LVCoref.logger.fine("Mention \""+getSubString(from, to)+"\" head="+head.word);
+            int id = mentions.size();
+            Mention m = new Mention(this, id, head, t, getSubString(from, to));        
+            mentions.add(m);
+            head.mention = m;
+
+            m.start = from;
+            m.end = to;
+            m.root = head.id;
+            if (cat.trim().length() > 0) m.categories.add(cat);
+        } else {
+            System.err.println("setMention() mention with this head already set: " + "old=" + head.mention.nerString + " new=" + getSubString(from, to));
+            LVCoref.logger.fine("setMention() mention with this head already set: " + "old=" + head.mention.nerString + " new=" + getSubString(from, to));
+        }
     }
-    
    
     
     
@@ -510,16 +554,19 @@ public class Document {
         List<Node> cand = new ArrayList<>();
         for (int i = start; i <= end; i++) {
             Node n = tree.get(i);
-            if (n.parent != null && ( n.parent.id < start || n.parent.id > end)) {
+            if ((n.parent != null && ( n.parent.id < start || n.parent.id > end)) || n.parent == null) {
                 cand.add(n);
             }
         }
-        Node head = cand.get(0);
+        assert(cand.size() > 0);
+        Node head = cand.get(cand.size()-1);//FIXME
+        //Node head = cand.get(0);
         //needed if markable contains multiple head candidates
         //lowest common ancestor is returned
-        for (int i = 1; i < cand.size(); i++) {
-            head = getCommonAncestor(head, cand.get(i));
-        }
+//        for (int i = 1; i < cand.size(); i++) {
+//            head = getCommonAncestor(head, cand.get(i));
+//        }
+
         return head;
     }
     
@@ -587,7 +634,8 @@ public class Document {
                                     + "title='"
                                         + "@cID=" + n.mention.corefClusterID
                                         + " @mID=" + n.mention.id
-                                        + " @POS=" + n.tag+":"+n.lemma                                       
+                                        + " @POS=" + n.tag+":"+n.lemma    
+                                        + " @wID=" + n.id
                                         + " @antID="+((ant == null)?null:ant.id)
                                         + " @type="+n.mention.type
                                         + " @cat="+n.mention.categories
@@ -605,7 +653,8 @@ public class Document {
                         out.print(" <span "
                                     + "title='"
                                         + " @mID="+n.mention.id
-                                        + " @POS=" + n.tag+":"+n.lemma
+                                        + " @POS=" + n.tag+":"+n.lemma    
+                                        + " @wID=" + n.id
                                         + " @type="+n.mention.type
                                         + " @cat"+n.mention.categories
                                         + " @span=["+n.nodeProjection(this) +"]"
@@ -615,7 +664,8 @@ public class Document {
                     } else {
                         out.print(" <span "
                                 + "title='"
-                                + " @POS=" + n.tag+":"+n.lemma
+                                + " @POS=" + n.tag+":"+n.lemma    
+                                + " @wID=" + n.id
                                 + " @span=["+n.nodeProjection(this) +"]"
                             +"'>"
                                 + n.word 

@@ -106,7 +106,7 @@ public class Mention implements Comparable{
             else if (node.tag.charAt(4) == 'p') number = Number.PLURAL;
             else number = Number.UNKNOWN;
             
-            switch(node.tag.charAt(4)) {
+            switch(node.tag.charAt(5)) {
                 case 'n':mentionCase = Case.NOMINATIVE; break;
                 case 'g':mentionCase = Case.GENITIVE; break;
                 case 'd':mentionCase = Case.DATIVE; break;

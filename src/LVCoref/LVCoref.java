@@ -146,10 +146,11 @@ public class LVCoref {
            d.readCONLL(input_file);
 
             d.setMentionsNER("data/pipeline/ner.tmp");
-            //d.setMentions();
-//            for (Mention m : d.mentions) {
-//                if (m.categories.size() == 0) m.setCategories(d);
-//            }
+            d.setQuoteMentions();
+            d.setMentions();
+            for (Mention m : d.mentions) {
+                if (m.categories.size() == 0) m.setCategories(d);
+            }
             
             
             //normalize mentions
