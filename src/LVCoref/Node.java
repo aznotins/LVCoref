@@ -134,6 +134,10 @@ public class Node {
         return word.equals("un");
     }
     
+    public Boolean isAbbreviation(){
+        return word.toUpperCase().equals(word);
+    }
+    
     
     /**
      * Could be optimized

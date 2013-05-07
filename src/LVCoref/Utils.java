@@ -4,7 +4,7 @@
  */
 package LVCoref;
 
-import java.util.Collection;
+import java.io.BufferedWriter;
 import java.util.Set;
 
 /**
@@ -35,5 +35,14 @@ public class Utils {
             s.deleteCharAt(s.length()-1);
         }
         return s.toString();
+    }
+    
+    public static void toWriter (BufferedWriter writer, String text) {
+        try {
+            writer.write(text);
+        }
+        catch (java.io.IOException ex) {
+            ex.printStackTrace();
+        }
     }
 }

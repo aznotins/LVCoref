@@ -1,5 +1,6 @@
 package LVCoref;
 
+import LVCoref.ScorerBCubed.BCubedType;
 import LVCoref.util.Pair;
 
 import java.io.IOException;
@@ -91,9 +92,9 @@ public class LVCoref {
         String output_file = "data/output.conll";
         String output_html = "data/output.html";
         
-        input_file = "data/pipeline/parsed.tmp";
-        output_file = "data/pipeline/output.conll";
-        //output_html = "data/pipeline/output.html";
+//        input_file = "data/pipeline/parsed.tmp";
+//        output_file = "data/pipeline/output.conll";
+//        //output_html = "data/pipeline/output.html";
         
         String timeStamp = Calendar.getInstance().getTime().toString().replaceAll("\\s", "-").replaceAll(":", "-");
         
@@ -143,20 +144,21 @@ public class LVCoref {
            // d.readCONLL("data/SofijasPasaule1996_11-28-dep-unlabeled.conll");
             //d.readCONLL("data/intervija-unlabeled.conll");
            //d.readCONLL("data/LETA_IzlaseFreimiem-dep-unlabeled.conll");
-           d.readCONLL(input_file);
+            d.readCONLL(input_file);
 
-            d.setMentionsNER("data/pipeline/ner.tmp");
-            d.setQuoteMentions();
-            d.setMentions();
-            for (Mention m : d.mentions) {
-                if (m.categories.size() == 0) m.setCategories(d);
-            }
-            
-            
-            //normalize mentions
-            Collections.sort(d.mentions);
-            for(int i = 0; i < d.mentions.size(); i++) {
-                d.mentions.get(i).id = i;
+             d.setMentionsNER("data/pipeline/ner.tmp");
+             d.setQuoteMentions();
+//             d.setMentions();
+//             for (Mention m : d.mentions) {
+//                 if (m.categories.size() == 0) m.setCategories(d);
+//             }
+             d.setListMentions();
+
+
+             //normalize mentions
+             Collections.sort(d.mentions);
+             for(int i = 0; i < d.mentions.size(); i++) {
+                 d.mentions.get(i).id = i;
             }
 
             
@@ -188,7 +190,7 @@ public class LVCoref {
 
             //d.printCoreferences();
 
-            //d.addAnnotationMMAX("data/sample_coref_level.xml");
+            
             
             if (!output_file.isEmpty()) {
                d.outputCONLL(output_file);
@@ -199,21 +201,23 @@ public class LVCoref {
                d.htmlOutput(output_html);
             }
             
+            MMAX2.createProject(d, "test", "data/mmax2/");
             
-//            CorefScorer scorer = new ScorerPairwise();
-//            scorer.calculateScore(d);
-//            scorer.printF1(logger, true);
-//            System.out.println(scorer.getF1String(true));
-//            
-//            CorefScorer scorerMUC = new ScorerMUC();
-//            scorerMUC.calculateScore(d);
-//            scorerMUC.printF1(logger, true);
-//            System.out.println(scorerMUC.getF1String(true));
-//            
-//            CorefScorer scorerB3 = new ScorerBCubed(BCubedType.Bconll);
-//            scorerB3.calculateScore(d);
-//            scorerB3.printF1(logger, true);
-//            System.out.println(scorerB3.getF1String(true));
+            d.addAnnotationMMAX("data/sample_coref_level.xml");
+            CorefScorer scorer = new ScorerPairwise();
+            scorer.calculateScore(d);
+            scorer.printF1(logger, true);
+            System.out.println(scorer.getF1String(true));
+            
+            CorefScorer scorerMUC = new ScorerMUC();
+            scorerMUC.calculateScore(d);
+            scorerMUC.printF1(logger, true);
+            System.out.println(scorerMUC.getF1String(true));
+            
+            CorefScorer scorerB3 = new ScorerBCubed(BCubedType.Bconll);
+            scorerB3.calculateScore(d);
+            scorerB3.printF1(logger, true);
+            System.out.println(scorerB3.getF1String(true));
             
 
 

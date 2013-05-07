@@ -3,11 +3,14 @@ package LVCoref;
 import LVCoref.Dictionaries.MentionType;
 import java.awt.Color;
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -19,9 +22,24 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import org.apache.commons.lang3.StringEscapeUtils;
+import org.w3c.dom.Attr;
+import org.w3c.dom.DOMImplementation;
+import org.w3c.dom.DocumentType;
+import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
+
+
 
 /**
  * Document class contains document parse tree structure, 
@@ -290,6 +308,7 @@ public class Document {
         return true;
     }
     
+      
     
     public boolean mergeClusters(Mention m, Mention n) {
         assert(m != null && n != null);
@@ -329,6 +348,23 @@ public class Document {
                         mentions.add(m);
                         node.mention = m;
                     }
+                }
+            }
+        }
+    }
+    
+    public void setListMentions() {
+        int mention_id = 0;
+        for (Node node : tree) {
+            if (node.mention != null) continue;
+            if (node.tag.charAt(0) == 'n' || node.tag.charAt(0) == 'p') {
+                String cat = dict.getCategory(node.lemma);
+                if (cat != null) {
+                    node.isMention = true;
+                    Mention m = new Mention(this, mention_id++, node, node.getType(), node.word);
+                    mentions.add(m);
+                    node.mention = m;
+                    m.category = cat;
                 }
             }
         }
@@ -379,28 +415,6 @@ public class Document {
     }
     
     
-    public void setQuoteMentions1() {
-        int max_l = 10;
-        int start = 0;
-        Boolean isMention = false;
-        
-        int i = -1;
-        while (++i < tree.size()) {
-            if (tree.get(i).tag.equals("zq")) {
-                if (isMention) {
-                    
-                    if (i-start < max_l) setMention(start, i-1, "ORG", MentionType.PROPER);
-                    isMention = false;
-                } else {
-                    start = i+1;
-                    isMention = true;
-                }
-            }
-        }
-
-    }
-    
-    
     public void setQuoteMentions() {
         int max_l = 10;
         int i = -1;
@@ -441,7 +455,10 @@ public class Document {
             m.start = from;
             m.end = to;
             m.root = head.id;
-            if (cat.trim().length() > 0) m.categories.add(cat);
+            if (cat.trim().length() > 0) {
+                m.categories.add(cat);
+                m.category = cat;
+            }
         } else {
             System.err.println("setMention() mention with this head already set: " + "old=" + head.mention.nerString + " new=" + getSubString(from, to));
             LVCoref.logger.fine("setMention() mention with this head already set: " + "old=" + head.mention.nerString + " new=" + getSubString(from, to));
@@ -638,7 +655,7 @@ public class Document {
                                         + " @wID=" + n.id
                                         + " @antID="+((ant == null)?null:ant.id)
                                         + " @type="+n.mention.type
-                                        + " @cat="+n.mention.categories
+                                        + " @cat="+n.mention.categories + ":"+n.mention.category
                                         + " @resoInfo="+n.mention.comments+"]"
                                         + " @span=["+n.nodeProjection(this) +"]"
                                         + " @startM="+n.mention.start
@@ -656,7 +673,7 @@ public class Document {
                                         + " @POS=" + n.tag+":"+n.lemma    
                                         + " @wID=" + n.id
                                         + " @type="+n.mention.type
-                                        + " @cat"+n.mention.categories
+                                        + " @cat"+n.mention.categories + ":"+n.mention.category
                                         + " @span=["+n.nodeProjection(this) +"]"
                                     +"'>"
                                 + "<em>" + n.word+"</em>"

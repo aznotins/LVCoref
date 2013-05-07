@@ -261,7 +261,7 @@ public class Resolve {
                                     if (prev.type == MentionType.NOMINAL || prev.type == MentionType.PROPER) {
                                         if (prev.number == m.number && prev.gender == m.gender) {
                                             Set<String> cat = d.dict.categoryIntersection(m.categories, prev.categories);
-                                            if (cat.size() > 0) {
+                                            if (cat.size() >= 0) {
                                                 LVCoref.logger.fine("Relaxed sintax +category pronoun match :"+"level:"+level+" :"  + prev.headString +"("+prev.node.tag+" "+prev.categories+") <- " + m.headString+"("+m.node.tag+" "+m.categories+")");
                                                 //m.categories = cat;
                                                 //prev.categories = cat;//TODO pārbaudīt, vai nerodas kļūdas norādot uz vienu un to pašu obj
@@ -301,10 +301,11 @@ public class Resolve {
             if (parent != null && m.node.parent.isConjuction()) parent = m.node.parent.parent;
                 if (parent != null && parent.lemma.equals("būt")) {
                     for (Node node : parent.children) {
-                        if (    m.node.id > m.node.parent.id &&  m.node.parent.id > node.id &&
+                        //System.out.println(m.nerString + "("+ m.mentionCase + ")"+ " ????? " + node.word + "("+ node.tag + ")");
+                        if (    m.node.id > parent.id &&  parent.id > node.id &&
                                 node != m.node && node.mention != null) {
                             Mention n = node.mention;
-                            //System.out.println(m.nerString + "("+ m.mentionCase + ")"+ " :- " + n.nerString + "("+ n.mentionCase + ")");
+                            //System.out.println(m.nerString + "("+ m.mentionCase + ")"+ " : " + n.nerString + "("+ n.mentionCase + ")");
                             if (m.mentionCase == Case.NOMINATIVE && n.mentionCase == Case.NOMINATIVE &&
                                 m.number == n.number) {
                                 d.mergeClusters(m, n);
