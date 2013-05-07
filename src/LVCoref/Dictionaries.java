@@ -52,7 +52,7 @@ public class Dictionaries {
             properNouns.get("PERSON").addAll(firstNames);
             properNouns.get("PERSON").addAll(lastNames);           
             getWordsFromFile("lists/roles.txt", commonNouns.get("PERSON"), true);
-            pronouns.get("PERSON").addAll(Arrays.asList("kurš","kura","es","tu","viņš","viņa"));
+            pronouns.get("PERSON").addAll(Arrays.asList("kurš","kura","es","tu","viņš","viņa","mēs", "jūs"));
                         
             commonNouns.put("ORG",new HashSet<String>());
             properNouns.put("ORG",new HashSet<String>());

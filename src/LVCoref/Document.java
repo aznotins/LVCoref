@@ -51,12 +51,12 @@ public class Document {
     /** 
      * Document parse tree
      */
-	public ArrayList<Node> tree;
+	public List<Node> tree;
     
-    public ArrayList<Integer> sentences; //node ids starting senteces
+    public List<Integer> sentences; //node ids starting senteces
 
-	public ArrayList<Mention> mentions;
-    public ArrayList<Mention> goldMentions;
+	public List<Mention> mentions;
+    public List<Mention> goldMentions;
     
     public RefGraph refGraph;
     
@@ -269,6 +269,15 @@ public class Document {
                 
                 Node head = getHead(start, end);
                 
+                
+                if (category.equals("profession")) category = "person";
+                if (category.equals("event")) continue;
+                if (category.equals("product")) continue;
+                if (category.equals("media")) continue;
+                if (category.equals("time")) continue;
+                
+                //if (head.tag.charAt(0) == 'p') continue;
+                
                 //currently supports only one mention per node as head
                 if (head.goldMention == null) {
                     
@@ -357,6 +366,8 @@ public class Document {
         int mention_id = 0;
         for (Node node : tree) {
             if (node.mention != null) continue;
+            //if (node.tag.charAt(0) == 'p') continue;
+           // if (node.isPlural()) continue;
             if (node.tag.charAt(0) == 'n' || node.tag.charAt(0) == 'p') {
                 String cat = dict.getCategory(node.lemma);
                 if (cat != null) {
@@ -439,7 +450,7 @@ public class Document {
     }
     
     
-    public void setMention(int from, int to, String cat, MentionType t) {
+    public Mention setMention(int from, int to, String cat, MentionType t) {
         
         if (tree.get(to).tag.equals("zs")) to--; //FIXME 
 
@@ -459,12 +470,65 @@ public class Document {
                 m.categories.add(cat);
                 m.category = cat;
             }
+            return m;
         } else {
             System.err.println("setMention() mention with this head already set: " + "old=" + head.mention.nerString + " new=" + getSubString(from, to));
             LVCoref.logger.fine("setMention() mention with this head already set: " + "old=" + head.mention.nerString + " new=" + getSubString(from, to));
+            return null;
         }
     }
    
+    public void setAbbreviationMentions(){
+        for (Node n : tree) {            
+            if (n.isAbbreviation() && n.mention == null) {
+                Mention m = setMention(n.id, n.id, "ORG", MentionType.PROPER);  
+                if (m != null) {
+                    System.out.println("Abbreviation Mention: " + m.nerString + "("+ m.id +")");
+                    LVCoref.logger.fine("Abbreviation Mention: " + m.nerString + "("+ m.id +")");
+                } else {
+                    System.err.println("Couldn't create abbreviation mention: " + n.word + "("+ n.id +")");
+                    LVCoref.logger.fine("Couldn't create abbreviation mention: " + n.word + "("+ n.id +")");
+                }
+                
+            }
+        }
+    }
+    
+    
+    public void removeNestedMentions() {
+        int max_depth = 1;
+        List <Mention> mm = new ArrayList<>();
+        for (Mention m : mentions) {
+            int l = 0;
+            Node n = m.node.parent;
+            Boolean nested = false;
+            while (l++ < max_depth && n != null && m.node.sentNum == n.sentNum) {
+                if (n.mention != null && (m.type == MentionType.NOMINAL || m.type == MentionType.PROPER && n.mention.type == MentionType.PROPER)) {
+                    //remove m
+                    m.node.mention = null;
+                    nested = true;
+                    break;
+                }
+                n = n.parent;
+            }
+            if (!nested) mm.add(m);
+        }
+        mentions.clear();
+        mentions = mm;
+        normalizeMentions();
+    }
+    
+    public void sortMentions() {
+        Collections.sort(mentions);
+        normalizeMentions();
+    }
+    
+    public void normalizeMentions() {
+        for(int i = 0; i < mentions.size(); i++) {
+           mentions.get(i).id = i;
+        }
+    }
+        
     
     
     public void initializeEntities() {
@@ -569,12 +633,14 @@ public class Document {
     
     public Node getHead(int start, int end) {
         List<Node> cand = new ArrayList<>();
+        assert(start <= end);
         for (int i = start; i <= end; i++) {
             Node n = tree.get(i);
             if ((n.parent != null && ( n.parent.id < start || n.parent.id > end)) || n.parent == null) {
                 cand.add(n);
             }
         }
+        //System.out.println("["+start+ ".." +end +"] head candidates: " + cand);
         assert(cand.size() > 0);
         Node head = cand.get(cand.size()-1);//FIXME
         //Node head = cand.get(0);
@@ -668,6 +734,7 @@ public class Document {
                         
                     } else if (n.mention != null) {
                         out.print(" <span "
+                                    + "class='singleton'"
                                     + "title='"
                                         + " @mID="+n.mention.id
                                         + " @POS=" + n.tag+":"+n.lemma    
@@ -708,7 +775,7 @@ public class Document {
             
             for (Integer c_i : this.corefClusters.keySet()) {
                 CorefCluster c = this.corefClusters.get(c_i);
-                if (c.corefMentions.size() > 1) {
+                if (c.corefMentions.size() > 0) {
                     out.println("<div class='mentionCluster'>");
                     out.println("========== " + c_i + " ==========");
                     for (Mention m : c.corefMentions) {

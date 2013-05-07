@@ -13,7 +13,7 @@ public class ScorerPairwise extends CorefScorer {
   protected void calculateRecall(Document doc) {
     int rDen = 0;
     int rNum = 0;
-
+    int not_mention = 0;
     for(CorefCluster g : doc.goldCorefClusters.values()) {
         //if (g.corefMentions.size() < 2) continue;
         
@@ -26,6 +26,11 @@ public class ScorerPairwise extends CorefScorer {
           if(m1.node.mention != null && m2.node.mention != null
               && m1.node.mention.corefClusterID == m2.node.mention.corefClusterID){
             rNum++;
+          } else if (m1.node.mention != null && m2.node.mention != null) {
+              System.out.println("Recall Incorrect coreference(referents)" + m1.nerString + "  :  " + m2.nerString);
+          } else {
+              if (m1.node.mention == null) System.out.println("Recall Not mention ("+m1.nerString+") #" + ++not_mention);
+              if (m2.node.mention == null) System.out.println("Recall Not mention ("+m2.nerString+") #" + ++not_mention);
           }
         }
       }
@@ -39,7 +44,7 @@ public class ScorerPairwise extends CorefScorer {
     int pDen = 0;
     int pNum = 0;
 
-    
+    int not_mention = 0;
     for(CorefCluster c : doc.corefClusters.values()){
     //if (c.corefMentions.size() < 2) continue;
       int clusterSize = c.getCorefMentions().size();
@@ -50,6 +55,11 @@ public class ScorerPairwise extends CorefScorer {
           if(m1.node.goldMention != null && m2.node.goldMention != null
               && m1.node.goldMention.corefClusterID == m2.node.goldMention.corefClusterID){
             pNum++;
+          } else if (m1.node.goldMention != null && m2.node.goldMention != null) {
+              System.out.println("Precision Incorrect coreference(referents)" + m1.nerString + "  :  " + m2.nerString);
+          } else {
+              if (m1.node.goldMention == null) System.out.println("Precision Not mention ("+m1.nerString+") #" + ++not_mention);
+              if (m2.node.goldMention == null) System.out.println("Precision Not mention ("+m2.nerString+") #" + ++not_mention);
           }
         }
       }

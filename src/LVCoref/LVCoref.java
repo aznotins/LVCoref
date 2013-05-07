@@ -91,10 +91,17 @@ public class LVCoref {
         String input_file = "data/input.conll";
         String output_file = "data/output.conll";
         String output_html = "data/output.html";
+        String ner_file = "data/pipeline/ner.tmp";
+        String mmax_gold = "data/interview_46_coref_level.xml";
+        String mmax_project = "interview_46";
+        String mmax_project_path = "data/mmax2/";
         
 //        input_file = "data/pipeline/parsed.tmp";
 //        output_file = "data/pipeline/output.conll";
 //        //output_html = "data/pipeline/output.html";
+        
+        input_file = "data/pipeline/interview_46.conll";
+        ner_file = "data/pipeline/interview_46_ner.txt";
         
         String timeStamp = Calendar.getInstance().getTime().toString().replaceAll("\\s", "-").replaceAll(":", "-");
         
@@ -146,20 +153,21 @@ public class LVCoref {
            //d.readCONLL("data/LETA_IzlaseFreimiem-dep-unlabeled.conll");
             d.readCONLL(input_file);
 
-             d.setMentionsNER("data/pipeline/ner.tmp");
+             d.setMentionsNER(ner_file);
              d.setQuoteMentions();
+             d.setAbbreviationMentions();
 //             d.setMentions();
 //             for (Mention m : d.mentions) {
 //                 if (m.categories.size() == 0) m.setCategories(d);
 //             }
              d.setListMentions();
-
-
+             
+             d.removeNestedMentions();
+             d.sortMentions();
+             
              //normalize mentions
-             Collections.sort(d.mentions);
-             for(int i = 0; i < d.mentions.size(); i++) {
-                 d.mentions.get(i).id = i;
-            }
+             
+            
 
             
 //            for(Mention m : d.mentions) {
@@ -201,9 +209,9 @@ public class LVCoref {
                d.htmlOutput(output_html);
             }
             
-            MMAX2.createProject(d, "test", "data/mmax2/");
+            //MMAX2.createProject(d, mmax_project, mmax_project_path);
             
-            d.addAnnotationMMAX("data/sample_coref_level.xml");
+            d.addAnnotationMMAX(mmax_gold);
             CorefScorer scorer = new ScorerPairwise();
             scorer.calculateScore(d);
             scorer.printF1(logger, true);

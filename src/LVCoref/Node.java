@@ -135,9 +135,18 @@ public class Node {
     }
     
     public Boolean isAbbreviation(){
+        if (tag.charAt(0) == 'z') return false;
+        for (int i = 0; i < word.length(); i++) {
+            if (!Character.isLetter(word.charAt(i))) return false;
+        }
         return word.toUpperCase().equals(word);
     }
     
+    public Boolean isPlural() {
+        if (tag.charAt(0) == 'n' && tag.charAt(3) == 'p') return true;
+        if (tag.charAt(0) == 'p' && tag.charAt(4) == 'p') return true;
+        return false;
+    }
     
     /**
      * Could be optimized

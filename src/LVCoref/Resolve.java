@@ -18,9 +18,16 @@ public class Resolve {
       appositive(d);
       predicativeNominative(d);      
       
-      headMatch(d);      
+      headMatch(d);   
       
       relaxedSintaxPronounMatch(d);
+      
+      //CHEAT
+      firstPerson(d);
+      secondPerson(d);
+      firstPluralPerson(d);
+      
+      
             
       
       //roleAppositive(d);
@@ -59,6 +66,50 @@ public class Resolve {
                          }
                          prev = prev.prev(d);
                     }
+                }
+            }
+        }
+    }
+    
+    
+    public static void firstPerson(Document d) {
+        Mention m_es = null;
+        for (Mention m : d.mentions) {
+            if (m.type == MentionType.PRONOMINAL && m.node.lemma.equals("es"))  {
+                if (m_es == null) m_es = m;
+                else {
+                    d.mergeClusters(m, m_es);
+                    LVCoref.logger.fine("First person pronoun match :" + m.nerString+"("+m.node.tag+")#"+m.id);
+                    m.addRefComm(m, "firstPerson");
+                }
+            }
+        }
+    }
+    
+    public static void firstPluralPerson(Document d) {
+        Mention m_es = null;
+        for (Mention m : d.mentions) {
+            if (m.type == MentionType.PRONOMINAL && m.node.lemma.equals("mēs"))  {
+                if (m_es == null) m_es = m;
+                else {
+                    d.mergeClusters(m, m_es);
+                    LVCoref.logger.fine("First plural person pronoun match :" + m.nerString+"("+m.node.tag+")#"+m.id);
+                    m.addRefComm(m, "firstPersonPlural");
+                }
+            }
+        }
+    }
+    
+    public static void secondPerson(Document d) {
+        Mention m_es = null;
+        for (Mention m : d.mentions) {
+            if (m.type == MentionType.PRONOMINAL && m.node.lemma.equals("jūs"))  {
+                System.err.println("JUS");
+                if (m_es == null) m_es = m;
+                else {
+                    d.mergeClusters(m, m_es);
+                    LVCoref.logger.fine("Second person pronoun match :" + m.nerString+"("+m.node.tag+")#"+m.id);
+                    m.addRefComm(m, "secondPerson");
                 }
             }
         }
@@ -242,8 +293,8 @@ public class Resolve {
             if (m.needsReso()) {
                 if (m.type == MentionType.PRONOMINAL) {
 
-                    int sentenceWindow = 4;
-                    int maxLevel = 20;
+                    int sentenceWindow = 1;
+                    int maxLevel = 5;
                     List<Node> q = new LinkedList<Node>(Arrays.asList(m.node));
                     q = d.traverse(m.node, q);
                     Boolean found = true;
@@ -323,7 +374,7 @@ public class Resolve {
 	
 	public static Boolean genetiveBad(Document d, Mention m) {
 		if (m.type == MentionType.NOMINAL && m.mentionCase == Case.GENITIVE) {
-			if (m.node.parent != null && m.node.parent.tag.charAt(0) == 'n'){
+			if (m.node.parent != null && m.node.parent.mention != null){
 				return true;
 			}
 		}
