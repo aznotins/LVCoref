@@ -1,19 +1,20 @@
 package LVCoref;
 
 import LVCoref.ScorerBCubed.BCubedType;
-import LVCoref.util.Pair;
-
+import java.io.BufferedReader;
 import java.io.IOException;
+
+import java.io.InputStreamReader;
+import java.io.PrintStream;
+import java.io.UnsupportedEncodingException;
 import java.util.Calendar;
-import java.util.Collections;
 import java.util.List;
 import java.util.logging.FileHandler;
 import java.util.logging.Formatter;
+import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
-
-
 
 /**
  * Main process class
@@ -21,226 +22,279 @@ import java.util.logging.Logger;
  */
 public class LVCoref {
     
-    
+    private enum inputTypes {CONLL, STDIN_CONLL};
+    private enum outputTypes {CONLL, STDOUT_CONLL};
     public static final Logger logger = Logger.getLogger(LVCoref.class.getName());
 
-  /**
-   * If true, we score the output of the given test document
-   * Assumes gold annotations are available
-   */
-  private boolean doScore;
+    /**
+    * If true, we score the output of the given test document
+    * Assumes gold annotations are available
+    */
+    //private static int maxSentDist = 100;
+    private static String mmaxExportPath = "data/mmax2/";
+    private static String mmaxExportProjectName = "";
+    private static boolean mmaxExport = false;
+    private static String logPath = "data/logs/";
+    private static boolean keepLogs = false;
+    private static String conllInput = null;
+    private static String conllOutput = null;
+    private static String htmlOutput = null;
+    private static String mmaxGold = null;
+    private static String nerAnnotation = null;
+    
+    private static inputTypes inputType = inputTypes.STDIN_CONLL;
+    private static outputTypes outputType = outputTypes.STDOUT_CONLL;
+    
+    public static String timeStamp = ""; //for logs
+    public static int documentID = 0;
+    public static boolean stopProcess = false;
 
-  /**
-   * If true, we do post processing.
-   */
-  private boolean doPostProcessing;
+    /** Scores for each pass */
+    public List<CorefScorer> scorePairwise;
+    public List<CorefScorer> scoreBcubed;
+    public List<CorefScorer> scoreMUC;
 
-  /**
-   * maximum sentence distance between two mentions for resolution (-1: no constraint on distance)
-   */
-  private int maxSentDist;
+    public List<CorefScorer> scoreSingleDoc;
+    
+    
 
-  /**
-   * automatically set by looking at sieves
-   */
-  private boolean useSemantics;
-
-  /** Final score to use for sieve optimization (default is pairwise.Precision) */
-  private String optimizeScoreType;
-  /** More useful break down of optimizeScoreType */
-  private boolean optimizeConllScore;
-  private String optimizeMetricType;
-  private CorefScorer.SubScoreType optimizeSubScoreType;
-
-  /**
-   * Array of sieve passes to be used in the system
-   * Ordered from highest precision to lowest!
-   */
-  //private /*final */DeterministicCorefSieve [] sieves;
-  //private /*final*/ String [] sieveClassNames;
-
-  /** Current sieve index */
-//  public int currentSieve;
-
-  /** counter for links in passes (Pair<correct links, total links>)  */
-  public List<Pair<Integer, Integer>> linksCountInPass;
-
-
-  /** Scores for each pass */
-  public List<CorefScorer> scorePairwise;
-  public List<CorefScorer> scoreBcubed;
-  public List<CorefScorer> scoreMUC;
-
-  private List<CorefScorer> scoreSingleDoc;
-
-  /** Additional scoring stats */
-  int additionalCorrectLinksCount;
-  int additionalLinksCount;
-
-  public static class LogFormatter extends Formatter {
-    @Override
-    public String format(LogRecord rec) {
-      StringBuilder buf = new StringBuilder(1000);
-      buf.append(formatMessage(rec));
-      buf.append('\n');
-      return buf.toString();
-    }
-  }
-
-	public static void main(String[] args) throws Exception {
-        String input_file = "data/input.conll";
-        String output_file = "data/output.conll";
-        String output_html = "data/output.html";
-        String ner_file = "data/pipeline/ner.tmp";
-        String mmax_gold = "data/interview_46_coref_level.xml";
-        String mmax_project = "interview_46";
-        String mmax_project_path = "data/mmax2/";
-        
-//        input_file = "data/pipeline/parsed.tmp";
-//        output_file = "data/pipeline/output.conll";
-//        //output_html = "data/pipeline/output.html";
-        
-        input_file = "data/pipeline/interview_46.conll";
-        ner_file = "data/pipeline/interview_46_ner.txt";
-        
-        String timeStamp = Calendar.getInstance().getTime().toString().replaceAll("\\s", "-").replaceAll(":", "-");
-        
-        try {
-            String logFileName = "data/logs/log.txt";
-            if(logFileName.endsWith(".txt")) {
-                logFileName = logFileName.substring(0, logFileName.length()-4) +"_"+ timeStamp+".txt";
-            } else {
-                logFileName = logFileName + "_"+ timeStamp+".txt";
-            }
-            FileHandler fh = new FileHandler(logFileName, false);
-            logger.addHandler(fh);
-            logger.setLevel(Level.FINE);
-            fh.setFormatter(new LogFormatter());
-        } catch (SecurityException e) {
-        System.err.println("ERROR: cannot initialize logger!");
-        throw e;
-        } catch (IOException e) {
-            System.err.println("ERROR: cannot initialize logger!");
-            throw e;
+    public static class LogFormatter extends Formatter {
+        @Override
+        public String format(LogRecord rec) {
+            StringBuilder buf = new StringBuilder(1000);
+            buf.append(formatMessage(rec));
+            buf.append('\n');
+            return buf.toString();
         }
-
-        logger.fine(timeStamp);
+    }
+    
+    public static void createLogger() {
+        timeStamp = Calendar.getInstance().getTime().toString().replaceAll("\\s", "-").replaceAll(":", "-");
+        if (keepLogs) {
+            String logFileName = logPath + timeStamp + "_log.txt";
+            for(Handler fh : logger.getHandlers()) { logger.removeHandler(fh); } //remove all old log handlers
+            try {
+                FileHandler fh = new FileHandler(logFileName, false);
+                logger.addHandler(fh);
+                logger.setLevel(Level.FINE);
+                fh.setFormatter(new LogFormatter());
+            } catch (IOException e) {
+                System.err.println("ERROR: cannot initialize logger!");
+            }
+            logger.fine(timeStamp);            
+            logger.fine("----Parameters------"
+                    + "\nmmaxExportPath: " + mmaxExportPath
+                    + "\nmmaxExport: " + mmaxExport
+                    + "\nlogPath: " + logPath
+                    + "\nkeepLogs: " + keepLogs
+                    + "\nconllInput: " + conllInput
+                    + "\nconllOutput: " + conllOutput
+                    + "\nhtmlOutput: " + htmlOutput
+                    + "\nmmaxGold: " + mmaxGold
+                    + "\nnerAnnotation: "+ nerAnnotation
+                    + "\ninputType: " + inputType
+                    + "\noutputType: " + outputType
+                    + "\n----------\n"
+                    );
+        }
         //logger.fine(props.toString());
         //Constants.printConstants(logger);
-        
-        
-        if (args.length > 2) {
-            for (String s: args) {
-                if (s.startsWith("--input_file=")) {
-                    input_file = s.replaceAll("\"|--input_file=", "");
-                } else if (s.startsWith("--output_file=")) {
-                    output_file = s.replaceAll("\"|--output_file=", "");
-                } else if (s.startsWith("--output_html=")) {
-                    output_html = s.replaceAll("\"|--output_html=", "");
+    }
+      
+	public static void main(String[] args) throws Exception {
+        /**
+         * Parse arguments
+         */
+        try {
+            int arg_i = 0;
+            while (arg_i < args.length) {
+                if (args[arg_i].equalsIgnoreCase("-log")) keepLogs = true;
+                if (args[arg_i].equalsIgnoreCase("-mmaxExport")) mmaxExport = true;
+                if (args[arg_i].equalsIgnoreCase("-stdout")) { outputType = outputTypes.STDOUT_CONLL; }
+                if (args[arg_i].equalsIgnoreCase("--logPath")) logPath = args[arg_i+1];
+                if (args[arg_i].equalsIgnoreCase("--conllInput")) { conllInput = args[arg_i+1]; inputType = inputTypes.CONLL; }
+                if (args[arg_i].equalsIgnoreCase("--mmaxExportPath")) mmaxExportPath = args[arg_i+1];
+                if (args[arg_i].equalsIgnoreCase("--mmaxExportProject")) mmaxExportProjectName = args[arg_i+1];
+                if (args[arg_i].equalsIgnoreCase("--conllOutput")) { conllOutput = args[arg_i+1]; outputType = outputTypes.CONLL; }
+                if (args[arg_i].equalsIgnoreCase("--htmlOutput")) htmlOutput = args[arg_i+1];
+                if (args[arg_i].equalsIgnoreCase("--mmaxGold")) { mmaxGold = args[arg_i+1]; }
+                if (args[arg_i].equalsIgnoreCase("--nerAnnotation")) nerAnnotation = args[arg_i+1];
+                
+                if (args[arg_i].equalsIgnoreCase("-h") || args[arg_i].equalsIgnoreCase("--help") || args[arg_i].equalsIgnoreCase("-?")) {
+                    System.out.print(
+                            "LVCoref: Latvian Coreference resolver"
+                            + "\nParameters:"
+                            
+                            + "\n\t-stdout: write conll format results to console (default)"                  
+                            + "\n\t-log: keep logs, defaults to false"
+                            + "\n\t--logPath: directory path with trailing /, (default = data/logs/)"
+                            + "\n\t--conllInput: path to conll input file"
+                            + "\n\t--mmaxExportPath: MMAX export path with trailing / (default = data/mmax2/"
+                            + "\n\t--mmaxExportProject: project name (if no specified timestamp is used"
+                            + "\n\t--htmlOutput: file path for html formatted coreference results, direcotory should include script.js, style.css"
+                            + "\n\t--conllOutput: file path for conll output to file"
+                            + "\n\t--mmaxGold: file path to existing  mmax coref_level gold annotation, used for scoring"
+                            + "\n\t--nerAnnotation: file path to existing NE tagged file"
+                    );
                 }
+                arg_i++;
             }
-        } else {
-            
+        } catch (Exception ex) {
+            System.err.println("ERROR: cannot parse arguments");
         }
-            Document d;
-            d = new Document();
-
-            //System.out.println(d.dict.firstNames);
-
-            //d.readCONLL("data/Sofija.conll");
-           // d.readCONLL("data/SofijasPasaule1996_11-28-dep-unlabeled.conll");
-            //d.readCONLL("data/intervija-unlabeled.conll");
-           //d.readCONLL("data/LETA_IzlaseFreimiem-dep-unlabeled.conll");
-            d.readCONLL(input_file);
-
-             d.setMentionsNER(ner_file);
-             d.setQuoteMentions();
-             d.setAbbreviationMentions();
+            
+        /**
+         * TMP default values
+         */
+//        inputType = inputTypes.CONLL;
+//        conllInput = "data/pipeline/parsed.tmp";
+//        conllOutput = "dainterview_46_nerta/output.conll";
+//        htmlOutput = "data/output.html";
+//        //nerAnnotation = "data/pipeline/ner.tmp";
+//        conllInput = "data/pipeline/interview_46.conll";
+//        nerAnnotation = "data/pipeline/interview_46_ner.txt"; 
+//        mmaxGold = "data/interview_46_coref_level.xml";
+//        
+//        keepLogs = true;
+//        
+        timeStamp = Calendar.getInstance().getTime().toString().replaceAll("\\s", "-").replaceAll(":", "-");
+        createLogger();
+        
+        /*
+         * Create document
+         */
+        switch(inputType) {
+            case CONLL:
+                Document d = new Document(logger);
+                try {
+                    d.readCONLL(conllInput);
+                } catch (Exception ex) {
+                    System.err.println("Could not read conll file");
+                    System.err.println(ex.getStackTrace());
+                    break;
+                }
+                
+                if (d.tree.size() > 0) processDocument(d);
+                
+                break;
+            default:
+                BufferedReader in = new BufferedReader(new InputStreamReader(System.in, "UTF8"));
+                while (true) {
+                    Document doc = new Document(logger);
+                    try {
+                        doc.readCONLL(in);
+                    } catch (Exception ex) {
+                        System.err.println("Could not read conll from stream");
+                        System.err.println(ex.getStackTrace());
+                        break;
+                    }                    
+                    if (LVCoref.stopProcess) break; //quit signal
+                    if (doc.tree.size() > 0) processDocument(doc);  
+                    else break;
+                    documentID++;
+                }
+        }
+    };
+        
+    
+    public static void processDocument(Document d) {
+        if (nerAnnotation != null) { d.setMentionsNER(nerAnnotation); } //pagaidām izskatās NER nesniedz nekādu lielu uzlabojumu
+        
+        d.setQuoteMentions();
+        d.setAbbreviationMentions();
 //             d.setMentions();
 //             for (Mention m : d.mentions) {
 //                 if (m.categories.size() == 0) m.setCategories(d);
 //             }
-             d.setListMentions();
-             
-             d.removeNestedMentions();
-             d.sortMentions();
-             
-             //normalize mentions
-             
+        d.setListMentions();
+        d.tweakPersonMentions();
+        d.removeNestedMentions();
+        d.sortMentions(); //needed for normalization (array index equals to id)
+
+//        for(Mention m : d.mentions) {
+//            System.out.println(m.nerString + " " + m.headString +  " node=" + m.node.word + " " + m.node.mention.node.word);
+//        }
+//        d.visualizeParseTree();
+//        d.printMentions();
+//        d.printNodes(d.tree);
+
+
+        d.initializeEntities();
+        Resolve.go(d, logger);
+
+        d.removePronounSingletonMentions();
+        //d.removeSingletonMentions();
+
+        for (Node n : d.tree) {
+            n.markMentionBorders(d, false);
+        }
+        //d.printCoreferences();
+
+        d.setConllCorefColumns();
+        switch (outputType) {
+            case CONLL:
+                d.outputCONLL(conllOutput);                
+                break;
+            default:
+                PrintStream ps;
+                try {
+                    ps = new PrintStream(System.out, true, "UTF8");
+                    d.outputCONLL(ps);
+                } catch (UnsupportedEncodingException ex) {
+                    System.err.println("Unsupported output encoding");
+                    Logger.getLogger(LVCoref.class.getName()).log(Level.SEVERE, null, ex);
+                }
+        }
+        if (htmlOutput != null) {
+            d.htmlOutput(htmlOutput);
+        }
+ 
+        if (keepLogs) {
+            d.outputCONLL(logPath + timeStamp+ "_" + documentID + ".conll");
+            d.htmlOutput(logPath + timeStamp+ "_" + documentID + ".html");
+        }
+
+        if (mmaxExport) {
+            String docId = (documentID == 0) ? "" : "_" + documentID;
+            String projectName = (mmaxExportProjectName != null && mmaxExportProjectName.trim().length() > 0) ? mmaxExportProjectName+docId : timeStamp+ docId;
+            MMAX2.createProject(d, projectName, mmaxExportPath);
+        }
+
+        if (mmaxGold != null) {
+            d.addAnnotationMMAX(mmaxGold);
             
+            CorefScorer scorerPairwise = new ScorerPairwise();
+            scorerPairwise.calculateScore(d);
+            scorerPairwise.printF1(logger, true);            
 
-            
-//            for(Mention m : d.mentions) {
-//                System.out.println(m.nerString + " " + m.headString +  " node=" + m.node.word + " " + m.node.mention.node.word);
-//            }
-            
-            //d.visualizeParseTree();
-
-
-
-    //        List<Node> tmp;
-    //        tmp = d.traverse(d.tree.get(1), null, new ArrayList<Node>(Arrays.asList(d.tree.get(1))));
-    //        d.printNodes(tmp);
-
-            //d.printMentions();
-            //d.printNodes(d.tree);
-
-
-            d.initializeEntities();
-            Resolve.go(d, logger);
-
-
-            for (Node n : d.tree) {
-                n.markMentionBorders(d, false);
-            }
-
-            //RefsToEntities.go(d);
-
-            //d.printCoreferences();
-
-            
-            
-            if (!output_file.isEmpty()) {
-               d.outputCONLL(output_file);
-               d.outputCONLLforDavis(output_file+".davis");
-            }
-            
-            if (!output_html.isEmpty()) {
-               d.htmlOutput(output_html);
-            }
-            
-            //MMAX2.createProject(d, mmax_project, mmax_project_path);
-            
-            d.addAnnotationMMAX(mmax_gold);
-            CorefScorer scorer = new ScorerPairwise();
-            scorer.calculateScore(d);
-            scorer.printF1(logger, true);
-            System.out.println(scorer.getF1String(true));
-            
             CorefScorer scorerMUC = new ScorerMUC();
             scorerMUC.calculateScore(d);
-            scorerMUC.printF1(logger, true);
-            System.out.println(scorerMUC.getF1String(true));
-            
+            scorerMUC.printF1(logger, true);            
+
             CorefScorer scorerB3 = new ScorerBCubed(BCubedType.Bconll);
             scorerB3.calculateScore(d);
             scorerB3.printF1(logger, true);
-            System.out.println(scorerB3.getF1String(true));
             
-
-
-    //		for (Node n: d.tree) {
-    //			System.out.print(" " + n.word);
-    //			if (n.mention != null && d.corefClusters.get(n.mention.corefClusterID).corefMentions.size() > 1) {
-    //                Mention ant = d.refGraph.getFinalResolutions().get(n.mention);
-    //                System.out.print("["+n.mention.corefClusterID+"/"+n.mention.id+"/"+((ant == null)?null:ant.id)+"/"+n.mention.type+"/"+n.mention.categories+"@"+n.mention.comments+"]");
-    //            }
-    //			if (n.word.equals(".")) System.out.println();
-    //		}
-    //		System.out.println();
-
-        };
+            System.err.println(scorerPairwise.getF1String(true));
+            System.err.println(scorerMUC.getF1String(true));
+            System.err.println(scorerB3.getF1String(true));
+        }
         
+
+//		for (Node n: d.tree) {
+//			System.out.print(" " + n.word);
+//			if (n.mention != null && d.corefClusters.get(n.mention.corefClusterID).corefMentions.size() > 1) {
+//                Mention ant = d.refGraph.getFinalResolutions().get(n.mention);
+//                System.out.print("["+n.mention.corefClusterID+"/"+n.mention.id+"/"+((ant == null)?null:ant.id)+"/"+n.mention.type+"/"+n.mention.categories+"@"+n.mention.comments+"]");
+//            }
+//			if (n.word.equals(".")) System.out.println();
+//		}
+//		System.out.println();
+    }
+    
+    public static void db(String t) {
+        System.out.println(t);
+    }
 	
 
 }

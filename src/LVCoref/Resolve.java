@@ -22,7 +22,7 @@ public class Resolve {
       
       relaxedSintaxPronounMatch(d);
       
-      //CHEAT
+      //CHEAT for interviews
       firstPerson(d);
       secondPerson(d);
       firstPluralPerson(d);
@@ -104,7 +104,6 @@ public class Resolve {
         Mention m_es = null;
         for (Mention m : d.mentions) {
             if (m.type == MentionType.PRONOMINAL && m.node.lemma.equals("jūs"))  {
-                System.err.println("JUS");
                 if (m_es == null) m_es = m;
                 else {
                     d.mergeClusters(m, m_es);

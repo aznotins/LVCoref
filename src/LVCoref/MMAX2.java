@@ -119,7 +119,6 @@ public class MMAX2 {
         String coref_level = path+project+"_coref_level.xml";
         String sentence_level = path+project+"_sentence_level.xml";
         String project_file = path+project+".mmax";
-        System.out.println(words);
         
         exportWords(d, words);
         exportMentions(d, coref_level);

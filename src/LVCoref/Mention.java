@@ -137,7 +137,7 @@ public class Mention implements Comparable{
             
 
         } else {
-            System.err.println("Unsuported tag: " + node.tag);
+            d.logger.fine("Unsuported tag: " + node.tag);
         }
         this.start = node.getSpanStart(d).id;
         this.end = node.getSpanEnd(d).id;

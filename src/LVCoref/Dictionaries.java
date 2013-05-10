@@ -186,7 +186,9 @@ public class Dictionaries {
         Set<String> categories = getCategories(s);
         
         if (categories.size() > 0) {
-            if (categories.size() > 1) System.out.println("More categories for \"" +s+"\"");
+            if (categories.size() > 1) {
+                LVCoref.logger.fine("Get category : more categories for \"" +s+"\"");
+            }
             return categories.iterator().next();
         }
         return null;

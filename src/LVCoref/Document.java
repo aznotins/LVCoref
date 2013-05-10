@@ -3,40 +3,18 @@ package LVCoref;
 import LVCoref.Dictionaries.MentionType;
 import java.awt.Color;
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
+import java.io.PrintStream;
 import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
-import org.apache.commons.lang3.StringEscapeUtils;
-import org.w3c.dom.Attr;
-import org.w3c.dom.DOMImplementation;
-import org.w3c.dom.DocumentType;
-import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
 
@@ -65,6 +43,8 @@ public class Document {
     
     public Dictionaries dict;
     
+    public Logger logger;
+    
 	
     Document(){
 		tree = new ArrayList<>();
@@ -76,6 +56,19 @@ public class Document {
         goldCorefClusters = new HashMap<>();
         sentences = new ArrayList<Integer>();
 	}
+    
+    Document(Logger _logger) {
+        tree = new ArrayList<>();
+		mentions = new ArrayList<>();
+        goldMentions = new ArrayList<>();
+        dict = new Dictionaries();
+        refGraph = new RefGraph();
+        corefClusters = new HashMap<>();
+        goldCorefClusters = new HashMap<>();
+        sentences = new ArrayList<Integer>();
+        this.logger = _logger;
+    }
+    
     
     public void printMentions(){
         System.out.println("------Mentions---------");
@@ -107,132 +100,164 @@ public class Document {
     }
     
     
-    public void outputCONLL(String filename) throws IOException {
-        PrintWriter out = new PrintWriter(new FileWriter(filename));
-         
+//    public void outputCONLL(String filename) throws IOException {
+//        PrintWriter out = new PrintWriter(new FileWriter(filename));
+//         
+//        for (Node n : tree) {
+//            out.print(n.conll_string);
+//            if (n.mention != null) {
+//                out.print("\t" + n.mention.id);
+//                if (n.mention.categories.size() > 0) out.print("\t" + Utils.implode(n.mention.categories, "|"));
+//                else out.print("\t_");
+//                if (corefClusters.get(n.mention.corefClusterID).corefMentions.size() > 1) out.print("\t" + n.mention.corefClusterID);
+//                else out.print("\t_");
+//            }
+//            else out.print("\t_\t_\t_");
+//            
+//            if (n.goldMention != null) {
+//                //System.out.println(n.goldMention);
+//                out.print("\t" + n.goldMention.id);
+//                out.print("\t" + Utils.implode(n.goldMention.categories, "|"));
+//                if (goldCorefClusters.get(n.goldMention.goldCorefClusterID).corefMentions.size() > 0) out.print("\t" + n.goldMention.goldCorefClusterID);
+//                else out.print("\t_");
+//            }
+//            else out.print("\t_\t_\t_");
+//            
+//            
+//            out.print('\n');
+//            
+//            if (n.sentEnd) out.print('\n');
+//        }     
+//    }
+    
+    public void setConllCorefColumns() {
         for (Node n : tree) {
-            out.print(n.conll_string);
             if (n.mention != null) {
-                out.print("\t" + n.mention.id);
-                if (n.mention.categories.size() > 0) out.print("\t" + Utils.implode(n.mention.categories, "|"));
-                else out.print("\t_");
-                if (corefClusters.get(n.mention.corefClusterID).corefMentions.size() > 1) out.print("\t" + n.mention.corefClusterID);
-                else out.print("\t_");
+                n.conll_fields.add(Integer.toString(n.mention.corefClusterID));
+                if (n.mention.categories.size() > 0) n.conll_fields.add(Utils.implode(n.mention.categories, "|"));
+                else n.conll_fields.add("_");
+            } else {
+                n.conll_fields.add("_");
+                n.conll_fields.add("_");
             }
-            else out.print("\t_\t_\t_");
-            
-            if (n.goldMention != null) {
-                //System.out.println(n.goldMention);
-                out.print("\t" + n.goldMention.id);
-                out.print("\t" + Utils.implode(n.goldMention.categories, "|"));
-                if (goldCorefClusters.get(n.goldMention.goldCorefClusterID).corefMentions.size() > 0) out.print("\t" + n.goldMention.goldCorefClusterID);
-                else out.print("\t_");
-            }
-            else out.print("\t_\t_\t_");
-            
-            
-            out.print('\n');
-            
-            if (n.sentEnd) out.print('\n');
-        }     
+        }
     }
     
-    
-    public void outputCONLLforDavis(String filename) throws IOException {
-        PrintWriter out = new PrintWriter(new FileWriter(filename));
-         
-        for (Node n : tree) {
-            out.print(n.conll_string);
-            if (n.mention != null) {
-                out.print("\t" + n.mention.corefClusterID);
-                if (n.mention.categories.size() > 0) out.print("\t" + Utils.implode(n.mention.categories, "|"));
-                else out.print("\t_");
+    public void outputCONLL(String filename){
+        PrintWriter out;
+        try {
+            String eol = System.getProperty("line.separator");
+            out = new PrintWriter(new FileWriter(filename));
+            StringBuilder s = new StringBuilder();
+            for (Node n : tree) {
+                for (String field : n.conll_fields) s.append(field + "\t");
+                s.deleteCharAt(s.length()-1); //delete last tab
+                s.append(eol);
+                if (n.sentEnd) s.append(eol);
             }
-            else out.print("\t_\t_");
-            out.print('\n');
-            if (n.sentEnd) out.print('\n');
-        }     
+            out.print(s.toString());
+            out.flush();
+            out.close();
+        } catch (IOException ex) {
+            Logger.getLogger(Document.class.getName()).log(Level.SEVERE, null, ex);
+            System.err.println("ERROR: couldn't create/open output conll file");
+        }
+    }
+    
+    public void outputCONLL(PrintStream out){
+        String eol = System.getProperty("line.separator");
+        StringBuilder s = new StringBuilder();
+        for (Node n : tree) {
+            for (String field : n.conll_fields) s.append(field + "\t");
+            s.deleteCharAt(s.length()-1); //delete last tab
+            s.append(eol);
+            if (n.sentEnd) s.append(eol);
+        }
+        out.print(s.toString());
+        out.flush();
     }
     
     
     public void readCONLL(String filename) throws Exception {
+        logger.fine("Read Conll " + filename);
+		BufferedReader in = null;        
+        in = new BufferedReader(new FileReader(filename));		
+        readCONLL(in);
+        in.close();
+	}
+    
+    
+    public void readCONLL(BufferedReader in) throws Exception {
+        logger.fine("Read conll stream");        
         String s;
 		int node_id = 0;
         int sentence_id = 0;
 		int sentence_start_id = 0;
-		BufferedReader in = null;
+        int empty_lines = 0;
         
-        in = new BufferedReader(new FileReader(filename));
-		
-//		Mention m;
-//		String m_t = "", m_str="";
-//		Integer m_s = -1, m_r = -1, m_e=-1, m_id = 0;
-		
 		while ((s = in.readLine()) != null) {
+            if (s.equalsIgnoreCase("quit")) {
+                LVCoref.stopProcess = true;
+                break;
+            }
+            if (s.equalsIgnoreCase("stop")) {
+                break;  //document end
+            }
+            
 			if (s.trim().length() > 0) {
 				String[] fields = s.split("\t");
+                //for (int j = 0; j < fields.length; j++) System.out.println("<"+fields[j]++":"++">");
 				String token = fields[1];
 				String lemma = fields[2];
-				String tag = fields[4];		
-				int parent = Integer.parseInt(fields[6]) + sentence_start_id - 1;
+				String tag = fields[4];	
+                int position = Integer.parseInt(fields[0]);
+                int parent_in_sentence = Integer.parseInt(fields[6]);
                 
-				String category = fields[7];
+                if (position == 1) {
+                    if ((sentence_start_id != node_id)) {
+                        sentences.add(sentence_start_id);
+                        tree.get(node_id-1).sentEnd = true;
+                        sentence_start_id = node_id;
+                        sentence_id++;
+                    }
+                }          
+				int parent = parent_in_sentence + sentence_start_id - 1;
 				
 				Node node = new Node(token, lemma, tag, parent, node_id);
-                node.conll_string = s;
-                node.position = Integer.parseInt(fields[0]);
+                node.conll_fields.addAll(Arrays.asList(fields));
+                node.position = position;
                 node.sentNum = sentence_id;
-                if (Integer.parseInt(fields[6]) == 0) node.sentRoot = true;
+                if (position == 1) { node.sentStart = true; }
+                if (parent_in_sentence == 0) node.sentRoot = true;
+                tree.add(node);
 
                 node_id++;
-                tree.add(node);
-				
-			} else if ((sentence_start_id != node_id)) {
-                tree.get(sentence_start_id).sentStart = true;
-                sentences.add(sentence_start_id);
-				for (int i = sentence_start_id; i < tree.size(); i++) {
-					//System.out.println(i);
-                    Node n = tree.get(i);
-					int p_id = n.parentID;
-                    Node p;
-                    try {
-                        p = tree.get(p_id);
-                    } catch (ArrayIndexOutOfBoundsException e) {
-                        p = null;
-                    }
-     
-                    n.parent = p;
-					if (p != null) {
-						p.children.add(n);}
-				}
-                tree.get(node_id-1).sentEnd = true;
-				sentence_start_id = node_id;
-                sentence_id++;
-			}
-			
+                empty_lines = 0;
+			} else {
+                empty_lines++;
+                if (empty_lines >= 2) break;
+            }		
 		}
         if (sentence_start_id != node_id) {
-            tree.get(sentence_start_id).sentStart = true;
             sentences.add(sentence_start_id);
-            for (int i = sentence_start_id; i < tree.size(); i++) {
-                //System.out.println(i);
-                Node n = tree.get(i);
-                int p_id = n.parentID;
-                Node p;
-                try {
-                    p = tree.get(p_id);
-                } catch (ArrayIndexOutOfBoundsException e) {
-                    p = null;
-                }
-
-                n.parent = p;
-                if (p != null) {
-                    p.children.add(n);}
-            }
             tree.get(node_id-1).sentEnd = true;
         }
-		
+        initializeNodeTree();
 	}
+    
+    
+    public void initializeNodeTree() {
+        for (Node n : tree) {
+            if (n.parentID > 0 && n.parentID < tree.size()) {
+                Node p = tree.get(n.parentID);
+                n.parent = p;
+                p.children.add(n);
+            } else {
+                n.parent = null;
+                //log null pointers
+            }
+        }
+    }
     
     
     public Boolean addAnnotationMMAX(String filename) {
@@ -275,6 +300,7 @@ public class Document {
                 if (category.equals("product")) continue;
                 if (category.equals("media")) continue;
                 if (category.equals("time")) continue;
+                if (category.equals("sum")) continue;
                 
                 //if (head.tag.charAt(0) == 'p') continue;
                 
@@ -304,8 +330,7 @@ public class Document {
 
                     LVCoref.logger.fine("goldCluster #" + cluster_id +"(size="+goldCorefClusters.get(cluster_id).corefMentions.size()+")" + " " + getSubString(start, end) +" : \""+ head.nodeProjection(this)+ "\"");
                 } else {
-                    System.err.println("Could not add mention because of same head: " + getSubString(start, end));
-                    System.err.flush();
+                    logger.fine("Could not add mention because of same head: " + getSubString(start, end));
                 }
                 
             }
@@ -367,7 +392,7 @@ public class Document {
         for (Node node : tree) {
             if (node.mention != null) continue;
             //if (node.tag.charAt(0) == 'p') continue;
-           // if (node.isPlural()) continue;
+           //if (node.isPlural()) continue;
             if (node.tag.charAt(0) == 'n' || node.tag.charAt(0) == 'p') {
                 String cat = dict.getCategory(node.lemma);
                 if (cat != null) {
@@ -381,48 +406,60 @@ public class Document {
         }
     }
     
+      
     
-    public void setMentionsNER(String filename) throws FileNotFoundException, IOException {
+    public boolean setMentionsNER(String filename) {
         BufferedReader in = null;
-        
-        in = new BufferedReader(new FileReader(filename));
+        try {
+            in = new BufferedReader(new FileReader(filename));
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(Document.class.getName()).log(Level.SEVERE, null, ex);
+            System.err.println("Error opening NE annotation");
+            return false;
+        }
 		
 		String s;
         int id  = 0;
         int start = 0;
         String cur_cat = "O";
         Boolean isMention = false;
-		while ((s = in.readLine()) != null) {
-            if (s.trim().length() > 0) {
-                
-				String[] fields = s.split("\t");
-				String word = fields[0];
-				String cat = fields[2];	
-                assert(word.substring(0,1).equals(tree.get(id).word.substring(0,1)));//assert(word.equals(tree.get(id).word)); ner dont suuport multiple words ?? FIXME
-                if (isMention && (cat.equals("O") || !cur_cat.equals(cat) || tree.get(id).sentStart)) {
-                    LVCoref.logger.fine("NER Mention :("+start+" " + (id-1)+") " + getSubString(start, id-1));
-                    if (cur_cat.equals("PERSONA")) setMention(start, id-1, "PERSON", MentionType.PROPER);
-                    else if (cur_cat.equals("LOKACIJA")) setMention(start, id-1, "LOCATION", MentionType.PROPER);
-                    else if (cur_cat.equals("ORGANIZACIJA")) setMention(start, id-1, "ORG", MentionType.PROPER);
-                    else {
-                        System.err.println("Unsupported category @" + cat);
-                        LVCoref.logger.fine("Unsupported category @" + cat);
-                    }
-                    isMention = !cat.equals("O");
-                    if (isMention) {
+        try {
+            while ((s = in.readLine()) != null) {
+                if (s.trim().length() > 0) {
+                    String[] fields = s.split("\t");
+                    assert(fields.length == 3);
+                    String word = fields[0];
+                    String cat = fields[2];	
+                    assert(word.substring(0,1).equals(tree.get(id).word.substring(0,1)));//assert(word.equals(tree.get(id).word)); ner dont suuport multiple words ?? FIXME
+                    if (isMention && (cat.equals("O") || !cur_cat.equals(cat) || tree.get(id).sentStart)) {
+                        LVCoref.logger.fine("NER Mention :("+start+" " + (id-1)+") " + getSubString(start, id-1));
+                        if (cur_cat.equals("PERSONA")) setMention(start, id-1, "PERSON", MentionType.PROPER);
+                        else if (cur_cat.equals("LOKACIJA")) setMention(start, id-1, "LOCATION", MentionType.PROPER);
+                        else if (cur_cat.equals("ORGANIZACIJA")) setMention(start, id-1, "ORG", MentionType.PROPER);
+                        else {
+                            LVCoref.logger.fine("Unsupported category @" + cat);
+                        }
+                        isMention = !cat.equals("O");
+                        if (isMention) {
+                            start = id;
+                            cur_cat = cat;
+                        } else {
+                            cur_cat = "O";
+                        }
+                    } else if (!cat.equals("O") && !cat.equals(cur_cat)) {
+                        isMention = true;
                         start = id;
                         cur_cat = cat;
-                    } else {
-                        cur_cat = "O";
                     }
-                } else if (!cat.equals("O") && !cat.equals(cur_cat)) {
-                    isMention = true;
-                    start = id;
-                    cur_cat = cat;
+                    id++;
                 }
-                id++;
             }
+        } catch (IOException ex) {
+            System.err.println("Error reading NE annotation");
+            Logger.getLogger(Document.class.getName()).log(Level.SEVERE, null, ex);
+            return false;
         }
+        return true;
     }
     
     
@@ -438,19 +475,26 @@ public class Document {
                     if (tree.get(j).tag.charAt(0) == 'v') break; //nesatur d.v.
                     
                     if (tree.get(j).tag.equals("zq") || tree.get(j).word.equals("\'")) {
-                        LVCoref.logger.fine("Quote Mention :("+i+" " + j+") " + getSubString(i+1, j-1));
-                        assert(i+1 <= j-1);
-                        setMention(i+1, j-1, "ORG", MentionType.PROPER);
-                        i = j;
-                        break;
+                        if (i + 1 <= j-1) {
+                            LVCoref.logger.fine("Quote Mention :("+i+" " + j+") " + getSubString(i+1, j-1));
+                            //assert(i+1 <= j-1);
+                            setMention(i+1, j-1, "ORG", MentionType.PROPER);
+                            i = j;
+                            break;
+                        }                        
                     }
                 }
             }
         }
     }
     
-    
     public Mention setMention(int from, int to, String cat, MentionType t) {
+        Mention x = getMention(from, to, cat, t);
+        if (x != null) mentions.add(x);
+        return x;
+    }
+    
+    public Mention getMention(int from, int to, String cat, MentionType t) {
         
         if (tree.get(to).tag.equals("zs")) to--; //FIXME 
 
@@ -459,8 +503,7 @@ public class Document {
             //System.out.println("Mention \""+getSubString(from, to)+"\" head="+head.word);
             LVCoref.logger.fine("Mention \""+getSubString(from, to)+"\" head="+head.word);
             int id = mentions.size();
-            Mention m = new Mention(this, id, head, t, getSubString(from, to));        
-            mentions.add(m);
+            Mention m = new Mention(this, id, head, t, getSubString(from, to));
             head.mention = m;
 
             m.start = from;
@@ -483,10 +526,8 @@ public class Document {
             if (n.isAbbreviation() && n.mention == null) {
                 Mention m = setMention(n.id, n.id, "ORG", MentionType.PROPER);  
                 if (m != null) {
-                    System.out.println("Abbreviation Mention: " + m.nerString + "("+ m.id +")");
                     LVCoref.logger.fine("Abbreviation Mention: " + m.nerString + "("+ m.id +")");
                 } else {
-                    System.err.println("Couldn't create abbreviation mention: " + n.word + "("+ n.id +")");
                     LVCoref.logger.fine("Couldn't create abbreviation mention: " + n.word + "("+ n.id +")");
                 }
                 
@@ -518,6 +559,56 @@ public class Document {
         normalizeMentions();
     }
     
+    public void tweakPersonMentions(){
+        List<Mention> mm = new ArrayList<>();
+        for (Mention m : mentions) {
+            if (m.category != null && m.category.equals("PERSON")) {
+                int next = m.end + 1;
+                if (next < tree.size() && tree.get(next).getType() == MentionType.PROPER && getHead(m.start, next).mention == null){
+                    Mention x = getMention(m.start, next, "PERSON", MentionType.PROPER);
+                    if (x != null) {
+                        mm.add(x);
+                        LVCoref.logger.fine("Tweaked person mention " + x.nerString);
+                    }                    
+                }
+            }
+        }
+        mentions.addAll(mm);
+    }
+    
+    public void removePronounSingletonMentions() {
+        List <Mention> mm = new ArrayList<>();
+        for (Mention m : mentions) {
+            if (m.type == MentionType.PRONOMINAL && corefClusters.get(m.corefClusterID) != null && corefClusters.get(m.corefClusterID).corefMentions.size() < 2) {
+                m.node.mention = null;
+                corefClusters.remove(m.corefClusterID);
+                LVCoref.logger.fine("Removed pronoun singleton " + m.nerString);
+            } else {
+                mm.add(m);
+            }
+        }
+        mentions.clear();
+        mentions = mm;
+        normalizeMentions();
+    }
+    
+    public void removeSingletonMentions() {
+        List <Mention> mm = new ArrayList<>();
+        for (Mention m : mentions) {
+            if (corefClusters.get(m.corefClusterID) != null && corefClusters.get(m.corefClusterID).corefMentions.size() < 2) {
+                m.node.mention = null;
+                corefClusters.remove(m.corefClusterID);
+                LVCoref.logger.fine("Removed pronoun singleton " + m.nerString);
+            } else {
+                mm.add(m);
+            }
+        }
+        mentions.clear();
+        mentions = mm;
+        normalizeMentions();
+    }
+    
+    
     public void sortMentions() {
         Collections.sort(mentions);
         normalizeMentions();
@@ -540,9 +631,7 @@ public class Document {
         }
     }
     
-    
-    
-    
+
     
     /**
      * 

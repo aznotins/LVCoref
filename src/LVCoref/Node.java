@@ -20,7 +20,8 @@ public class Node {
     public int sentNum = -1;
     public int position;
 	
-	public String conll_string;
+	//public String conll_string;
+    public List<String> conll_fields;
     
     public Mention mention;
     public Mention goldMention = null;
@@ -63,6 +64,8 @@ public class Node {
         
         this.mentionStartList = new ArrayList<Integer>();
         this.mentionEndList = new ArrayList<Integer>();
+        
+        this.conll_fields = new ArrayList<>();
 	}
     
     
@@ -100,7 +103,7 @@ public class Node {
             if (n.id > min.id) continue;
             if (n.sentNum != this.sentNum) continue;
             Node x = n.getSpanStart(d);
-           if (x.id < min.id) min = x;
+            if (x.id < min.id) min = x;
         }
         return min; 
     }
