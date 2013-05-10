@@ -9,3 +9,4 @@ reize
 sākums
 priekšā
 vieta
+piemērs

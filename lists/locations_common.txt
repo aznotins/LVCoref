@@ -3,3 +3,6 @@ upe
 jūra
 ceļš
 skola
+novads
+rajons
+pagasts
