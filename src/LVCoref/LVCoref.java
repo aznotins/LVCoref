@@ -122,7 +122,8 @@ public class LVCoref {
                 
                 if (args[arg_i].equalsIgnoreCase("-h") || args[arg_i].equalsIgnoreCase("--help") || args[arg_i].equalsIgnoreCase("-?")) {
                     System.out.print(
-                            "LVCoref: Latvian Coreference resolver"
+                            "--------------------\n"
+                            + "LVCoref: Latvian Coreference Resolver"
                             + "\nParameters:"
                             
                             + "\n\t-stdout: write conll format results to console (default)"                  
@@ -135,7 +136,10 @@ public class LVCoref {
                             + "\n\t--conllOutput: file path for conll output to file"
                             + "\n\t--mmaxGold: file path to existing  mmax coref_level gold annotation, used for scoring"
                             + "\n\t--nerAnnotation: file path to existing NE tagged file"
+                            + "\n--------------------\n"
                     );
+                    System.out.flush();
+                    System.exit(0);
                 }
                 arg_i++;
             }
@@ -179,7 +183,7 @@ public class LVCoref {
                 break;
             default:
                 BufferedReader in = new BufferedReader(new InputStreamReader(System.in, "UTF8"));
-                while (true) {
+                while (!stopProcess) {
                     Document doc = new Document(logger);
                     try {
                         doc.readCONLL(in);
@@ -187,8 +191,7 @@ public class LVCoref {
                         System.err.println("Could not read conll from stream");
                         System.err.println(ex.getStackTrace());
                         break;
-                    }                    
-                    if (LVCoref.stopProcess) break; //quit signal
+                    }
                     if (doc.tree.size() > 0) processDocument(doc);  
                     else break;
                     documentID++;
