@@ -18,6 +18,7 @@ public class Mention implements Comparable{
     
 	public String headString;
     public String nerString = "";
+    public String normString;
     
     /**
      * Info about parse tree
@@ -42,6 +43,7 @@ public class Mention implements Comparable{
     public String category;
     
     public String comments;
+    public Set<String> words;
 
 //    public boolean isSubject;
 //    public boolean isDirectObject;
@@ -58,6 +60,32 @@ public class Mention implements Comparable{
     public int goldCorefClusterID = -1;    
     
     Set<String> categories;
+    
+    Mention(Mention m) {
+        id = m.id;
+        resolved = m.resolved;
+        headString = m.headString;
+        nerString = m.nerString;
+        normString = m.normString;
+        node = m.node;
+        start = m.start;
+        end = m.end;
+        root = m.root;
+        sentNum = m.sentNum;
+        type = m.type;
+        animacy = m.animacy;
+        number = m.number;
+        gender = m.gender;
+        mentionCase = m.mentionCase;
+        pronounType = m.pronounType;
+        person = m.person;
+        category = m.category;
+        comments = m.comments;
+        words = m.words;
+        corefClusterID = m.corefClusterID;
+        goldCorefClusterID = m.goldCorefClusterID;
+        categories = m.categories;        
+    }
   
     
     Mention(Document d, int id, Node node, MentionType type, String ner) {
@@ -69,6 +97,7 @@ public class Mention implements Comparable{
                 
         this.sentNum = node.sentNum;
         categories = new HashSet<>();
+        words = new HashSet<>();
         this.type = type;
         
         //this.category = d.dict.getCategory(node.lemma);

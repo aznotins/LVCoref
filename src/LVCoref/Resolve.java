@@ -55,13 +55,56 @@ public class Resolve {
                                  if (   m.gender == prev.gender &&  m.number == prev.number ) {
                                      if (!genetiveBad(d, m) && !genetiveBad(d, prev)) {
                                         //d.refGraph.setRef(m, prev);
-                                        d.mergeClusters(m, prev);
-                                        LVCoref.logger.fine("Head match :" + prev.headString +"("+prev.node.tag+")#"+prev.id+" <- " + m.headString+"("+m.node.tag+")#"+m.id);
-                                        m.addRefComm(prev, "headMatch");
-                                        m.setAsResolved();
-                                        break;
+                                        if(includeWords(prev, m)) {
+                                            d.mergeClusters(m, prev);
+                                            LVCoref.logger.fine("Head match(include all words):" + prev.headString +"("+prev.node.tag+")#"+prev.id+" <- " + m.headString+"("+m.node.tag+")#"+m.id);
+                                            m.addRefComm(prev, "headMatch(includeAll)");
+                                            m.setAsResolved();
+                                            break;
+                                        }
+//                                        d.mergeClusters(m, prev);
+//                                        LVCoref.logger.fine("Head match :" + prev.headString +"("+prev.node.tag+")#"+prev.id+" <- " + m.headString+"("+m.node.tag+")#"+m.id);
+//                                        m.addRefComm(prev, "headMatch");
+//                                        m.setAsResolved();
+//                                        break;
+                                        
                                     }
                                  }
+                             }
+                         }
+                         prev = prev.prev(d);
+                    }
+                }
+            }
+        }
+    }
+    
+    //m1 contains all m1 words
+    private static boolean includeWords (Mention m1, Mention m2) {
+        if (m1.words.containsAll(m2.words)) return true;
+        else return false;
+    }
+    
+    
+    public static void exactStringMatch(Document d){
+        for (Mention m : d.mentions) {
+            if (m.needsReso()) {
+                if (m.type == MentionType.NOMINAL || m.type == MentionType.PROPER) {
+
+                    //simple look at previous mentions (without using sintax tree)
+
+                    int sentenceWindow = 30; //need to be larger for proper heads
+
+                    Mention prev = m.prev(d);
+                    while ( prev != null && (m.sentNum - prev.sentNum <= sentenceWindow || m.type == MentionType.PROPER)) {
+                         if (prev.type == MentionType.NOMINAL || prev.type == MentionType.PROPER) {
+                             if (prev.normString.equals(m.normString)) {
+                                //d.refGraph.setRef(m, prev);
+                                d.mergeClusters(m, prev);
+                                LVCoref.logger.fine("Exact String match :" + prev.headString +"("+prev.node.tag+")#"+prev.id+" <- " + m.headString+"("+m.node.tag+")#"+m.id);
+                                m.addRefComm(prev, "exactMatch");
+                                m.setAsResolved();
+                                break;
                              }
                          }
                          prev = prev.prev(d);
@@ -266,7 +309,7 @@ public class Resolve {
                         if (prev.type == MentionType.NOMINAL || prev.type == MentionType.PROPER) {
                             if (prev.number == m.number && prev.gender == m.gender) {
                                 Set<String> cat = d.dict.categoryIntersection(prev.categories, m.categories);
-                                if (cat.size() > 0) {
+                                if (cat.size() > 1) {
                                     m.categories = cat;
                                     prev.categories = cat;
                                     //d.refGraph.setRef(m, prev);
@@ -292,8 +335,8 @@ public class Resolve {
             if (m.needsReso()) {
                 if (m.type == MentionType.PRONOMINAL) {
 
-                    int sentenceWindow = 1;
-                    int maxLevel = 5;
+                    int sentenceWindow = 2;
+                    int maxLevel = 10;
                     List<Node> q = new LinkedList<Node>(Arrays.asList(m.node));
                     q = d.traverse(m.node, q);
                     Boolean found = true;
@@ -311,7 +354,7 @@ public class Resolve {
                                     if (prev.type == MentionType.NOMINAL || prev.type == MentionType.PROPER) {
                                         if (prev.number == m.number && prev.gender == m.gender) {
                                             Set<String> cat = d.dict.categoryIntersection(m.categories, prev.categories);
-                                            if (cat.size() >= 0) {
+                                            if (cat.size() >= 1) {
                                                 LVCoref.logger.fine("Relaxed sintax +category pronoun match :"+"level:"+level+" :"  + prev.headString +"("+prev.node.tag+" "+prev.categories+") <- " + m.headString+"("+m.node.tag+" "+m.categories+")");
                                                 //m.categories = cat;
                                                 //prev.categories = cat;//TODO pārbaudīt, vai nerodas kļūdas norādot uz vienu un to pašu obj
@@ -360,6 +403,7 @@ public class Resolve {
                                 m.number == n.number) {
                                 d.mergeClusters(m, n);
                                 LVCoref.logger.fine("PredicativeNominative :" + n.headString +"("+n.node.tag+") <- " + m.headString +"("+m.node.tag+")");
+                                System.out.println("PredicativeNominative :" + n.headString +"("+n.node.tag+") <- " + m.headString +"("+m.node.tag+")");
                                 m.addRefComm(n, "PredicativeNominative");                                
                                 break;
                             }

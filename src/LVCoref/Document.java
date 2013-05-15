@@ -99,6 +99,15 @@ public class Document {
             
     }
     
+    public String getNormSubString(int startID, int endID) {
+        String s = "";
+        for(int i = startID; i <= endID;  i++) {
+            s+= tree.get(i).lemma + " ";
+        }
+        return s.trim();
+            
+    }
+    
     
 //    public void outputCONLL(String filename) throws IOException {
 //        PrintWriter out = new PrintWriter(new FileWriter(filename));
@@ -307,7 +316,10 @@ public class Document {
                 //currently supports only one mention per node as head
                 if (head.goldMention == null) {
                     
-                    Mention goldMention = new Mention(this, i, head, Dictionaries.MentionType.NOMINAL, getSubString(start, end)); // @FIXME
+                    MentionType type = head.getType();
+                    Mention goldMention = new Mention(this, i, head, type , getSubString(start, end)); // @FIXME
+                    goldMention.start = start;
+                    goldMention.end = end;
                     goldMentions.add(goldMention);
                     head.goldMention = goldMention;
                     goldMention.categories = new HashSet<>();
@@ -547,6 +559,7 @@ public class Document {
                 if (n.mention != null && (m.type == MentionType.NOMINAL || m.type == MentionType.PROPER && n.mention.type == MentionType.PROPER)) {
                     //remove m
                     m.node.mention = null;
+                    m.node.goldMention = null;
                     nested = true;
                     break;
                 }
@@ -557,6 +570,53 @@ public class Document {
         mentions.clear();
         mentions = mm;
         normalizeMentions();
+    }
+    
+    
+    public void removePluralMentions() {
+        List <Mention> mm = new ArrayList<>();
+        for (Mention m : mentions) {
+            if (m.number == Dictionaries.Number.PLURAL) {
+                m.node.mention = null;
+            } else {
+                mm.add(m);
+            }
+        }
+        mentions.clear();
+        mentions = mm;
+        normalizeMentions();
+//        for (Mention m : mentions) {
+//            if (m.number == Dictionaries.Number.PLURAL) {
+//
+//        }
+    }
+    
+    
+        public void removeSingletonMentions() {
+        List <Mention> mm = new ArrayList<>();
+        for (Mention m : mentions) {
+            if (corefClusters.get(m.corefClusterID) != null && corefClusters.get(m.corefClusterID).corefMentions.size() < 2) {
+                m.node.mention = null;
+                corefClusters.remove(m.corefClusterID);
+                LVCoref.logger.fine("Removed pronoun singleton " + m.nerString);
+            } else {
+                mm.add(m);
+            }
+        }
+        mentions.clear();
+        mentions = mm;
+        normalizeMentions();
+    }
+    
+    //FIXME
+    //add unset attribules
+    public void updateMentions() {
+        for (Mention m : mentions) {
+            m.normString = getNormSubString(m.start, m.end);
+            for(int i = m.start; i <= m.end; i++) {
+                m.words.add(tree.get(i).lemma);
+            }
+        }
     }
     
     public void tweakPersonMentions(){
@@ -592,21 +652,7 @@ public class Document {
         normalizeMentions();
     }
     
-    public void removeSingletonMentions() {
-        List <Mention> mm = new ArrayList<>();
-        for (Mention m : mentions) {
-            if (corefClusters.get(m.corefClusterID) != null && corefClusters.get(m.corefClusterID).corefMentions.size() < 2) {
-                m.node.mention = null;
-                corefClusters.remove(m.corefClusterID);
-                LVCoref.logger.fine("Removed pronoun singleton " + m.nerString);
-            } else {
-                mm.add(m);
-            }
-        }
-        mentions.clear();
-        mentions = mm;
-        normalizeMentions();
-    }
+
     
     
     public void sortMentions() {
@@ -620,6 +666,23 @@ public class Document {
         }
     }
         
+    public void useGoldMentions() {
+        for (Mention m : goldMentions) {
+            Mention mm = new Mention(m);
+            m.node.mention = mm;
+            mentions.add(mm);
+        }
+    }
+    
+    public void setMentionCategories() {
+        for (Mention m : mentions) {
+            if (m.categories.size() == 0) m.setCategories(this);
+            if (m.categories.contains("other")) {
+                m.categories.remove("other");
+                m.setCategories(this);
+            }
+        }
+    }
     
     
     public void initializeEntities() {
@@ -816,6 +879,8 @@ public class Document {
                                         + " @startM="+n.mention.start
                                         + " @endM="+n.mention.end
                                         + " @string="+n.mention.nerString
+                                        + " @normalized="+n.mention.normString
+                                        + " @words="+n.mention.words
                                 + "'>"
                                 + " <em class='c"+n.mention.corefClusterID+"'>"+" " + n.word+"</em>"
                                 + "["+n.mention.corefClusterID+"]"
@@ -831,6 +896,9 @@ public class Document {
                                         + " @type="+n.mention.type
                                         + " @cat"+n.mention.categories + ":"+n.mention.category
                                         + " @span=["+n.nodeProjection(this) +"]"
+                                        + " @string="+n.mention.nerString
+                                        + " @normalized="+n.mention.normString
+                                        + " @words="+n.mention.words
                                     +"'>"
                                 + "<em>" + n.word+"</em>"
                             + "</span>");
