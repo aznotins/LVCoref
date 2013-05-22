@@ -65,7 +65,7 @@ public class Node {
         this.mentionStartList = new ArrayList<Integer>();
         this.mentionEndList = new ArrayList<Integer>();
         
-        this.conll_fields = new ArrayList<>();
+        this.conll_fields = new ArrayList<String>();
 	}
     
     
@@ -134,7 +134,7 @@ public class Node {
     
     
     public Boolean isConjuction() {
-        return word.equals("un");
+        return word.equals("un") || word.equals(",");
     }
     
     public Boolean isAbbreviation(){

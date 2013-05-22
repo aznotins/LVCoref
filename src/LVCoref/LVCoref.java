@@ -32,6 +32,7 @@ public class LVCoref {
     private enum inputTypes {CONLL, STDIN_CONLL};
     private enum outputTypes {CONLL, STDOUT_CONLL};
     public static final Logger logger = Logger.getLogger(LVCoref.class.getName());
+    public static Properties props;
 
     /**
     * If true, we score the output of the given test document
@@ -149,7 +150,8 @@ public class LVCoref {
         /**
          * Parse arguments
          */
-        Properties props = StringUtils.argsToProperties(args);
+        //Properties props = StringUtils.argsToProperties(args);
+        props = StringUtils.argsToProperties(args);
         //System.out.println(props);
                        
         if (Boolean.parseBoolean(props.getProperty(Constants.STDOUT_PROP, "false"))) outputType = outputTypes.STDOUT_CONLL;
@@ -277,7 +279,7 @@ public class LVCoref {
             //        d.printNodes(d.tree);
         }
         
-        d.removePluralMentions();
+        //d.removePluralMentions();
         
         d.setMentionCategories();
         d.updateMentions(); //FIXME move to constructor

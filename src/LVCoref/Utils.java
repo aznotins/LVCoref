@@ -45,4 +45,20 @@ public class Utils {
             ex.printStackTrace();
         }
     }
+    
+    
+    public static String getMentionPairString(Document d, Mention m, Mention n, String comment) {
+        String s = ""; 
+        if (LVCoref.props.getProperty(Constants.MMAX_GOLD_PROP, "").length() > 0) {
+            if (m.node.goldMention != null && n.node.goldMention != null && m.node.goldMention.goldCorefClusterID == n.node.goldMention.goldCorefClusterID){
+                s+= "+ ";
+            } else {
+                s+= "- ";
+            }
+        }
+        if (comment.length() > 0) s += comment + ": ";
+        s += "["+m.nerString+"]" + " ["+n.nerString+"]" + "\t\t("+m.getContext(d,3) +")" + "\t("+n.getContext(d,3) +")";
+        return s;
+    }
+    
 }

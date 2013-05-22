@@ -47,24 +47,24 @@ public class Document {
     
 	
     Document(){
-		tree = new ArrayList<>();
-		mentions = new ArrayList<>();
-        goldMentions = new ArrayList<>();
+		tree = new ArrayList<Node>();
+		mentions = new ArrayList<Mention>();
+        goldMentions = new ArrayList<Mention>();
         dict = new Dictionaries();
         refGraph = new RefGraph();
-        corefClusters = new HashMap<>();
-        goldCorefClusters = new HashMap<>();
+        corefClusters = new HashMap<Integer, CorefCluster>();
+        goldCorefClusters = new HashMap<Integer, CorefCluster>();
         sentences = new ArrayList<Integer>();
 	}
     
     Document(Logger _logger) {
-        tree = new ArrayList<>();
-		mentions = new ArrayList<>();
-        goldMentions = new ArrayList<>();
+        tree = new ArrayList<Node>();
+		mentions = new ArrayList<Mention>();
+        goldMentions = new ArrayList<Mention>();
         dict = new Dictionaries();
         refGraph = new RefGraph();
-        corefClusters = new HashMap<>();
-        goldCorefClusters = new HashMap<>();
+        corefClusters = new HashMap<Integer, CorefCluster>();
+        goldCorefClusters = new HashMap<Integer, CorefCluster>();
         sentences = new ArrayList<Integer>();
         this.logger = _logger;
     }
@@ -92,6 +92,8 @@ public class Document {
     
     public String getSubString(int startID, int endID) {
         String s = "";
+        startID = Math.max(startID, 0);
+        endID = Math.min(endID, tree.size()-1);
         for(int i = startID; i <= endID;  i++) {
             s+= tree.get(i).word + " ";
         }
@@ -281,7 +283,7 @@ public class Document {
             //org.w3c.dom.Element root = doc.getDocumentElement();
             //NodeList markables = root.getChildNodes();
             NodeList markables = doc.getElementsByTagName("markable");
-            Map<String, Integer> classToInt = new HashMap<>();
+            Map<String, Integer> classToInt = new HashMap<String, Integer>();
             Integer cluster_c = 0;
             Integer cluster_id;
             
@@ -322,7 +324,7 @@ public class Document {
                     goldMention.end = end;
                     goldMentions.add(goldMention);
                     head.goldMention = goldMention;
-                    goldMention.categories = new HashSet<>();
+                    goldMention.categories = new HashSet<String>();
                     goldMention.categories.add(category);
                                         
                     if (cluster.equals("empty")) {
@@ -374,7 +376,7 @@ public class Document {
                 mm.corefClusterID = n.corefClusterID;
             }
 
-            LVCoref.logger.fine("Merge clusters from " +removeID +" to " + n.corefClusterID +" " + Utils.linearizeMentionSet(cn));
+            //LVCoref.logger.fine("Merge clusters from " +removeID +" to " + n.corefClusterID +" " + Utils.linearizeMentionSet(cn));
 
             corefClusters.remove(removeID);
             return true;
@@ -550,7 +552,7 @@ public class Document {
     
     public void removeNestedMentions() {
         int max_depth = 1;
-        List <Mention> mm = new ArrayList<>();
+        List <Mention> mm = new ArrayList<Mention>();
         for (Mention m : mentions) {
             int l = 0;
             Node n = m.node.parent;
@@ -574,7 +576,7 @@ public class Document {
     
     
     public void removePluralMentions() {
-        List <Mention> mm = new ArrayList<>();
+        List <Mention> mm = new ArrayList<Mention>();
         for (Mention m : mentions) {
             if (m.number == Dictionaries.Number.PLURAL) {
                 m.node.mention = null;
@@ -593,7 +595,7 @@ public class Document {
     
     
         public void removeSingletonMentions() {
-        List <Mention> mm = new ArrayList<>();
+        List <Mention> mm = new ArrayList<Mention>();
         for (Mention m : mentions) {
             if (corefClusters.get(m.corefClusterID) != null && corefClusters.get(m.corefClusterID).corefMentions.size() < 2) {
                 m.node.mention = null;
@@ -620,12 +622,12 @@ public class Document {
     }
     
     public void tweakPersonMentions(){
-        List<Mention> mm = new ArrayList<>();
+        List<Mention> mm = new ArrayList<Mention>();
         for (Mention m : mentions) {
-            if (m.category != null && m.category.equals("PERSON")) {
+            if (m.category != null && m.category.equals("person")) {
                 int next = m.end + 1;
                 if (next < tree.size() && tree.get(next).getType() == MentionType.PROPER && getHead(m.start, next).mention == null){
-                    Mention x = getMention(m.start, next, "PERSON", MentionType.PROPER);
+                    Mention x = getMention(m.start, next, "person", MentionType.PROPER);
                     if (x != null) {
                         mm.add(x);
                         LVCoref.logger.fine("Tweaked person mention " + x.nerString);
@@ -637,7 +639,7 @@ public class Document {
     }
     
     public void removePronounSingletonMentions() {
-        List <Mention> mm = new ArrayList<>();
+        List <Mention> mm = new ArrayList<Mention>();
         for (Mention m : mentions) {
             if (m.type == MentionType.PRONOMINAL && corefClusters.get(m.corefClusterID) != null && corefClusters.get(m.corefClusterID).corefMentions.size() < 2) {
                 m.node.mention = null;
@@ -760,7 +762,7 @@ public class Document {
     
     
     public Node getCommonAncestor(Node n, Node m) {
-        Set<Node> path = new HashSet<>(); //all path nodes traversed by going up
+        Set<Node> path = new HashSet<Node>(); //all path nodes traversed by going up
         path.add(n);
         path.add(m);
         Node nn = n, mm = m;
@@ -784,7 +786,7 @@ public class Document {
     }
     
     public Node getHead(int start, int end) {
-        List<Node> cand = new ArrayList<>();
+        List<Node> cand = new ArrayList<Node>();
         assert(start <= end);
         for (int i = start; i <= end; i++) {
             Node n = tree.get(i);
@@ -821,7 +823,7 @@ public class Document {
         for (int i = 0; i < cn; i++) {
             cols[i] = Integer.toHexString(Color.HSBtoRGB(step*i, 0.5f, 1f )).substring(2,8);//cols[i] = Integer.toHexString(Color.HSBtoRGB((float) i / cn, 1, 1)).substring(2,8);
         }
-        Map<Integer, String> corefColor = new HashMap<>();
+        Map<Integer, String> corefColor = new HashMap<Integer, String>();
         Collections.shuffle(Arrays.asList(cols));
         
         for (Integer id: corefClusters.keySet()) {

@@ -68,14 +68,14 @@ public class CorefCluster {
         corefMentions.add(m);
     }
     
-    public static void mergeClusters(CorefCluster to, CorefCluster from) {        
-        int toID = to.id;
-        for (Mention m : from.corefMentions){
-          m.corefClusterID = toID;
-        }
-        to.corefMentions.addAll(from.corefMentions);
-        System.out.println("Merge clusters from " +from.id +" to " + to.id +" " + Utils.linearizeMentionSet(to.corefMentions));
-    }
+//    public static void mergeClusters(CorefCluster to, CorefCluster from) {        
+//        int toID = to.id;
+//        for (Mention m : from.corefMentions){
+//          m.corefClusterID = toID;
+//        }
+//        to.corefMentions.addAll(from.corefMentions);
+//        System.out.println("Merge clusters from " +from.id +" to " + to.id +" " + Utils.linearizeMentionSet(to.corefMentions));
+//    }
     
     
       /** Print cluster information */

@@ -23,11 +23,14 @@ public class ScorerMUC extends CorefScorer {
       rNum += g.corefMentions.size();
       
       Set<CorefCluster> partitions = new HashSet<CorefCluster>();
-      for (Mention goldMention : g.corefMentions){
+      LVCoref.logger.fine("--GoldCluster #" + g.id );
+      for (Mention goldMention : g.corefMentions){        
         if(goldMention.node.mention == null) {  // twinless goldmention
           rNum--;
+          LVCoref.logger.fine("\t* ["+goldMention.nerString+"]"+ "\t"+goldMention.getContext(doc, 3)+ "\t@ "+ goldMention.node.id );
         } else {
           partitions.add(doc.corefClusters.get(goldMention.node.mention.corefClusterID));
+          LVCoref.logger.fine("\t"+goldMention.node.mention.corefClusterID+" ["+goldMention.nerString+"]" + "\t"+goldMention.getContext(doc, 3)+"\t@ "+ goldMention.node.id);
         }
       }
       rNum -= partitions.size();
@@ -53,11 +56,14 @@ public class ScorerMUC extends CorefScorer {
       pDen += c.corefMentions.size()-1;
       pNum += c.corefMentions.size();
       Set<CorefCluster> partitions = new HashSet<CorefCluster>();
+      LVCoref.logger.fine("--PredictedCluster #" + c.id );
       for (Mention predictedMention : c.corefMentions){
         if(predictedMention.node.goldMention == null) {  // twinless goldmention
           pNum--;
+          LVCoref.logger.fine("\t* ["+predictedMention.nerString+"]"+ "\t"+predictedMention.getContext(doc, 3)+ "\t@ "+ predictedMention.node.id);
         } else {
           partitions.add(doc.goldCorefClusters.get(predictedMention.node.goldMention.goldCorefClusterID));
+          LVCoref.logger.fine("\t"+predictedMention.node.goldMention.corefClusterID+" ["+predictedMention.nerString+"]" + "\t"+predictedMention.node.mention.getContext(doc, 3) +"\t@ "+ predictedMention.node.id);
         }
       }
       pNum -= partitions.size();
@@ -67,4 +73,6 @@ public class ScorerMUC extends CorefScorer {
     precisionDenSum += pDen;
     precisionNumSum += pNum;
   }
+  
+  
 }

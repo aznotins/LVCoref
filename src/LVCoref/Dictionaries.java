@@ -26,6 +26,7 @@ public class Dictionaries {
     
     
     public static final Map<String, Set<String>> pronouns = new HashMap<>();
+    //public static final Map<String, Set<String>> pronouns = new HashMap<String,HashMap<String> >();
 	public static final Map<String, Set<String>> commonNouns = new HashMap<>();
 	public static final Map<String, Set<String>> properNouns = new HashMap<>();
     

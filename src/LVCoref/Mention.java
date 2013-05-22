@@ -96,8 +96,8 @@ public class Mention implements Comparable{
         this.nerString = ner;
                 
         this.sentNum = node.sentNum;
-        categories = new HashSet<>();
-        words = new HashSet<>();
+        categories = new HashSet<String>();
+        words = new HashSet<String>();
         this.type = type;
         
         //this.category = d.dict.getCategory(node.lemma);
@@ -250,5 +250,10 @@ public class Mention implements Comparable{
         Mention m = (Mention) o;
         return this.node.id - m.node.id;
     }  
+    
+    
+    public String getContext(Document d, int size) {
+        return d.getSubString(this.start-size, this.end+size);
+    }
  
 }

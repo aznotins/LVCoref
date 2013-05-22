@@ -58,7 +58,7 @@ public class ScorerPairwise extends CorefScorer {
       for(Mention m1 : c.getCorefMentions()){
           if (m1.node.goldMention == null) {
               //System.out.println("Precision Not mention ("+m1.nerString+") @ "+ m1.node.id+" #" + ++not_mention);
-              LVCoref.logger.fine("Precision Not mention ("+m1.nerString+") @ "+ m1.node.id+" #" + ++not_mention);
+              //LVCoref.logger.fine("Precision Not mention ("+m1.nerString+") @ "+ m1.node.id+" #" + ++not_mention);
           }
         for(Mention m2 : c.getCorefMentions()) {
           if(m1.id >= m2.id) continue;
@@ -67,7 +67,7 @@ public class ScorerPairwise extends CorefScorer {
             pNum++;
           } else if (m1.node.goldMention != null && m2.node.goldMention != null) {
               //System.out.println("Precision Incorrect coreference(referents)" + m1.nerString + "  :  " + m2.nerString);
-              LVCoref.logger.fine("Precision Incorrect coreference(referents)" + m1.nerString +" @"+ m1.node.id+ "  :  " + m2.nerString + "@ "+ m2.node.id);
+              //LVCoref.logger.fine("Precision Incorrect coreference(referents)" + m1.nerString +" @"+ m1.node.id+ "  :  " + m2.nerString + "@ "+ m2.node.id);
           } else {
 //              if (m1.node.goldMention == null) System.out.println("Precision Not mention ("+m1.nerString+") #" + ++not_mention);
 //              if (m2.node.goldMention == null) System.out.println("Precision Not mention ("+m2.nerString+") #" + ++not_mention);
