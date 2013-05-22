@@ -137,7 +137,7 @@ public class Resolve {
                     Mention prev = m.prev(d);
                     while ( prev != null && (m.sentNum - prev.sentNum <= sentenceWindow || m.type == MentionType.PROPER)) {
                          if (prev.type == MentionType.NOMINAL || prev.type == MentionType.PROPER) {
-                             if (prev.normString.equals(m.normString)) {
+                             if (prev.normString.equals(m.normString) && prev.number == m.number) {
                                 //d.refGraph.setRef(m, prev);
                                 d.mergeClusters(m, prev);
                                 LVCoref.logger.fine(Utils.getMentionPairString(d, m, prev, "Exact String match"));

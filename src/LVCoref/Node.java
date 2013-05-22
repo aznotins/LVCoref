@@ -145,6 +145,10 @@ public class Node {
         return word.toUpperCase().equals(word);
     }
     
+    public Boolean isNominal() {
+        return tag.charAt(0) == 'n';
+    }
+    
     public Boolean isPlural() {
         if (tag.charAt(0) == 'n' && tag.charAt(3) == 'p') return true;
         if (tag.charAt(0) == 'p' && tag.charAt(4) == 'p') return true;

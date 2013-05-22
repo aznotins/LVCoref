@@ -147,6 +147,13 @@ public abstract class DeterministicCorefSieve  {
           Resolve.secondPerson(document);
       }
       if (flags.USE_EXACTSTRINGMATCH) Resolve.exactStringMatch(document);
+      
+      
+      
+      if (flags.REMOVE_NESTED_MENTIONS) document.removeNestedMentions();
+      if (flags.REMOVE_SINGLETONS) document.removeSingletonMentions();
+      
+      
       return true;
 
 //    boolean ret = false;

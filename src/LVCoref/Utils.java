@@ -57,7 +57,7 @@ public class Utils {
             }
         }
         if (comment.length() > 0) s += comment + ": ";
-        s += "["+m.nerString+"]" + " ["+n.nerString+"]" + "\t\t("+m.getContext(d,3) +")" + "\t("+n.getContext(d,3) +")";
+        s += "["+m.nerString+"]" + " ["+n.nerString+"]" + "\t\t("+m.getContext(d,3) +")@"+ m.node.id + "\t("+n.getContext(d,3) +")@"+ n.node.id;
         return s;
     }
     

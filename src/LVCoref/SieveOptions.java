@@ -25,6 +25,8 @@ public class SieveOptions {
   public boolean USE_ALIAS;
   public boolean USE_SLOT_MATCH;
   public boolean USE_DISCOURSEMATCH;
+  public boolean REMOVE_NESTED_MENTIONS;
+  public boolean REMOVE_SINGLETONS;
   
   public String toString() {
     StringBuilder os = new StringBuilder();
@@ -53,6 +55,8 @@ public class SieveOptions {
     if(USE_ALIAS) os.append(", USE_ALIAS");
     if(USE_SLOT_MATCH) os.append(", USE_SLOT_MATCH");
     if(USE_DISCOURSEMATCH) os.append(", USE_DISCOURSEMATCH");
+    if (REMOVE_NESTED_MENTIONS) os.append(", REMOVE_NESTED_MENTIONS");
+    if (REMOVE_SINGLETONS) os.append(", REMOVE_SINGLETONS");
     os.append("}");
     return os.toString();
   }
@@ -82,5 +86,7 @@ public class SieveOptions {
     USE_ALIAS = false;
     USE_SLOT_MATCH = false;
     USE_DISCOURSEMATCH = false;
+    REMOVE_NESTED_MENTIONS = false;
+    REMOVE_SINGLETONS = false;
   }
 }

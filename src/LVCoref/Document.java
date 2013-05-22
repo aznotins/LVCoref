@@ -558,16 +558,18 @@ public class Document {
             Node n = m.node.parent;
             Boolean nested = false;
             while (l++ < max_depth && n != null && m.node.sentNum == n.sentNum) {
-                if (n.mention != null && (m.type == MentionType.NOMINAL || m.type == MentionType.PROPER && n.mention.type == MentionType.PROPER)) {
+                if (n.mention != null && (/*m.type == MentionType.NOMINAL || */m.type == MentionType.PROPER && n.mention.type == MentionType.PROPER && n.isProper())) {
                     //remove m
-                    m.node.mention = null;
-                    m.node.goldMention = null;
                     nested = true;
                     break;
                 }
                 n = n.parent;
             }
             if (!nested) mm.add(m);
+            else {
+                removeMention(m);
+                LVCoref.logger.fine("Removed nested mention " + "["+ m.nerString+"]" + "\t("+m.getContext(this, 3) +")");
+            }
         }
         mentions.clear();
         mentions = mm;
@@ -579,7 +581,8 @@ public class Document {
         List <Mention> mm = new ArrayList<Mention>();
         for (Mention m : mentions) {
             if (m.number == Dictionaries.Number.PLURAL) {
-                m.node.mention = null;
+                removeMention(m);
+                LVCoref.logger.fine("Removed plural mention " + "["+ m.nerString+"]" + "\t("+m.getContext(this, 3) +")");
             } else {
                 mm.add(m);
             }
@@ -598,8 +601,7 @@ public class Document {
         List <Mention> mm = new ArrayList<Mention>();
         for (Mention m : mentions) {
             if (corefClusters.get(m.corefClusterID) != null && corefClusters.get(m.corefClusterID).corefMentions.size() < 2) {
-                m.node.mention = null;
-                corefClusters.remove(m.corefClusterID);
+                removeMention(m);
                 LVCoref.logger.fine("Removed pronoun singleton " + m.nerString);
             } else {
                 mm.add(m);
@@ -664,13 +666,21 @@ public class Document {
     }
     
     
+    public void removeMention(Mention m) {
+        m.node.mention = null;
+        CorefCluster cluster = corefClusters.get(m.corefClusterID);
+        if (cluster != null) {
+            if (cluster.corefMentions.size() < 2) corefClusters.remove(m.corefClusterID);
+            else cluster.corefMentions.remove(m);
+        }
+    }
+    
     public void removePronounSingletonMentions() {
         List <Mention> mm = new ArrayList<Mention>();
         for (Mention m : mentions) {
             if (m.type == MentionType.PRONOMINAL && corefClusters.get(m.corefClusterID) != null && corefClusters.get(m.corefClusterID).corefMentions.size() < 2) {
-                m.node.mention = null;
-                corefClusters.remove(m.corefClusterID);
-                LVCoref.logger.fine("Removed pronoun singleton " + m.nerString);
+                removeMention(m);
+                LVCoref.logger.fine("Removed pronoun singleton " + "["+ m.nerString+"]" + "\t("+m.getContext(this, 3) +")");
             } else {
                 mm.add(m);
             }
@@ -680,7 +690,51 @@ public class Document {
         normalizeMentions();
     }
     
-
+    
+    public void removeUndefiniedMentions() {        
+        Set<String> exclude = new HashSet<String>(Arrays.asList("viss", "cits", "dažs"));
+        List <Mention> mm = new ArrayList<Mention>();
+        for (Mention m : mentions) {
+            boolean needExclude = false;
+            if (m.number != Dictionaries.Number.SINGULAR) {
+                for (Node c : m.node.children) {
+                    if (exclude.contains(c.lemma)) {
+                        needExclude = true;
+                        break;
+                    }
+                }
+            }
+            if (needExclude) {
+                removeMention(m);
+                LVCoref.logger.fine("Removed undefinied mention " + "["+ m.nerString+"]" + "\t("+m.getContext(this, 3) +")");
+            } else {
+                mm.add(m);
+            }
+        }
+        mentions.clear();
+        mentions = mm;
+        normalizeMentions();
+    }
+    
+    
+    
+    
+    
+    public void removeGenitiveMentions() {
+        List <Mention> mm = new ArrayList<Mention>();
+        for (Mention m : mentions) {
+            if (m.type == MentionType.NOMINAL && m.mentionCase == Dictionaries.Case.GENITIVE && m.node.parent != null && m.node.parent.isNominal()) {
+                removeMention(m);
+                LVCoref.logger.fine("Removed genitive mention singleton " + "["+ m.nerString+"]" + "\t("+m.getContext(this, 3) +")");
+            } else {
+                mm.add(m);
+            }
+        }
+        mentions.clear();
+        mentions = mm;
+        normalizeMentions();
+    }
+    
     
     
     public void sortMentions() {
@@ -886,56 +940,69 @@ public class Document {
                         out.println("<span class='span' id='s"+n.mentionStartList.get(mid)+"'> [ ");
                     }
                     
-                    if (n.mention != null && corefClusters.get(n.mention.corefClusterID).corefMentions.size() > 1) {
-                        Mention ant = refGraph.getFinalResolutions().get(n.mention);
-                        
-                        
-                        out.print(" <span "
-                                    + "class='coref'"
-                                    + "style='background-color:#"+corefColor.get(n.mention.corefClusterID)+";'"
-                                    + "id='"+n.mention.id+"' "
-                                    + "title='"
-                                        + "@cID=" + n.mention.corefClusterID
-                                        + " @mID=" + n.mention.id
-                                        + " @POS=" + n.tag+":"+n.lemma    
-                                        + " @wID=" + n.id
-                                        + " @antID="+((ant == null)?null:ant.id)
-                                        + " @type="+n.mention.type
-                                        + " @cat="+n.mention.categories + ":"+n.mention.category
-                                        + " @resoInfo="+n.mention.comments+"]"
-                                        + " @span=["+n.nodeProjection(this) +"]"
-                                        + " @startM="+n.mention.start
-                                        + " @endM="+n.mention.end
-                                        + " @string="+n.mention.nerString
-                                        + " @normalized="+n.mention.normString
-                                        + " @words="+n.mention.words
-                                        + " @modifiers="+n.mention.modifiers
-                                        + " @ProperMod="+n.mention.properModifiers
-                                + "'>"
-                                + " <em class='c"+n.mention.corefClusterID+"'>"+" " + n.word+"</em>"
-                                + "["+n.mention.corefClusterID+"]"
-                            + "</span>"/*+n.mention.categories*/);
-                        
-                    } else if (n.mention != null) {
-                        out.print(" <span "
-                                    + "class='singleton'"
-                                    + "title='"
-                                        + " @mID="+n.mention.id
-                                        + " @POS=" + n.tag+":"+n.lemma    
-                                        + " @wID=" + n.id
-                                        + " @type="+n.mention.type
-                                        + " @cat"+n.mention.categories + ":"+n.mention.category
-                                        + " @span=["+n.nodeProjection(this) +"]"
-                                        + " @string="+n.mention.nerString
-                                        + " @normalized="+n.mention.normString
-                                        + " @words="+n.mention.words
-                                        + " @modifiers="+n.mention.modifiers
-                                        + " @ProperMod="+n.mention.properModifiers
-                                    +"'>"
-                                + "<em>" + n.word+"</em>"
-                            + "</span>");
+                    
+                    
+                    if (n.mention != null) {                        
+                        if (n.mention != null && corefClusters.get(n.mention.corefClusterID).corefMentions.size() > 1) {
+                            Mention ant = refGraph.getFinalResolutions().get(n.mention);
+
+                            String notGoldError = "";
+                            if (LVCoref.props.getProperty(Constants.GOLD_MENTIONS_PROP, "").length() < 1 && n.goldMention == null)
+                                 notGoldError = " notGold";
+
+                            out.print(" <span "
+                                        + "class='coref"+notGoldError+"'"
+                                        + "style='background-color:#"+corefColor.get(n.mention.corefClusterID)+";'"
+                                        + "id='"+n.mention.id+"' "
+                                        + "title='"
+                                            + "@cID=" + n.mention.corefClusterID
+                                            + " @mID=" + n.mention.id
+                                            + " @POS=" + n.tag+":"+n.lemma    
+                                            + " @wID=" + n.id
+                                            + " @antID="+((ant == null)?null:ant.id)
+                                            + " @type="+n.mention.type
+                                            + " @cat="+n.mention.categories + ":"+n.mention.category
+                                            + " @resoInfo="+n.mention.comments+"]"
+                                            + " @span=["+n.nodeProjection(this) +"]"
+                                            + " @startM="+n.mention.start
+                                            + " @endM="+n.mention.end
+                                            + " @string="+n.mention.nerString
+                                            + " @normalized="+n.mention.normString
+                                            + " @words="+n.mention.words
+                                            + " @modifiers="+n.mention.modifiers
+                                            + " @ProperMod="+n.mention.properModifiers
+                                    + "'>"
+                                    + " <em class='c"+n.mention.corefClusterID+"'>"+" " + n.word+"</em>"
+                                    + "["+n.mention.corefClusterID+"]"
+                                + "</span>"/*+n.mention.categories*/);
+
+                        } else if (n.mention != null) {
+                            out.print(" <span "
+                                        + "class='singleton'"
+                                        + "title='"
+                                            + " @mID="+n.mention.id
+                                            + " @POS=" + n.tag+":"+n.lemma    
+                                            + " @wID=" + n.id
+                                            + " @type="+n.mention.type
+                                            + " @cat"+n.mention.categories + ":"+n.mention.category
+                                            + " @span=["+n.nodeProjection(this) +"]"
+                                            + " @string="+n.mention.nerString
+                                            + " @normalized="+n.mention.normString
+                                            + " @words="+n.mention.words
+                                            + " @modifiers="+n.mention.modifiers
+                                            + " @ProperMod="+n.mention.properModifiers
+                                        +"'>"
+                                    + "<em>" + n.word+"</em>"
+                                + "</span>");
+                        }
                     } else {
+                        
+                        String notPredictedError = "";
+                        if (LVCoref.props.getProperty(Constants.GOLD_MENTIONS_PROP, "").length() < 1 && n.goldMention != null)
+                                 notPredictedError = " notPredicted";
+                        
                         out.print(" <span "
+                                + "class='"+notPredictedError+"'"
                                 + "title='"
                                 + " @POS=" + n.tag+":"+n.lemma    
                                 + " @wID=" + n.id

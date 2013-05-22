@@ -267,10 +267,20 @@ public class LVCoref {
             d.setQuoteMentions();
             d.setAbbreviationMentions();
             //             d.setMentions();
-                    d.setListMentions();
-                    d.tweakPersonMentions();
-                    d.removeNestedMentions();
-                    d.setMentionModifiers(true);
+            d.setListMentions();
+            
+            d.setMentionModifiers(true);
+            
+            d.tweakPersonMentions();
+            
+            
+            d.removeUndefiniedMentions();
+            
+            //d.removeNestedMentions();
+            
+            d.removeGenitiveMentions();
+
+            
                     
 
             //        for(Mention m : d.mentions) {
@@ -319,7 +329,7 @@ public class LVCoref {
                 PrintStream ps;
                 try {
                     ps = new PrintStream(System.out, true, "UTF8");
-                    d.outputCONLL(ps);
+                    //d.outputCONLL(ps);
                 } catch (UnsupportedEncodingException ex) {
                     System.err.println("Unsupported output encoding");
                     Logger.getLogger(LVCoref.class.getName()).log(Level.SEVERE, null, ex);
@@ -461,7 +471,7 @@ public class LVCoref {
   }
   
   private static void printSieveScore(Document document, DeterministicCorefSieve sieve) {
-    logger.fine("===========================================");
+    logger.fine("\n\n\n\n\n\n\n\n===========================================");
     logger.fine("pass"+currentSieve+" " + sieve.getClass()+": "+ sieve.flagsToString());
     scoreMUC.get(currentSieve).printF1(logger);
     scoreBcubed.get(currentSieve).printF1(logger);
@@ -475,7 +485,7 @@ public class LVCoref {
     logger.fine("--------------------------------------");
     
     if (Constants.VERBOSE) {
-        System.err.println("===========================================");
+        System.err.println("\n\n\n\n\n\n\n\n===========================================");
          System.err.println("pass"+currentSieve+" " + sieve.getClass()+": "+ sieve.flagsToString());
 //        scoreMUC.get(currentSieve).printF1(logger);
 //        scoreBcubed.get(currentSieve).printF1(logger);
