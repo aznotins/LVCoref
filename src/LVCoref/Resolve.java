@@ -77,8 +77,46 @@ public class Resolve {
                 }
             }
         }
-        
     }
+    
+    
+        public static void modifierHeadMatch(Document d){
+        //Head match
+        for (Mention m : d.mentions) {
+            //if (!m.needsReso()) continue;
+            if (m.type == MentionType.NOMINAL || m.type == MentionType.PROPER) {
+
+                //simple look at previous mentions (without using sintax tree)
+
+                int sentenceWindow = 30; //need to be larger for proper heads
+
+                Mention prev = m.prev(d);
+                while ( prev != null && (m.sentNum - prev.sentNum <= sentenceWindow || m.type == MentionType.PROPER)) {
+                     if (prev.type == MentionType.NOMINAL || prev.type == MentionType.PROPER) {
+                         if (prev.headString.equals(m.headString) ||
+                             d.dict.belongsToSameGroup(prev.headString, m.headString, d.dict.sinonyms)) {
+                             if (   m.gender == prev.gender &&  m.number == prev.number ) {
+                                 if (!genetiveBad(d, m) && !genetiveBad(d, prev)) {
+                                    //d.refGraph.setRef(m, prev);
+                                    if(prev.properModifiers.containsAll(m.properModifiers)) {
+                                        d.mergeClusters(m, prev);
+                                        LVCoref.logger.fine(Utils.getMentionPairString(d, m, prev, "Modifier head match"));
+                                        
+                                        m.addRefComm(prev, "modifierHeadMatch");
+                                        m.setAsResolved();
+                                        break;
+                                    }
+
+                                }
+                             }
+                         }
+                     }
+                     prev = prev.prev(d);
+                }
+            }
+        }
+    }
+    
     
     //m1 contains all m1 words
     private static boolean includeWords (Mention m1, Mention m2) {

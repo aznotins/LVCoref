@@ -319,7 +319,7 @@ public class Document {
                 if (head.goldMention == null) {
                     
                     MentionType type = head.getType();
-                    Mention goldMention = new Mention(this, i, head, type , getSubString(start, end)); // @FIXME
+                    Mention goldMention = new Mention(this, i, head, type , start, end); // @FIXME
                     goldMention.start = start;
                     goldMention.end = end;
                     goldMentions.add(goldMention);
@@ -392,7 +392,7 @@ public class Document {
                 if (node.tag.charAt(0) == 'n' || node.tag.charAt(0) == 'p') {
                     if (!dict.excludeWords.contains(node.lemma)) {
                         node.isMention = true;
-                        Mention m = new Mention(this, mention_id++, node, node.getType(), node.word);
+                        Mention m = new Mention(this, mention_id++, node, node.getType(), node.id, node.id);
                         mentions.add(m);
                         node.mention = m;
                     }
@@ -411,7 +411,7 @@ public class Document {
                 String cat = dict.getCategory(node.lemma);
                 if (cat != null) {
                     node.isMention = true;
-                    Mention m = new Mention(this, mention_id++, node, node.getType(), node.word);
+                    Mention m = new Mention(this, mention_id++, node, node.getType(), node.id, node.id);
                     mentions.add(m);
                     node.mention = m;
                     m.category = cat;
@@ -517,7 +517,7 @@ public class Document {
             //System.out.println("Mention \""+getSubString(from, to)+"\" head="+head.word);
             LVCoref.logger.fine("Mention \""+getSubString(from, to)+"\" head="+head.word);
             int id = mentions.size();
-            Mention m = new Mention(this, id, head, t, getSubString(from, to));
+            Mention m = new Mention(this, id, head, t, from, to);
             head.mention = m;
 
             m.start = from;
@@ -615,8 +615,33 @@ public class Document {
     public void updateMentions() {
         for (Mention m : mentions) {
             m.normString = getNormSubString(m.start, m.end);
+            
             for(int i = m.start; i <= m.end; i++) {
                 m.words.add(tree.get(i).lemma);
+            }
+            
+            m.nerString = getSubString(m.start, m.end);
+        }
+    }
+    
+    public void setMentionModifiers(boolean updateMargins) {
+        for (Mention m : mentions) {
+            if (m.type != MentionType.NOMINAL && m.type != MentionType.PROPER) continue;
+            Node n = m.node.prev(this);
+            int left = m.node.id;
+            while (n != null && (n.isNounGenitive() || n.isProperAdjective())) {
+                m.modifiers.add(n.lemma.toLowerCase());
+                if (n.isProper()) {
+                    m.properModifiers.add(n.lemma.toLowerCase());
+                    m.type = MentionType.PROPER;
+                }
+                left--;
+                n = n.prev(this);
+            }
+            if (updateMargins) m.start = Math.min(left, m.start);
+            
+            if (left != m.node.id) {
+                LVCoref.logger.fine("Added modifiers " + m.nerString +"("+getSubString(left, m.node.id)+ ")");
             }
         }
     }
@@ -637,6 +662,7 @@ public class Document {
         }
         mentions.addAll(mm);
     }
+    
     
     public void removePronounSingletonMentions() {
         List <Mention> mm = new ArrayList<Mention>();
@@ -883,6 +909,8 @@ public class Document {
                                         + " @string="+n.mention.nerString
                                         + " @normalized="+n.mention.normString
                                         + " @words="+n.mention.words
+                                        + " @modifiers="+n.mention.modifiers
+                                        + " @ProperMod="+n.mention.properModifiers
                                 + "'>"
                                 + " <em class='c"+n.mention.corefClusterID+"'>"+" " + n.word+"</em>"
                                 + "["+n.mention.corefClusterID+"]"
@@ -901,6 +929,8 @@ public class Document {
                                         + " @string="+n.mention.nerString
                                         + " @normalized="+n.mention.normString
                                         + " @words="+n.mention.words
+                                        + " @modifiers="+n.mention.modifiers
+                                        + " @ProperMod="+n.mention.properModifiers
                                     +"'>"
                                 + "<em>" + n.word+"</em>"
                             + "</span>");
@@ -938,7 +968,7 @@ public class Document {
                     out.println("<div class='mentionCluster'>");
                     out.println("========== " + c_i + " ==========");
                     for (Mention m : c.corefMentions) {
-                        String projection = m.node.nodeProjection(this);
+                        String projection = m.nerString;//= m.node.nodeProjection(this);
                         projection = projection.replace(m.node.word, "<b>"+m.node.word+"</b>");
                         
                         out.println

@@ -63,7 +63,7 @@ public class ScorerMUC extends CorefScorer {
           LVCoref.logger.fine("\t* ["+predictedMention.nerString+"]"+ "\t"+predictedMention.getContext(doc, 3)+ "\t@ "+ predictedMention.node.id);
         } else {
           partitions.add(doc.goldCorefClusters.get(predictedMention.node.goldMention.goldCorefClusterID));
-          LVCoref.logger.fine("\t"+predictedMention.node.goldMention.corefClusterID+" ["+predictedMention.nerString+"]" + "\t"+predictedMention.node.mention.getContext(doc, 3) +"\t@ "+ predictedMention.node.id);
+          LVCoref.logger.fine("\t"+predictedMention.node.goldMention.goldCorefClusterID+" ["+predictedMention.nerString+"]" + "\t"+predictedMention.node.mention.getContext(doc, 3) +"\t@ "+ predictedMention.node.id);
         }
       }
       pNum -= partitions.size();

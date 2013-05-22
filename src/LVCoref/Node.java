@@ -151,6 +151,26 @@ public class Node {
         return false;
     }
     
+    public Boolean isProperAdjective() {
+        if (tag.charAt(0) == 'a' && isProper()) {
+            return true;
+        }
+        return false;
+    }
+    
+    
+    public Boolean isNounGenitive() {
+        if (tag.charAt(0) == 'n' && tag.charAt(4) == 'g' /*&& Character.isUpperCase(word.charAt(0))*/) {
+            return true;
+        }
+        return false;
+    }
+    
+    public Boolean isProper() {
+        if (Character.isUpperCase(word.charAt(0))) return true; //FIXME very sloppy heurestics
+        return false;
+    }
+    
     /**
      * Could be optimized
      * @param d 

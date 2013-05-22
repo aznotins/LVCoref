@@ -262,6 +262,7 @@ public class LVCoref {
         if (mmaxGold.length() > 0) { d.addAnnotationMMAX(mmaxGold); }
         if (Constants.USE_GOLD_MENTIONS && mmaxGold.length() > 0) {
             d.useGoldMentions();
+            d.setMentionModifiers(false);
         } else {
             d.setQuoteMentions();
             d.setAbbreviationMentions();
@@ -269,6 +270,7 @@ public class LVCoref {
                     d.setListMentions();
                     d.tweakPersonMentions();
                     d.removeNestedMentions();
+                    d.setMentionModifiers(true);
                     
 
             //        for(Mention m : d.mentions) {
@@ -282,7 +284,9 @@ public class LVCoref {
         //d.removePluralMentions();
         
         d.setMentionCategories();
+        
         d.updateMentions(); //FIXME move to constructor
+        
         d.sortMentions(); //needed for normalization (array index equals to id)
         
         

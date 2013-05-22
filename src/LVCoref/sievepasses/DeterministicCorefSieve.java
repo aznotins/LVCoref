@@ -135,7 +135,10 @@ public abstract class DeterministicCorefSieve  {
       
       if (flags.USE_APPOSITION) Resolve.appositive(document);
       if (flags.USE_PREDICATENOMINATIVES) Resolve.predicativeNominative(document);
-      if (flags.USE_RELAXED_HEADMATCH) Resolve.headMatch(document);
+      if (flags.USE_RELAXED_HEADMATCH) {
+          //Resolve.headMatch(document);
+          Resolve.modifierHeadMatch(document);
+      }
       
       if (flags.DO_PRONOUN) {
           Resolve.relaxedSintaxPronounMatch(document);

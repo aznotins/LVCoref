@@ -44,6 +44,8 @@ public class Mention implements Comparable{
     
     public String comments;
     public Set<String> words;
+    public Set<String> modifiers;
+    public Set<String> properModifiers;
 
 //    public boolean isSubject;
 //    public boolean isDirectObject;
@@ -84,20 +86,30 @@ public class Mention implements Comparable{
         words = m.words;
         corefClusterID = m.corefClusterID;
         goldCorefClusterID = m.goldCorefClusterID;
-        categories = m.categories;        
+        categories = m.categories;       
+        modifiers = m.modifiers;
+        properModifiers = m.properModifiers;
     }
   
     
-    Mention(Document d, int id, Node node, MentionType type, String ner) {
+    Mention(Document d, int id, Node node, MentionType type, int start, int end) {
         this.id = id;
 		this.root = node.id;
         this.node = node;
         this.headString = node.lemma;
-        this.nerString = ner;
+        //this.nerString = ner;
+        //        this.start = node.getSpanStart(d).id;
+//        this.end = node.getSpanEnd(d).id;
+        this.start = start;
+        this.end = end;
+        //this.nerString = node.nodeProjection(d);
+        this.nerString = d.getSubString(start, end);
                 
         this.sentNum = node.sentNum;
         categories = new HashSet<String>();
         words = new HashSet<String>();
+        modifiers = new HashSet<String>();
+        properModifiers = new HashSet<String>();
         this.type = type;
         
         //this.category = d.dict.getCategory(node.lemma);
@@ -168,8 +180,6 @@ public class Mention implements Comparable{
         } else {
             d.logger.fine("Unsuported tag: " + node.tag);
         }
-        this.start = node.getSpanStart(d).id;
-        this.end = node.getSpanEnd(d).id;
         
     }
 
