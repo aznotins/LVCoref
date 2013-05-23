@@ -19,6 +19,7 @@ public class Node {
     
     public int sentNum = -1;
     public int position;
+    public boolean isProper = false;
 	
 	//public String conll_string;
     public List<String> conll_fields;
@@ -74,10 +75,10 @@ public class Node {
 			if (tag.charAt(1)=='p') {
 				return Dictionaries.MentionType.PROPER;
             }
-            if (Character.isUpperCase(lemma.charAt(0))) {
-                return Dictionaries.MentionType.PROPER;
-            }
-            if (Character.isUpperCase(word.charAt(0))) {
+//            if (Character.isUpperCase(lemma.charAt(0))) {
+//                return Dictionaries.MentionType.PROPER;
+//            }
+            if (isProper) {
                 return Dictionaries.MentionType.PROPER;
             }
 		} else if (tag.charAt(0) == 'p') {
@@ -145,7 +146,7 @@ public class Node {
         return word.toUpperCase().equals(word);
     }
     
-    public Boolean isNominal() {
+    public Boolean isNoun() {
         return tag.charAt(0) == 'n';
     }
     
@@ -171,7 +172,8 @@ public class Node {
     }
     
     public Boolean isProper() {
-        if (Character.isUpperCase(word.charAt(0))) return true; //FIXME very sloppy heurestics
+        if (isProper) return true;
+        //if (Character.isUpperCase(word.charAt(0))) return true; //FIXME very sloppy heurestics
         return false;
     }
     

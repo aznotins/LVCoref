@@ -260,6 +260,7 @@ public class LVCoref {
         
         String mmaxGold = props.getProperty(Constants.MMAX_GOLD_PROP, "");
         if (mmaxGold.length() > 0) { d.addAnnotationMMAX(mmaxGold); }
+        d.updateProperWords();
         if (Constants.USE_GOLD_MENTIONS && mmaxGold.length() > 0) {
             d.useGoldMentions();
             d.setMentionModifiers(false);
@@ -268,7 +269,8 @@ public class LVCoref {
             d.setAbbreviationMentions();
             //             d.setMentions();
             d.setListMentions();
-            
+            d.setProperNodeMentions();
+            d.setDetalizedNominalMentions();
             d.setMentionModifiers(true);
             
             d.tweakPersonMentions();
@@ -304,6 +306,8 @@ public class LVCoref {
         d.initializeEntities();
         //Resolve.go(d, logger);
         
+        
+        for(Node n : d.tree) n.conll_fields.remove(5);
         
         for(int i = 0; i < sieves.length; i++) {
             currentSieve = i;

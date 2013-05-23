@@ -61,4 +61,11 @@ public class Utils {
         return s;
     }
     
+    public static String getMentionComment(Document d, Mention m, String comment) {
+        String s = "@@@";
+        if (comment.length() > 0) s = comment + ": ";
+        s +=  "["+m.nerString+"]" + "\t\t("+m.getContext(d,3)+")@"+m.node.id;
+        return s;
+    }
+    
 }
