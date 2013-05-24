@@ -401,3 +401,5 @@ friziere
 frizieris
 viesrežisors
 viesrežisore
+aktieris
+aktiere

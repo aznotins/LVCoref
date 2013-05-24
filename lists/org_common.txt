@@ -13,7 +13,6 @@ iestāde
 firma
 koncerns
 aģentūra
-dome
 teātris
 birojs
 institūts
@@ -117,5 +116,4 @@ tirgotava
 universitāte
 vadība
 vidusskola
-zāle
 ZS
