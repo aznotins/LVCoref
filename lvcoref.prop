@@ -1,10 +1,7 @@
-#....
-
-lvcoref.score = true
-lvcoref.log = true
+#lvcoref.score = true
+#lvcoref.log = true
 lvcoref.sievePasses = ExactStringMatch,PreciseConstructs,RelaxedHeadMatch,PronounMatch
-
 #PostProcessing,
 
-lvcoref.conll.input = data/pipeline/interview_46.lvsem.conll 
-lvcoref.mmax.gold = data/interview_46_coref_level.xml
+#lvcoref.conll.input = data/pipeline/interview_46.lvsem.conll 
+#lvcoref.mmax.gold = data/interview_46_coref_level.xml
