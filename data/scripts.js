@@ -16,12 +16,12 @@ $(function(){
 
 	$('span.coref em').clickToggle(
 		function(){
-			$('.'+$(this).attr('class')).parent().addClass('selected');
+			$('.'+$(this).attr('class')).parent('.coref').addClass('selected').parent('.span').addClass('higlighted');
             event.stopPropagation();
 		
 		},
 		function(){
-			$('.'+$(this).attr('class')).parent().removeClass('selected');
+			$('.'+$(this).attr('class')).parent('.coref').removeClass('selected').parent('.span').removeClass('higlighted');
             event.stopPropagation();
 		}
 	)
@@ -48,11 +48,11 @@ $(function(){
 //        }
 //    )
     $('span.span').mouseleave(function(){
-        $(this).css('background','none');
+        $(this).removeClass('hover');
     })
     $('span.span').mouseover(function(){
-        $(this).css('background','#333');
-        $(this).parents('.span').css('background','none');
+        $(this).addClass('hover');
+        $(this).parents('.hover').removeClass('hover');
         event.stopPropagation();
     })
         
