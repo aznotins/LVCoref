@@ -260,10 +260,7 @@ public class Resolve {
                          n.type == MentionType.NOMINAL && m.type == MentionType.PROPER ||
                          n.type == MentionType.PROPER && m.type == MentionType.NOMINAL ){
 
-                        if ( n.gender == m.gender &&
-                             n.mentionCase == m.mentionCase &&
-                             n.number == m.number ) {
-
+                        if ( n.sameGender(m) && n.sameCase(m) && n.sameNumber(m) && !n.isGenitive(m)) {
                             if (genetiveTest(d, n, m)) {
                                 //d.refGraph.setRef(m, n);
                                 d.mergeClusters(m, n);

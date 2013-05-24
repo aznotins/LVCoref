@@ -178,11 +178,49 @@ public class Mention implements Comparable{
             
 
         } else {
+            gender = Gender.UNKNOWN;
+            number = Number.UNKNOWN;            
+            mentionCase = Case.UNKNOWN;
             d.logger.fine("Unsuported tag: " + node.tag);
         }
         
     }
-
+    
+    public boolean sameGender(Mention m) {
+        if (gender == m.gender) return true;
+        return false;
+    }
+    
+    public boolean samePerson(Mention m) {
+        if (person == m.person) return true;
+        return false;
+    }
+    
+    public boolean sameNumber(Mention m) {
+        if (number == m.number) return true;
+        return false;
+    }
+    
+    public boolean sameCase(Mention m) {
+        if (mentionCase == m.mentionCase) return true;
+        return false;
+    }
+    
+    /**
+     * If m is m is dominated or dominates m
+     * @param m
+     * @return 
+     */
+    public boolean isGenitive(Mention m) {
+        if (node.isNounGenitive() && node.parent != null && node.parent.mention == m) return true;
+        if (m.node.isNounGenitive() && m.node.parent != null && m.node.parent.mention == this) return true;
+        else return false;
+    }
+    
+    public boolean isPerson() {
+        //return category.equals("person");
+        return categories.contains("person");
+    }
     
     public String toString() {
       StringBuilder result = new StringBuilder();

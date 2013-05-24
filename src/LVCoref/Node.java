@@ -150,6 +150,11 @@ public class Node {
         return tag.charAt(0) == 'n';
     }
     
+    public Boolean isQuote() {
+        if (tag.equals("zq") || word.equals("\'")) return true;
+        return false;
+    }
+    
     public Boolean isPlural() {
         if (tag.charAt(0) == 'n' && tag.charAt(3) == 'p') return true;
         if (tag.charAt(0) == 'p' && tag.charAt(4) == 'p') return true;
@@ -163,6 +168,33 @@ public class Node {
         return false;
     }
     
+    public Dictionaries.Gender getGender(){
+        if (tag.charAt(0) == 'n') {
+            if (tag.charAt(2) == 'm') return Dictionaries.Gender.MALE;
+            else if (tag.charAt(2) == 'f') return Dictionaries.Gender.FEMALE;
+        } else if (tag.charAt(0) == 'p') {
+            if (tag.charAt(3) == 'm') return Dictionaries.Gender.MALE;
+            else if (tag.charAt(3) == 'f') return Dictionaries.Gender.FEMALE;
+        } else if (tag.charAt(0) == 'a') {
+            if (tag.charAt(2) == 'm') return Dictionaries.Gender.MALE;
+            else if (tag.charAt(2) == 'f') return Dictionaries.Gender.FEMALE;
+        }
+        return Dictionaries.Gender.UNKNOWN;
+    }
+    public Dictionaries.Number getNumber() {
+        if (tag.charAt(0) == 'n') {
+            if (tag.charAt(3) == 's') return Dictionaries.Number.SINGULAR;
+            else if (tag.charAt(3) == 'p') return Dictionaries.Number.PLURAL;
+        } else if (tag.charAt(0) == 'p') {
+            if (tag.charAt(4) == 's') return Dictionaries.Number.SINGULAR;
+            else if (tag.charAt(4) == 'p') return Dictionaries.Number.PLURAL;
+        } else if (tag.charAt(0) == 'a') {
+            if (tag.charAt(3) == 's') return Dictionaries.Number.SINGULAR;
+            else if (tag.charAt(3) == 'p') return Dictionaries.Number.PLURAL;
+        }
+        return Dictionaries.Number.UNKNOWN;
+        
+    }
     
     public Boolean isNounGenitive() {
         if (tag.charAt(0) == 'n' && tag.charAt(4) == 'g' /*&& Character.isUpperCase(word.charAt(0))*/) {

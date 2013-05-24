@@ -263,6 +263,7 @@ public class LVCoref {
         d.updateProperWords();
         if (Constants.USE_GOLD_MENTIONS && mmaxGold.length() > 0) {
             d.useGoldMentions();
+            d.setMentionCategories();
             d.setMentionModifiers(false);
         } else {
             d.setQuoteMentions();
@@ -271,42 +272,26 @@ public class LVCoref {
             d.setListMentions();
             d.setProperNodeMentions();
             d.setDetalizedNominalMentions();
-            d.setMentionModifiers(true);
             
-            d.tweakPersonMentions();
+            d.setMentionCategories();
             
             
+            d.tweakPersonMentions();d.tweakPersonMentions();//FIXME 
             d.removeUndefiniedMentions();
-            
             //d.removeNestedMentions();
+            //d.removeGenitiveMentions();
             
-            d.removeGenitiveMentions();
-
-            
-                    
-
-            //        for(Mention m : d.mentions) {
-            //            System.out.println(m.nerString + " " + m.headString +  " node=" + m.node.word + " " + m.node.mention.node.word);
-            //        }
-            //        d.visualizeParseTree();
-            //        d.printMentions();
-            //        d.printNodes(d.tree);
+            d.setMentionModifiers(true);
         }
-        
         //d.removePluralMentions();
         
-        d.setMentionCategories();
-        
         d.updateMentions(); //FIXME move to constructor
-        
         d.sortMentions(); //needed for normalization (array index equals to id)
-        
-        
+               
 
         d.initializeEntities();
         //Resolve.go(d, logger);
-        
-        
+                
         for(Node n : d.tree) n.conll_fields.remove(5);
         
         for(int i = 0; i < sieves.length; i++) {
@@ -333,7 +318,7 @@ public class LVCoref {
                 PrintStream ps;
                 try {
                     ps = new PrintStream(System.out, true, "UTF8");
-                    //d.outputCONLL(ps);
+                    d.outputCONLL(ps);
                 } catch (UnsupportedEncodingException ex) {
                     System.err.println("Unsupported output encoding");
                     Logger.getLogger(LVCoref.class.getName()).log(Level.SEVERE, null, ex);
