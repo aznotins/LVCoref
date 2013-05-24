@@ -3,6 +3,8 @@
 lvcoref.score = true
 lvcoref.log = true
 lvcoref.sievePasses = ExactStringMatch,PreciseConstructs,RelaxedHeadMatch,PronounMatch
-lvcoref.conll.input = data/pipeline/interview_46.conll 
+
+#PostProcessing,
+
+lvcoref.conll.input = data/pipeline/interview_46.lvsem.conll 
 lvcoref.mmax.gold = data/interview_46_coref_level.xml
-lvcoref.maxdist = -1
