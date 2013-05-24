@@ -2,11 +2,7 @@
 *.class
 
 /nbproject/
-/lists/PP_orgnames.txt
-/lists/PP_Onomastica_geonames.txt
-/lists/LV_PERS_GAZETTEER.txt
-/lists/PP_org_elements.txt
-/lists/PP_Onomastica_surnames.txt
-/lists/PP_valstis.txt
-/lists/LV_LOC_GAZETTEER.txt
 /build/
+/dist/
+!/lib/commons-lang3-3.1.jar
+!/lib/stanford-corenlp-1.3.5.jar
