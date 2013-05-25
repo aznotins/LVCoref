@@ -240,7 +240,9 @@ public class Document {
 				int parent = parent_in_sentence + sentence_start_id - 1;
 				
 				Node node = new Node(token, lemma, tag, parent, node_id);
-                node.conll_fields.addAll(Arrays.asList(fields));
+                
+                int columnCount = Math.min(fields.length, Constants.savedColumnCount);
+                node.conll_fields.addAll(Arrays.asList(fields).subList(0, columnCount));
                 node.position = position;
                 node.sentNum = sentence_id;
                 if (position == 1) { node.sentStart = true; }

@@ -20,6 +20,7 @@ public class Constants {
     /** if true, read *auto_conll, if false, read *gold_conll */
     public static final boolean USE_CONLL_AUTO = true;
 
+    public static final int savedColumnCount = 7;
 
     /** Default path for conll scorer script */
     public static final String conllMentionEvalScript = "/scr/nlp/data/conll-2011/scorer/v4/scorer.pl";

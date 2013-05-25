@@ -291,9 +291,7 @@ public class LVCoref {
 
         d.initializeEntities();
         //Resolve.go(d, logger);
-                
-        for(Node n : d.tree) n.conll_fields.remove(5);
-        
+               
         for(int i = 0; i < sieves.length; i++) {
             currentSieve = i;
             DeterministicCorefSieve sieve = sieves[i];
