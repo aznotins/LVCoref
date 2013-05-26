@@ -93,21 +93,20 @@ public class Resolve {
                 Mention prev = m.prev(d);
                 while ( prev != null && (m.sentNum - prev.sentNum <= sentenceWindow || m.type == MentionType.PROPER)) {
                      if (prev.type == MentionType.NOMINAL || prev.type == MentionType.PROPER) {
-                         if (prev.headString.equals(m.headString) ||
-                             d.dict.belongsToSameGroup(prev.headString, m.headString, d.dict.sinonyms)) {
-                             if (   m.gender == prev.gender &&  m.number == prev.number ) {
-                                 if (!genetiveBad(d, m) && !genetiveBad(d, prev)) {
-                                    //d.refGraph.setRef(m, prev);
-                                    if(prev.properModifiers.containsAll(m.properModifiers)) {
-                                        d.mergeClusters(m, prev);
-                                        LVCoref.logger.fine(Utils.getMentionPairString(d, m, prev, "Modifier head match"));
-                                        
-                                        m.addRefComm(prev, "modifierHeadMatch");
-                                        m.setAsResolved();
-                                        break;
-                                    }
+                         if (prev.headString.equals(m.headString)) {
+                             if (   m.gender == prev.gender &&  m.number == prev.number && m.type == prev.type) {
+                                 
+                                //d.refGraph.setRef(m, prev);
+                                if(m.modifiers.size() > 0 && prev.modifiers.containsAll(m.modifiers) || prev.modifiers.size() == 0 || m.modifiers.size() == 0) {
+                                    d.mergeClusters(m, prev);
+                                    LVCoref.logger.fine(Utils.getMentionPairString(d, m, prev, "Modifier head match"));
 
+                                    m.addRefComm(prev, "modifierHeadMatch");
+                                    m.setAsResolved();
+                                    break;
                                 }
+
+                                
                              }
                          }
                      }
@@ -137,7 +136,7 @@ public class Resolve {
                     Mention prev = m.prev(d);
                     while ( prev != null && (m.sentNum - prev.sentNum <= sentenceWindow || m.type == MentionType.PROPER)) {
                          if (prev.type == MentionType.NOMINAL || prev.type == MentionType.PROPER) {
-                             if (prev.normString.equals(m.normString) && prev.number == m.number) {
+                             if (prev.normString.equals(m.normString) && prev.number == m.number /*&& prev.type == m.type*/) {
                                 //d.refGraph.setRef(m, prev);
                                 d.mergeClusters(m, prev);
                                 LVCoref.logger.fine(Utils.getMentionPairString(d, m, prev, "Exact String match"));
@@ -174,8 +173,8 @@ public class Resolve {
             if (m.type == MentionType.PRONOMINAL && m.node.lemma.equals("mēs"))  {
                 if (m_es == null) m_es = m;
                 else {
-                    d.mergeClusters(m, m_es);
                     LVCoref.logger.fine(Utils.getMentionPairString(d, m, m_es, "Second person plural pronoun match"));
+                    d.mergeClusters(m, m_es);
                     m.addRefComm(m, "firstPersonPlural");
                 }
             }
@@ -392,7 +391,7 @@ public class Resolve {
                                 if (n.id < m.node.id && n.mention != null) {
                                     Mention prev = n.mention;
                                     if (prev.type == MentionType.NOMINAL || prev.type == MentionType.PROPER) {
-                                        if (prev.number == m.number && prev.gender == m.gender) {
+                                        if (prev.number == m.number && (prev.gender == m.gender || d.dict.unclearGenderPronouns.contains(m.node.lemma))) {
                                             Set<String> cat = d.dict.categoryIntersection(m.categories, prev.categories);
                                             if (cat.size() >= 1) {
                                                 LVCoref.logger.fine(Utils.getMentionPairString(d, m, prev, "Relaxed sintax category pronoun match"));

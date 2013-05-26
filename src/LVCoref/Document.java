@@ -1,6 +1,7 @@
 package LVCoref;
 
 import LVCoref.Dictionaries.MentionType;
+import edu.stanford.nlp.util.Pair;
 import java.awt.Color;
 import java.io.BufferedReader;
 import java.io.File;
@@ -45,7 +46,7 @@ public class Document {
     
     public Logger logger;
     
-    public Set<String> properWords;
+    public Map<String,Pair<Integer,Integer> > properWords;
     
 	
     Document(){
@@ -57,7 +58,7 @@ public class Document {
         corefClusters = new HashMap<Integer, CorefCluster>();
         goldCorefClusters = new HashMap<Integer, CorefCluster>();
         sentences = new ArrayList<Integer>();
-        properWords = new HashSet<String>();
+        properWords = new HashMap();
 	}
     
     Document(Logger _logger) {
@@ -70,7 +71,7 @@ public class Document {
         goldCorefClusters = new HashMap<Integer, CorefCluster>();
         sentences = new ArrayList<Integer>();
         this.logger = _logger;
-        properWords = new HashSet<String>();
+        properWords = new HashMap();
     }
     
     
@@ -393,32 +394,51 @@ public class Document {
     }
     
     
-    public void updateProperWords() {
-        for(Node n : tree) {
-            if (n.position > 1 && Character.isUpperCase(n.word.charAt(0)) || n.tag.charAt(0)=='n' && n.tag.charAt(1)=='p') {
-                properWords.add(n.lemma.toLowerCase());
-                n.isProper = true;
-            }
+//    public void updateProperWords() {
+//        for(Node n : tree) {
+//            if (n.position > 1 && Character.isUpperCase(n.word.charAt(0)) || n.tag.charAt(0)=='n' && n.tag.charAt(1)=='p') {
+//                properWords.add(n.lemma.toLowerCase());
+//                Pair<Integer,Integer> p = properWords.get(n.lemma.toLowerCase());
+//                if (p == null) {
+//                    properWords.put(n.lemma, new Pair(1,1));
+//                } else {
+//                    p.first
+//                    properWords.get(n.lemma)
+//                }
+//                
+//                n.isProper = true;
+//                System.out.println(n.word + " " + n.id);
+//            }
+//        }
+//        for(Node n : tree) {
+//            if (n.position == 1 && Character.isUpperCase(n.word.charAt(0)) && properWords.contains(n.lemma.toLowerCase())) {
+//                n.isProper = true;
+//                System.out.println(n.word + " " + n.id);
+//            }
+//        }
+//    }
+    
+    
+    public int maxClusterID() {
+        int k = 0;
+        for (int i: corefClusters.keySet()) {
+            if (i > k) k = i;
         }
-        for(Node n : tree) {
-            if (n.position == 1 && Character.isUpperCase(n.word.charAt(0)) && properWords.contains(n.lemma.toLowerCase())) {
-                n.isProper = true;
-            }
-        }
+        return k;
     }
     
-    
-    public void setMentions() {
+    public void setTmpMentions() {
         int mention_id = mentions.size();
         for (Node node : tree) {
             if (node.mention == null) {
                 if (node.tag.charAt(0) == 'n' || node.tag.charAt(0) == 'p') {
-                    if (!dict.excludeWords.contains(node.lemma)) {
+                    if (!dict.excludeWords.contains(node.lemma)) {                        
                         node.isMention = true;
                         Mention m = new Mention(this, mention_id++, node, node.getType(), node.id, node.id);
                         mentions.add(m);
                         node.mention = m;
-                        LVCoref.logger.fine(Utils.getMentionComment(this, m, "Set relaxed mention"));
+                        m.tmp = true;
+                        LVCoref.logger.fine(Utils.getMentionComment(this, m, "Set tmp mention"));
                     }
                 }
             }
@@ -431,6 +451,8 @@ public class Document {
             if (node.mention != null) continue;
             //if (node.tag.charAt(0) == 'p') continue;
             //if (node.tag.charAt(0) == 'n' || node.tag.charAt(0) == 'p') {
+            if (node.tag.charAt(0) == 'r') continue;
+            
                 String cat = dict.getCategory(node.lemma);
                 if (cat != null) {
                     node.isMention = true;
@@ -446,15 +468,22 @@ public class Document {
     }
     
     
-    public void setProperNodeMentions() {
+    public void setProperNodeMentions(Boolean create) {
         int mention_id = mentions.size();
         for (Node node : tree) {
-            if (node.mention == null && node.isNoun() && node.isProper()) {
+            if (node.position > 1 && Character.isUpperCase(node.word.charAt(0))) {
+                node.isProper = true;
+            }
+            if (node.mention == null && node.isNoun() && node.isProper() && create) {
                 node.isMention = true;
                 Mention m = new Mention(this, mention_id++, node, node.getType(), node.id, node.id);
                 mentions.add(m);
                 node.mention = m;
                 LVCoref.logger.fine(Utils.getMentionComment(this, m, "Set proper node mention"));
+            }
+            else if (node.isProper() && node.mention != null && node.mention.type == MentionType.NOMINAL) {
+                node.mention.type = MentionType.PROPER;
+                LVCoref.logger.fine(Utils.getMentionComment(this, node.mention, "Set proper node mention (update to proper)"));
             }
         }
     }
@@ -463,7 +492,7 @@ public class Document {
     public void setDetalizedNominalMentions() {
         int mention_id = mentions.size();
         for (Node node : tree) {
-            if (node.isProper() && node.isNounGenitive() && node.parent != null && node.parent.mention == null) {
+            if (node.isProper() && node.isNounGenitive() && node.parent != null && node.parent.mention == null && node.parent.isNoun()) {
                 node.parent.isMention = true;
                 Mention m = new Mention(this, mention_id++, node.parent, node.parent.getType(), node.parent.id, node.parent.id);
                 mentions.add(m);
@@ -544,10 +573,21 @@ public class Document {
                     
                     if (tree.get(j).tag.equals("zq") || tree.get(j).word.equals("\'")) {
                         if (i + 1 <= j-1) {
-                            LVCoref.logger.fine("Quote Mention :("+i+" " + j+") " + getSubString(i+1, j-1));
-                            //assert(i+1 <= j-1);
-                            Mention m = setMention(i+1, j-1, "organization", MentionType.PROPER);
-                            LVCoref.logger.fine(Utils.getMentionComment(this, m, ""));
+                            String s = getSubString(i+1, j-1);
+                            boolean add = false;
+                            for (int k = 0; k < s.length(); k++) {
+                                if (Character.isUpperCase(s.charAt(k)) ){
+                                    add = true;
+                                    break;
+                                }
+                            }
+                            
+                            if (add) {
+                                LVCoref.logger.fine("Quote Mention :("+i+" " + j+") " + getSubString(i+1, j-1));
+                                //assert(i+1 <= j-1);
+                                Mention m = setMention(i+1, j-1, "", MentionType.PROPER);
+                                LVCoref.logger.fine(Utils.getMentionComment(this, m, ""));
+                            }                            
                             i = j;
                             break;
                         }                        
@@ -652,6 +692,60 @@ public class Document {
 //        }
     }
     
+    public void removeTmpMentions() {
+        List <Mention> mm = new ArrayList<Mention>();
+        for (Mention m : mentions) {
+            if (m.tmp) {
+                removeMention(m);
+                LVCoref.logger.fine(Utils.getMentionComment(this, m, "Removed TMP mention"));
+            } else {
+                mm.add(m);
+            }
+        }
+        mentions.clear();
+        mentions = mm;
+        normalizeMentions();
+//        for (Mention m : mentions) {
+//            if (m.number == Dictionaries.Number.PLURAL) {
+//
+//        }
+    }
+    
+    public void removePleonasticMentions() {
+        List <Mention> mm = new ArrayList<Mention>();
+        Set<String> plVerbs = new HashSet<String>(Arrays.asList("būt","nebūt","kļūt","izskatīties", "nozīmēt"));
+        
+        for (Mention m : mentions) {
+            boolean remove = false;
+            
+            
+            if (m.node.lemma.equals("tas")) {
+                //apstākļa vārds
+                if(m.node.parent != null && plVerbs.contains(m.node.parent.lemma)) {
+                    for (Node n: m.node.parent.children) {
+                        if ( n.tag.charAt(0) == 'r') {
+                            remove = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (m.node.next(this) != null && m.node.next(this).isRelativeClaus(this)) {
+                    remove = true;
+                }
+            }
+            
+            if (remove) {
+                removeMention(m);
+                LVCoref.logger.fine(Utils.getMentionComment(this, m, "Removed Pleonastic mention"));
+            } else {
+                mm.add(m);
+            }
+        }
+        mentions.clear();
+        mentions = mm;
+        normalizeMentions();
+    }
     
     public void removeSingletonMentions() {
         List <Mention> mm = new ArrayList<Mention>();
@@ -787,7 +881,7 @@ public class Document {
     
     
     public void removeUndefiniedMentions() {        
-        Set<String> exclude = new HashSet<String>(Arrays.asList("viss", "cits", "dažs"));
+        Set<String> exclude = new HashSet<String>(Arrays.asList("viss", "cits", "dažs", "daudz", "maz", "cits",  "cita"));
         List <Mention> mm = new ArrayList<Mention>();
         for (Mention m : mentions) {
             boolean needExclude = false;
@@ -818,7 +912,9 @@ public class Document {
     public void removeGenitiveMentions() {
         List <Mention> mm = new ArrayList<Mention>();
         for (Mention m : mentions) {
-            if (m.type == MentionType.NOMINAL && m.mentionCase == Dictionaries.Case.GENITIVE && m.node.parent != null && m.node.parent.isNoun()) {
+            //if (m.type == MentionType.PRONOMINAL) continue;
+            //if (m.type == MentionType.PROPER) continue;
+            if ((m.type == MentionType.NOMINAL /*|| m.type != MentionType.PROPER*/) && m.mentionCase == Dictionaries.Case.GENITIVE && m.node.parent != null && m.node.parent.isNoun()) {
                 removeMention(m);
                 LVCoref.logger.fine(Utils.getMentionComment(this, m,"Removed genitive mention"));
             } else {
@@ -865,14 +961,16 @@ public class Document {
     public void initializeEntities() {
         //initialize new cluster for each mention
         for (Mention m: mentions) {
-            corefClusters.put(m.id, new CorefCluster(m.id));
-            corefClusters.get(m.id).add(m);
-            m.corefClusterID = m.id;
+            if (m.corefClusterID == -1) {
+                corefClusters.put(m.id, new CorefCluster(m.id));
+                corefClusters.get(m.id).add(m);
+                m.corefClusterID = m.id;
+            }            
         }
     }
     
-
     
+   
     /**
      * 
      * @param p no kurienes iet uz augšu
@@ -1104,7 +1202,8 @@ public class Document {
                                 + " @POS=" + n.tag+":"+n.lemma    
                                 + " @wID=" + n.id
                                 + " @span=["+n.nodeProjection(this) +"]"
-                                + " @properNode=" + n.isProper                                
+                                + " @properNode=" + n.isProper      
+                                + " @relative=" + n.isRelativeClaus(this)
                             +"'>"
                                 + n.word 
                             + "</span>");
@@ -1141,6 +1240,7 @@ public class Document {
                                 + "<a href='#"+m.id+"'>"
                                 + projection
                                 + "</a>"
+                                + "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;("+m.getContext(this, 4)+")"
                                 + "</div>");
                     }
                     out.println("</div>");

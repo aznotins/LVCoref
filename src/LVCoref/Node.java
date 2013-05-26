@@ -71,16 +71,16 @@ public class Node {
     
     
     public  Dictionaries.MentionType getType() {
+        if (isProper) {
+            return Dictionaries.MentionType.PROPER;
+        }
 		if (tag.charAt(0) == 'n') {
 			if (tag.charAt(1)=='p') {
 				return Dictionaries.MentionType.PROPER;
             }
 //            if (Character.isUpperCase(lemma.charAt(0))) {
 //                return Dictionaries.MentionType.PROPER;
-//            }
-            if (isProper) {
-                return Dictionaries.MentionType.PROPER;
-            }
+//            }            
 		} else if (tag.charAt(0) == 'p') {
 			return Dictionaries.MentionType.PRONOMINAL;
 		}
@@ -206,6 +206,18 @@ public class Node {
     public Boolean isProper() {
         if (isProper) return true;
         //if (Character.isUpperCase(word.charAt(0))) return true; //FIXME very sloppy heurestics
+        return false;
+    }
+    
+    public boolean isRelativeClaus(Document d) {
+        if (tag.equals("zc")) {
+            Node next = this.next(d);
+            if (next == null) return false;
+            Node nextnext = next.next(d);
+            if (next != null && d.dict.relativeClauseW.contains(next.lemma) || next.tag.charAt(0)=='s' && nextnext != null && d.dict.relativeClauseW.contains(nextnext.lemma)) {
+                return true;
+            }
+        }
         return false;
     }
     

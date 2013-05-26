@@ -5,6 +5,7 @@ public class PostProcessing extends DeterministicCorefSieve {
     super();
     flags.REMOVE_NESTED_MENTIONS = true;
     flags.REMOVE_SINGLETONS = false;
+    flags.REMOVE_TMP_MENTIONS = true;
     
     
   }

@@ -37,6 +37,10 @@ public class Dictionaries {
     public final Set<String> excludeWords = new HashSet<>();
     public final Map<String, Set<Integer>> genetives = new HashMap<>();
     
+    public final Set<String> relativeClauseW = new HashSet<>(Arrays.asList("jo", "ja", "kas", "ka", "lai", "vai", "kas", "kurš", "kura", "kurš", "kāds", "kāda", "cik", "kā", "kad", "kur", "tiklīdz", "līdz", "kopš"));
+    
+    public final Set<String> unclearGenderPronouns = new HashSet<>(Arrays.asList("savs", "sava"));
+    
 
     public Dictionaries(
         ){
@@ -53,7 +57,7 @@ public class Dictionaries {
             properNouns.get("person").addAll(firstNames);
             properNouns.get("person").addAll(lastNames);           
             getWordsFromFile("lists/roles.txt", commonNouns.get("person"), true);
-            pronouns.get("person").addAll(Arrays.asList("kurš","kura","es","tu","viņš","viņa","mēs", "jūs"));
+            pronouns.get("person").addAll(Arrays.asList("kurš","kura","es","tu","viņš","viņa","mēs", "jūs", "savs", "sava"));
                         
             commonNouns.put("organization",new HashSet<String>());
             properNouns.put("organization",new HashSet<String>());
@@ -69,19 +73,19 @@ public class Dictionaries {
             getWordsFromFile("lists/locations_common.txt", commonNouns.get("location"), true);
             pronouns.get("location").addAll(Arrays.asList("tas","tā","kas"));
             
-            commonNouns.put("time",new HashSet<String>());
-            properNouns.put("time",new HashSet<String>());
-            pronouns.put("time",new HashSet<String>());
-            pronouns.get("time").addAll(Arrays.asList("tas","tā","kas"));
-            commonNouns.get("time").addAll(Arrays.asList("tagad","šodien, pirmdiena, otrdiena, trešdiena, ceturtdiena, piektdiena, sestdiena, svētdiena"));
-            properNouns.get("time").addAll(Arrays.asList("Ziemsvētki","Meteņi","Lieldienas","Pēteri","Jāņi","Kumēdiņi"));
+//            commonNouns.put("time",new HashSet<String>());
+//            properNouns.put("time",new HashSet<String>());
+//            pronouns.put("time",new HashSet<String>());
+//            pronouns.get("time").addAll(Arrays.asList("tas","tā","kas"));
+//            commonNouns.get("time").addAll(Arrays.asList("tagad","šodien, pirmdiena, otrdiena, trešdiena, ceturtdiena, piektdiena, sestdiena, svētdiena"));
+//            properNouns.get("time").addAll(Arrays.asList("Ziemsvētki","Meteņi","Lieldienas","Pēteri","Jāņi","Kumēdiņi"));
             
-            commonNouns.put("thing",new HashSet<String>());
-            properNouns.put("thing",new HashSet<String>());
-            pronouns.put("thing",new HashSet<String>());
-            pronouns.get("thing").addAll(Arrays.asList("kas", "kurš", "kura", "tas", "tā"));
-            commonNouns.get("thing").addAll(Arrays.asList("pagrieziens","aploksne","kastīte","zīmīte","māja","vieta","vēstule","vēstulīte"));
-            properNouns.get("thing").addAll(Arrays.asList("Bībele"));
+//            commonNouns.put("thing",new HashSet<String>());
+//            properNouns.put("thing",new HashSet<String>());
+//            pronouns.put("thing",new HashSet<String>());
+//            pronouns.get("thing").addAll(Arrays.asList("kas", "kurš", "kura", "tas", "tā"));
+//            commonNouns.get("thing").addAll(Arrays.asList("pagrieziens","aploksne","kastīte","zīmīte","māja","vieta","vēstule","vēstulīte"));
+//            properNouns.get("thing").addAll(Arrays.asList("Bībele"));
             
         } catch (IOException ex) {
             Logger.getLogger(Dictionaries.class.getName()).log(Level.SEVERE, null, ex);

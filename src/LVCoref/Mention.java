@@ -20,6 +20,8 @@ public class Mention implements Comparable{
     public String nerString = "";
     public String normString;
     
+    public boolean tmp = false;
+    
     /**
      * Info about parse tree
      */

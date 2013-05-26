@@ -260,9 +260,10 @@ public class LVCoref {
         
         String mmaxGold = props.getProperty(Constants.MMAX_GOLD_PROP, "");
         if (mmaxGold.length() > 0) { d.addAnnotationMMAX(mmaxGold); }
-        d.updateProperWords();
+        
         if (Constants.USE_GOLD_MENTIONS && mmaxGold.length() > 0) {
             d.useGoldMentions();
+            d.setProperNodeMentions(false);
             d.setMentionCategories();
             d.setMentionModifiers(false);
         } else {
@@ -270,21 +271,25 @@ public class LVCoref {
             d.setAbbreviationMentions();
             //             d.setMentions();
             d.setListMentions();
-            d.setProperNodeMentions();
+            d.setProperNodeMentions(true);
             d.setDetalizedNominalMentions();
             
             d.setMentionCategories();
+//            d.setTmpMentions();
             
             
             d.tweakPersonMentions();d.tweakPersonMentions();//FIXME 
+            
+            d.removePleonasticMentions();
+            
             d.removeUndefiniedMentions();
             //d.removeNestedMentions();
+            
             //d.removeGenitiveMentions();
             
             d.setMentionModifiers(true);
         }
         //d.removePluralMentions();
-        
         d.updateMentions(); //FIXME move to constructor
         d.sortMentions(); //needed for normalization (array index equals to id)
                

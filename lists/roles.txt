@@ -403,3 +403,9 @@ viesrežisors
 viesrežisore
 aktieris
 aktiere
+šuvējs
+šuvēja
+butafors
+butafore
+galdnieks
+galdniece
