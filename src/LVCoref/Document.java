@@ -156,6 +156,7 @@ public class Document {
                 n.conll_fields.add("_");
                 n.conll_fields.add("_");
             }
+            n.conll_fields.add(n.getConllMentionColumn(this, true));
         }
     }
     
@@ -229,7 +230,7 @@ public class Document {
 				String tag = fields[4];	
                 int position = Integer.parseInt(fields[0]);
                 int parent_in_sentence = Integer.parseInt(fields[6]);
-                
+                //parent_in_sentence = 0;
                 if (position == 1) {
                     if ((sentence_start_id != node_id)) {
                         sentences.add(sentence_start_id);
@@ -239,7 +240,7 @@ public class Document {
                     }
                 }          
 				int parent = parent_in_sentence + sentence_start_id - 1;
-				
+				//System.out.println(parent);
 				Node node = new Node(token, lemma, tag, parent, node_id);
                 
                 int columnCount = Math.min(fields.length, Constants.savedColumnCount);
@@ -267,16 +268,29 @@ public class Document {
     
     public void initializeNodeTree() {
         for (Node n : tree) {
-            if (n.parentID > 0 && n.parentID < tree.size()) {
-                Node p = tree.get(n.parentID);
-                n.parent = p;
-                p.children.add(n);
+            if (Constants.USE_SINTAX) {
+                if (n.parentID > 0 && n.parentID < tree.size()) {
+                    Node p = tree.get(n.parentID);
+                    n.parent = p;
+                    p.children.add(n);
+                } else {
+                    n.parent = null;
+                    //log null pointers
+                }
             } else {
-                n.parent = null;
-                //log null pointers
+                n.parentID = n.id + 1;
+                if (n.parentID < tree.size()) {
+                    n.parent = tree.get(n.parentID);
+                } else {
+                    n.parent = null;
+                    n.parentID = -1;
+                }
             }
+            
         }
     }
+    
+    
     
     
     public Boolean addAnnotationMMAX(String filename) {
@@ -457,6 +471,7 @@ public class Document {
                 if (cat != null) {
                     node.isMention = true;
                     Mention m = new Mention(this, mention_id++, node, node.getType(), node.id, node.id);
+                    m.strict = true;
                     mentions.add(m);
                     node.mention = m;
                     m.category = cat;
@@ -484,6 +499,19 @@ public class Document {
             else if (node.isProper() && node.mention != null && node.mention.type == MentionType.NOMINAL) {
                 node.mention.type = MentionType.PROPER;
                 LVCoref.logger.fine(Utils.getMentionComment(this, node.mention, "Set proper node mention (update to proper)"));
+            }
+        }
+    }
+    
+    public void setMentions() {
+        int mention_id = mentions.size();
+        for (Node node : tree) {
+            if (node.mention == null && (node.isNoun() || node.isPronoun())) {
+                node.isMention = true;
+                Mention m = new Mention(this, mention_id++, node, node.getType(), node.id, node.id);
+                mentions.add(m);
+                node.mention = m;
+                LVCoref.logger.fine(Utils.getMentionComment(this, m, "Set naive mention"));
             }
         }
     }
@@ -529,11 +557,15 @@ public class Document {
                     assert(word.substring(0,1).equals(tree.get(id).word.substring(0,1)));//assert(word.equals(tree.get(id).word)); ner dont suuport multiple words ?? FIXME
                     if (isMention && (cat.equals("O") || !cur_cat.equals(cat) || tree.get(id).sentStart)) {
                         LVCoref.logger.fine("NER Mention :("+start+" " + (id-1)+") " + getSubString(start, id-1));
-                        if (cur_cat.equals("PERSONA")) setMention(start, id-1, "person", MentionType.PROPER);
-                        else if (cur_cat.equals("LOKACIJA")) setMention(start, id-1, "location", MentionType.PROPER);
-                        else if (cur_cat.equals("ORGANIZACIJA")) setMention(start, id-1, "organization", MentionType.PROPER);
+                        Mention m = null;
+                        if (cur_cat.equals("PERSONA")) m = setMention(start, id-1, "person", MentionType.PROPER);
+                        else if (cur_cat.equals("LOKACIJA")) m = setMention(start, id-1, "location", MentionType.PROPER);
+                        else if (cur_cat.equals("ORGANIZACIJA")) m = setMention(start, id-1, "organization", MentionType.PROPER);
                         else {
                             LVCoref.logger.fine("NER Unsupported category @" + cat);
+                        }
+                        if (m != null) {
+                            m.strict = true;
                         }
                         isMention = !cat.equals("O");
                         if (isMention) {
@@ -570,7 +602,6 @@ public class Document {
                     
                     if (tree.get(j).tag.charAt(0) == 'v' && !Character.isUpperCase(
                         tree.get(j).word.charAt(0))) break; //nesatur d.v.
-                    
                     if (tree.get(j).tag.equals("zq") || tree.get(j).word.equals("\'")) {
                         if (i + 1 <= j-1) {
                             String s = getSubString(i+1, j-1);
@@ -586,7 +617,7 @@ public class Document {
                                 LVCoref.logger.fine("Quote Mention :("+i+" " + j+") " + getSubString(i+1, j-1));
                                 //assert(i+1 <= j-1);
                                 Mention m = setMention(i+1, j-1, "", MentionType.PROPER);
-                                LVCoref.logger.fine(Utils.getMentionComment(this, m, ""));
+                                if (m != null) LVCoref.logger.fine(Utils.getMentionComment(this, m, ""));
                             }                            
                             i = j;
                             break;
@@ -633,8 +664,9 @@ public class Document {
     public void setAbbreviationMentions(){
         for (Node n : tree) {            
             if (n.isAbbreviation() && n.mention == null) {
-                Mention m = setMention(n.id, n.id, "organization", MentionType.PROPER);  
+                Mention m = setMention(n.id, n.id, "organization", MentionType.PROPER);
                 if (m != null) {
+                    m.strict = true;
                     LVCoref.logger.fine(Utils.getMentionComment(this, m, "Set abbreviation mention"));
                 } else {
                     LVCoref.logger.fine("Couldn't create abbreviation mention: " + n.word + "("+ n.id +")");
@@ -914,7 +946,7 @@ public class Document {
         for (Mention m : mentions) {
             //if (m.type == MentionType.PRONOMINAL) continue;
             //if (m.type == MentionType.PROPER) continue;
-            if ((m.type == MentionType.NOMINAL /*|| m.type != MentionType.PROPER*/) && m.mentionCase == Dictionaries.Case.GENITIVE && m.node.parent != null && m.node.parent.isNoun()) {
+            if ((m.type == MentionType.NOMINAL && !m.strict/*|| m.type != MentionType.PROPER*/) && m.mentionCase == Dictionaries.Case.GENITIVE && m.node.parent != null && m.node.parent.isNoun()) {
                 removeMention(m);
                 LVCoref.logger.fine(Utils.getMentionComment(this, m,"Removed genitive mention"));
             } else {
@@ -1135,14 +1167,12 @@ public class Document {
                     
                     
                     
-                    if (n.mention != null) {                        
+                    if (n.mention != null) { 
+                        String notGoldError = "";
+                        if (LVCoref.props.getProperty(Constants.GOLD_MENTIONS_PROP, "").length() < 1 && n.goldMention == null)
+                                 notGoldError = " notGold";
                         if (n.mention != null && corefClusters.get(n.mention.corefClusterID).corefMentions.size() > 1) {
                             Mention ant = refGraph.getFinalResolutions().get(n.mention);
-
-                            String notGoldError = "";
-                            if (LVCoref.props.getProperty(Constants.GOLD_MENTIONS_PROP, "").length() < 1 && n.goldMention == null)
-                                 notGoldError = " notGold";
-
                             out.print(" <span "
                                         + "class='coref"+notGoldError+"'"
                                         + "style='background-color:#"+corefColor.get(n.mention.corefClusterID)+";'"
@@ -1172,7 +1202,7 @@ public class Document {
 
                         } else if (n.mention != null) {
                             out.print(" <span "
-                                        + "class='singleton'"
+                                        + "class='singleton" +notGoldError +"'"
                                         + "title='"
                                             + " @mID="+n.mention.id
                                             + " @POS=" + n.tag+":"+n.lemma 
@@ -1263,6 +1293,6 @@ public class Document {
                 }
             }
         }
-    }
-        
+    }    
+    
 }

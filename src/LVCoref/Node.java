@@ -150,6 +150,10 @@ public class Node {
         return tag.charAt(0) == 'n';
     }
     
+    public Boolean isPronoun() {
+        return tag.charAt(0) == 'p';
+    }
+    
     public Boolean isQuote() {
         if (tag.equals("zq") || word.equals("\'")) return true;
         return false;
@@ -236,8 +240,32 @@ public class Node {
                     this.mentionEndList.add(n.mention.id);
                 }
             }
-            n = n.parent;
+            n = n.next(d);
         }
+    }
+    
+    public String getConllMentionColumn(Document d, Boolean allowSingletonMentions) {
+        String s = "";
+        int i = 0;
+        int j = 0;
+        while (i < this.mentionStartList.size() || j < this.mentionEndList.size()) {
+
+            if (i < this.mentionStartList.size()) {
+                s += "(" + mentionStartList.get(i); 
+                if (j < this.mentionEndList.size() && mentionStartList.get(i) == mentionEndList.get(j)) {
+                    s += ")";
+                    if (i+1 < this.mentionStartList.size()) s+="|";
+                    j++;
+                }
+                i++;
+            } else {
+                s += ")";
+                j++;
+            }            
+        }  
+        //System.out.println(mentionStartList + " " + mentionEndList + "\t" + s);
+        if (s.equals("")) s="_";
+        return s;
     }
  
     

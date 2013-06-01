@@ -65,6 +65,10 @@ public class Utils {
         String s = "@@@";
         if (comment.length() > 0) s = comment + ": ";
         s +=  "["+m.nerString+"]" + "\t\t("+m.getContext(d,3)+")@"+m.node.id;
+        s += " \t@type="+m.type 
+                +" \t@cat="+m.categories
+                +" \t@id=" +m.id
+                +" \t@head="+m.node.word+"|"+m.node.tag;
         return s;
     }
     

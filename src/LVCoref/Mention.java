@@ -21,6 +21,7 @@ public class Mention implements Comparable{
     public String normString;
     
     public boolean tmp = false;
+    public boolean strict = false; //listed mentions, this head is important for genetives
     
     /**
      * Info about parse tree
@@ -44,7 +45,7 @@ public class Mention implements Comparable{
     public int person;
     public String category;
     
-    public String comments;
+    public String comments = "";
     public Set<String> words;
     public Set<String> modifiers;
     public Set<String> properModifiers;

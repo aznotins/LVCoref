@@ -9,6 +9,12 @@ public class Constants {
     /** if false, use mention prediction */
     public static final boolean USE_GOLD_MENTIONS = false;
     
+    public static final int SENTENCE_WINDOW = 30;
+    
+    public static final boolean USE_SINTAX = true;
+    
+    public static final boolean MULTIPLE_DOCS_EVAL = true;
+    
     public static final boolean VERBOSE = true;
 
     /** if true, use given mention boundaries */

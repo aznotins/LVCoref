@@ -138,15 +138,16 @@ public abstract class DeterministicCorefSieve  {
       if (flags.USE_RELAXED_HEADMATCH) {
           //Resolve.headMatch(document);
           //Resolve.modifierHeadMatch(document);
+          //Resolve.naiveHeadMatch(document);
       }
       
       if (flags.DO_PRONOUN) {
           document.setTmpMentions();
           document.initializeEntities();
           Resolve.relaxedSintaxPronounMatch(document);
-          Resolve.firstPerson(document);
-          Resolve.firstPluralPerson(document);
-          Resolve.secondPerson(document);
+//          Resolve.firstPerson(document);
+//          Resolve.firstPluralPerson(document);
+//          Resolve.secondPerson(document);
           document.removeTmpMentions();
           
       }
@@ -154,7 +155,7 @@ public abstract class DeterministicCorefSieve  {
       
       
       
-      if (flags.REMOVE_NESTED_MENTIONS) document.removeNestedMentions();
+      //if (flags.REMOVE_NESTED_MENTIONS) document.removeNestedMentions();
       if (flags.REMOVE_SINGLETONS) document.removeSingletonMentions();
       //if (flags.REMOVE_TMP_MENTIONS) document.removeTmpMentions();
       return true;

@@ -45,7 +45,7 @@ public class Resolve {
 
                 //simple look at previous mentions (without using sintax tree)
 
-                int sentenceWindow = 30; //need to be larger for proper heads
+                int sentenceWindow = Constants.SENTENCE_WINDOW; //need to be larger for proper heads
 
                 Mention prev = m.prev(d);
                 while ( prev != null && (m.sentNum - prev.sentNum <= sentenceWindow || m.type == MentionType.PROPER)) {
@@ -80,6 +80,36 @@ public class Resolve {
     }
     
     
+    public static void naiveHeadMatch(Document d){
+        //Head match
+        for (Mention m : d.mentions) {
+            //if (!m.needsReso()) continue;
+            if (m.type == MentionType.NOMINAL || m.type == MentionType.PROPER) {
+
+                //simple look at previous mentions (without using sintax tree)
+
+                int sentenceWindow = Constants.SENTENCE_WINDOW; //need to be larger for proper heads
+
+                Mention prev = m.prev(d);
+                while ( prev != null && (m.sentNum - prev.sentNum <= sentenceWindow || m.type == MentionType.PROPER)) {
+                     if (prev.type == MentionType.NOMINAL || prev.type == MentionType.PROPER) {
+                         if (prev.headString.equals(m.headString)) {
+                             if (m.gender == prev.gender &&  m.number == prev.number ) {
+                                    d.mergeClusters(m, prev);
+                                    LVCoref.logger.fine(Utils.getMentionPairString(d, m, prev, "Naive head match"));                                      
+                                    m.addRefComm(prev, "naiveHeadMatch");
+                                    m.setAsResolved();
+                                    break;
+                             }
+                         }
+                     }
+                     prev = prev.prev(d);
+                }
+            }
+        }
+    }
+    
+    
         public static void modifierHeadMatch(Document d){
         //Head match
         for (Mention m : d.mentions) {
@@ -88,7 +118,7 @@ public class Resolve {
 
                 //simple look at previous mentions (without using sintax tree)
 
-                int sentenceWindow = 30; //need to be larger for proper heads
+                int sentenceWindow = Constants.SENTENCE_WINDOW; //need to be larger for proper heads
 
                 Mention prev = m.prev(d);
                 while ( prev != null && (m.sentNum - prev.sentNum <= sentenceWindow || m.type == MentionType.PROPER)) {
@@ -131,7 +161,7 @@ public class Resolve {
 
                     //simple look at previous mentions (without using sintax tree)
 
-                    int sentenceWindow = 30; //need to be larger for proper heads
+                    int sentenceWindow = Constants.SENTENCE_WINDOW; //need to be larger for proper heads
 
                     Mention prev = m.prev(d);
                     while ( prev != null && (m.sentNum - prev.sentNum <= sentenceWindow || m.type == MentionType.PROPER)) {
@@ -374,8 +404,8 @@ public class Resolve {
             if (m.needsReso()) {
                 if (m.type == MentionType.PRONOMINAL) {
 
-                    int sentenceWindow = 2;
-                    int maxLevel = 10;
+                    int sentenceWindow = 3;
+                    int maxLevel = 100;
                     List<Node> q = new LinkedList<Node>(Arrays.asList(m.node));
                     q = d.traverse(m.node, q);
                     Boolean found = true;
