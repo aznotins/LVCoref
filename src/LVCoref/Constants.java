@@ -60,13 +60,6 @@ public class Constants {
     public static final String GOLD_MENTIONS_PROP = "lvcoref.gold.mentions";
     
     
-
-   
-//    public static void updateConstants(Properties props) {
-//        if (Boolean.parseBoolean(props.getProperty(Constants.GOLD_MENTIONS_PROP, "false"))) Constants.USE_GOLD_MENTIONS = true;
-//    }
-    
-    
     /** print the values of variables in this class */
     public static void printConstants(Logger logger) {
         if (Constants.USE_GOLD_MENTIONS) logger.info("USE_GOLD_MENTIONS on");
