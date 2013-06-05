@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<customization>
+<!--<rule pattern="test={empty}" style="background=red"/>-->
+<rule pattern="{all}" style="foreground=x:020961"/>
+<rule pattern="!coref_class={empty}" style="italic=true"/>
+<rule pattern="category={person}" style="background=x:FFE0FF"/>
+<rule pattern="category={organization}" style="background=x:72A644"/>
+<rule pattern="category={location}" style="background=x:D56969"/>
+<rule pattern="category={event}" style="background=x:40A490"/>
+<rule pattern="category={product}" style="background=x:0ADDF0"/>
+<rule pattern="category={media}" style="background=x:E1DF64"/>
+<rule pattern="category={time}" style="background=x:1468C8"/>
+<rule pattern="category={profession}" style="background=x:8C66CF"/>
+<rule pattern="category={sum}" style="background=x:D17BC7"/>
+<rule pattern="category={other}" style="background=x:EEEEEE"/>
+
+<rule pattern="type={proper}" style="underline=true"/>
+
+</customization>

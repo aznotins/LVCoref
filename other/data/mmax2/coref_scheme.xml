@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<annotationscheme>
+
+ <attribute id="level_np_cat" name="category" type="nominal_button" text="Choose noun phrase form!">
+  <value id="value_np_cat_none" name="other"/>
+  <value id="value_np_cat_person" name="person"/>
+  <value id="value_np_cat_organization" name="organization"/>
+  <value id="value_np_cat_location" name="location"/>
+  <value id="value_np_cat_event" name="event"/>
+  <value id="value_np_cat_product" name="product"/>
+  <value id="value_np_cat_media" name="media"/>  
+  <value id="value_np_cat_time" name="time"/> 
+  <value id="value_np_cat_profession" name="profession"/> 
+  <value id="value_np_cat_sum" name="sum"/>
+ </attribute>
+
+ <attribute id="level_type" name="type" type="nominal_button" text="">
+  <value id="value_type_other" name="none"/>
+  <value id="value_type_proper" name="proper"/>
+  <value id="value_type_nomial" name="nomial"/>
+  <value id="value_type_pronoun" name="nronoun"/>  
+ </attribute>
+
+ <attribute id="level_corefclass" name="Coref_class" color="red" width="2" type="markable_set" add_to_markableset_text="Mark as coreferent"  style="rcurve" remove_from_markableset_text="Unmark as coreferent" adopt_into_markableset_text="Move this into current coreference set" merge_into_markableset_text="Merge both coreference sets into one">
+  <value id="value_corefclass" name="Coref_class"/>
+ </attribute>
+
+ <attribute id="level_rule" name="Rule" type="nominal_button" text="Choose type of expression!">
+  <value id="value_rule_none" name="none"/>
+  <value id="value_rule_strict" name="strict"/>
+  <value id="value_rule_relaxed" name="relaxed"/>
+  <value id="value_rule_pronominal" name="pronominal"/>
+  <value id="value_rule_appositive" name="appositive"/>
+  <value id="value_rule_IS-A" name="IS-A"/>
+  <value id="value_rule_semantic" name="semantic"/>
+  <value id="value_rule_other" name="other"/>
+ </attribute>
+
+</annotationscheme>
