@@ -133,9 +133,7 @@ public class LVCoref {
 //                    + "\noutputType: " + outputType
 //                    + "\n----------\n"
 //                    );
-
         //logger.fine(props.toString());
-        //Constants.printConstants(logger);
     }
     
     public static void printHelp(){
@@ -183,7 +181,6 @@ public class LVCoref {
 
         if (Boolean.parseBoolean(props.getProperty("h", "false")) || Boolean.parseBoolean(props.getProperty("help",  "false"))) { printHelp(); System.exit(0); }
         
-
         currentSieve = -1;
         String sievePasses = props.getProperty(Constants.SIEVES_PROP, Constants.SIEVEPASSES);
         sieveClassNames = sievePasses.trim().split(",\\s*");
@@ -203,10 +200,8 @@ public class LVCoref {
         if (Boolean.parseBoolean(props.getProperty(Constants.LOG_PROP, "false"))) createLogger();
         
         logger.fine(props.toString());
-        Constants.printConstants(logger);
         
-        
-        
+        Constants.printConstants(logger); //output constants to console
         
         if (Constants.MULTIPLE_DOCS_EVAL) {
             inputConllList = new ArrayList(Arrays.asList(conllInput.split(",")));
@@ -231,8 +226,6 @@ public class LVCoref {
                 }
                 if (d.tree.size() > 0) processDocument(d, props);                
             }
-            
-            
         } else {
         
         /*
@@ -272,34 +265,7 @@ public class LVCoref {
     };
         
     
-    public static void processDocument(Document d, Properties props) {
-        
-//        PrintWriter writerGold = null;
-//        PrintWriter writerPredicted = null;
-//        PrintWriter writerPredictedCoref = null;
-//
-//        String conllOutputMentionGoldFile = null;
-//        String conllOutputMentionPredictedFile = null;
-//        String conllOutputMentionCorefPredictedFile = null;
-//        String conllMentionEvalFile = null;
-//        String conllMentionEvalErrFile = null;
-//        String conllMentionCorefEvalFile = null;
-//        String conllMentionCorefEvalErrFile = null;
-//        if(Constants.PRINT_CONLL_OUTPUT) {
-//            String conllOutput = props.getProperty(Constants.CONLL_OUTPUT_PROP, "conlloutput");
-//            conllOutputMentionGoldFile = conllOutput + "-"+timeStamp+".gold.txt";
-//            conllOutputMentionPredictedFile = conllOutput +"-"+timeStamp+ ".predicted.txt";
-//            conllOutputMentionCorefPredictedFile = conllOutput +"-"+timeStamp+ ".coref.predicted.txt";
-//            conllMentionEvalFile = conllOutput +"-"+timeStamp+ ".eval.txt";
-//            conllMentionEvalErrFile = conllOutput +"-"+timeStamp+ ".eval.err.txt";
-//            conllMentionCorefEvalFile = conllOutput +"-"+timeStamp+ ".coref.eval.txt";
-//            conllMentionCorefEvalErrFile = conllOutput +"-"+timeStamp+ ".coref.eval.err.txt";
-//            logger.info("CONLL MENTION GOLD FILE: " + conllOutputMentionGoldFile);
-//            logger.info("CONLL MENTION PREDICTED FILE: " + conllOutputMentionPredictedFile);
-//            logger.info("CONLL MENTION EVAL FILE: " + conllMentionEvalFile);
-//        }
-        
-                
+    public static void processDocument(Document d, Properties props) { 
         String mmaxGold;
         if (Constants.MULTIPLE_DOCS_EVAL) {
             mmaxGold = mmaxGoldList.get(documentID);
@@ -327,10 +293,8 @@ public class LVCoref {
             d.setDetalizedNominalMentions();
             
             d.setMentionCategories();
-//            d.setTmpMentions();
            
             d.tweakPersonMentions();d.tweakPersonMentions();//FIXME 
-            
             
             d.removePleonasticMentions();
             
@@ -341,13 +305,13 @@ public class LVCoref {
             
             d.setMentionModifiers(true);
         }
-        //d.removePluralMentions();
+        //d.removePluralMentions(); //plurals seems to bring many errors
+        
         d.updateMentions(); //FIXME move to constructor
         d.sortMentions(); //needed for normalization (array index equals to id)
-               
 
+        //Set coreference cluster for each mention
         d.initializeEntities();
-        //Resolve.go(d, logger);
                
         for(int i = 0; i < sieves.length; i++) {
             currentSieve = i;
@@ -355,63 +319,62 @@ public class LVCoref {
             // Do coreference resolution using this pass
             coref(d, sieve);
         }
+        
+        d.removePronounSingletonMentions(); //Remove unresolved pronoun mentions
+        if (Constants.REMOVE_SINGLETONS) d.removeSingletonMentions();
 
-        //d.removePronounSingletonMentions();
-        //d.removeSingletonMentions();
-
+        //set final mention borders for precise border conll output and html visualization
         for (Node n : d.tree) {
             n.markMentionBorders(d, true);
-        }
+        }        
         
-        
-    if(doScore()){
-        //Identifying possible coreferring mentions in the corpus along with any recall/precision errors with gold corpus
-        //corefSystem.printTopK(logger, document, corefSystem.semantics);
+        if(doScore()) {        
+            logger.fine("Pairwise score for this doc: ");
+            scoreSingleDoc.get(sieves.length-1).printF1(logger);
+            logger.fine("Accumulated score: ");
+            printF1(true);
+            logger.fine("\n");
 
-        logger.fine("pairwise score for this doc: ");
-        scoreSingleDoc.get(sieves.length-1).printF1(logger);
-        logger.fine("accumulated score: ");
-        printF1(true);
-        logger.fine("\n");
-        
-        singleDocMentionScorer.add(d);
-        mentionScorer.add(d);
-        stats.add(d, true);
-        singleDocStats.add(d, true);
-        
-        logger.fine("Document Statistics: ");
-        logger.fine(singleDocStats.corefStatistics(true));
-        logger.fine("Accumulated Statistics: ");
-        logger.fine(stats.corefStatistics(true));
-        System.err.println("Document Statistics: ");
-        System.err.println(singleDocStats.corefStatistics(true));
-        System.err.println("Accumulated Statistics: ");
-        System.err.println(stats.corefStatistics(true));
-        
-        logger.fine("Mentions score: ");
-        logger.fine(singleDocMentionScorer.getScore());
-        logger.fine("Accumulated Mentions score: ");
-        logger.fine(mentionScorer.getScore());
-        System.err.println("Mentions score: ");
-        System.err.println(singleDocMentionScorer.getScore());
-        System.err.println("Accumulated Mentions score: ");
-        System.err.println(mentionScorer.getScore());
-        
-      } else {
-        stats.add(d, false);
-        singleDocStats.add(d, false);
-        logger.fine("Document Statistics: ");
-        logger.fine(singleDocStats.corefStatistics(false));
-        logger.fine("Accumulated Statistics: ");
-        logger.fine(stats.corefStatistics(false));
-        System.err.println("Document Statistics: ");
-        System.err.println(singleDocStats.corefStatistics(false));
-        System.err.println("Accumulated Statistics: ");
-        System.err.println(stats.corefStatistics(false));
-      }
-        
-        
-        //d.printCoreferences();
+            singleDocMentionScorer.add(d);
+            mentionScorer.add(d);
+            stats.add(d, true);
+            singleDocStats.add(d, true);
+
+            logger.fine("Document Statistics: ");
+            logger.fine(singleDocStats.corefStatistics(true));
+            logger.fine("Accumulated Statistics: ");
+            logger.fine(stats.corefStatistics(true));
+            logger.fine("Mentions score: ");
+            logger.fine(singleDocMentionScorer.getScore());
+            logger.fine("Accumulated Mentions score: ");
+            logger.fine(mentionScorer.getScore());
+
+            if (Constants.VERBOSE) {
+                System.err.println("Document Statistics: ");
+                System.err.println(singleDocStats.corefStatistics(true));
+                System.err.println("Accumulated Statistics: ");
+                System.err.println(stats.corefStatistics(true));
+                System.err.println("Mentions score: ");
+                System.err.println(singleDocMentionScorer.getScore());
+                System.err.println("Accumulated Mentions score: ");
+                System.err.println(mentionScorer.getScore());
+            }        
+
+        } else {
+            stats.add(d, false);
+            singleDocStats.add(d, false);
+            logger.fine("Document Statistics: ");
+            logger.fine(singleDocStats.corefStatistics(false));
+            logger.fine("Accumulated Statistics: ");
+            logger.fine(stats.corefStatistics(false));
+
+            if (Constants.VERBOSE) {
+                System.err.println("Document Statistics: ");
+                System.err.println(singleDocStats.corefStatistics(false));
+                System.err.println("Accumulated Statistics: ");
+                System.err.println(stats.corefStatistics(false));
+            }
+        }
 
         d.setConllCorefColumns();
         switch (outputType) {
@@ -422,7 +385,7 @@ public class LVCoref {
                 PrintStream ps;
                 try {
                     ps = new PrintStream(System.out, true, "UTF8");
-                    //d.outputCONLL(ps);
+                    d.outputCONLL(ps);
                 } catch (UnsupportedEncodingException ex) {
                     System.err.println("Unsupported output encoding");
                     Logger.getLogger(LVCoref.class.getName()).log(Level.SEVERE, null, ex);
@@ -442,165 +405,108 @@ public class LVCoref {
             String projectName = (mmaxExportProjectName != null && mmaxExportProjectName.trim().length() > 0) ? mmaxExportProjectName+docId : timeStamp+ docId;
             MMAX2.createProject(d, projectName, mmaxExportPath);
         }
-
-//        if (mmaxGold != null) {
-//            d.addAnnotationMMAX(mmaxGold);
-//            
-//            CorefScorer scorerPairwise = new ScorerPairwise();
-//            scorerPairwise.calculateScore(d);
-//            scorerPairwise.printF1(logger, true);            
-//
-//            CorefScorer scorerMUC = new ScorerMUC();
-//            scorerMUC.calculateScore(d);
-//            scorerMUC.printF1(logger, true);            
-//
-//            CorefScorer scorerB3 = new ScorerBCubed(BCubedType.Bconll);
-//            scorerB3.calculateScore(d);
-//            scorerB3.printF1(logger, true);
-//            
-//            System.err.println(scorerPairwise.getF1String(true));
-//            System.err.println(scorerMUC.getF1String(true));
-//            System.err.println(scorerB3.getF1String(true));
-//        }
-        
-        
-//      }
-        
-        
-
-//		for (Node n: d.tree) {
-//			System.out.print(" " + n.word);
-//			if (n.mention != null && d.corefClusters.get(n.mention.corefClusterID).corefMentions.size() > 1) {
-//                Mention ant = d.refGraph.getFinalResolutions().get(n.mention);
-//                System.out.print("["+n.mention.corefClusterID+"/"+n.mention.id+"/"+((ant == null)?null:ant.id)+"/"+n.mention.type+"/"+n.mention.categories+"@"+n.mention.comments+"]");
-//            }
-//			if (n.word.equals(".")) System.out.println();
-//		}
-//		System.out.println();
-    }
-    
-    public static void db(String t) {
-        System.out.println(t);
     }
 	
     
     public static void coref(Document document, DeterministicCorefSieve sieve) {
         sieve.coreferent(document);
-    additionalCorrectLinksCount = 0;
-    additionalLinksCount = 0;
-        // scoring
-    if(doScore()){
-      scoreMUC.get(currentSieve).calculateScore(document);
-      scoreBcubed.get(currentSieve).calculateScore(document);
-      scorePairwise.get(currentSieve).calculateScore(document);
-      if(currentSieve==0) {
-        singleDocMentionScorer = new MentionScorer();
-        singleDocStats = new Statistics();
-        
-        scoreSingleDoc = new ArrayList<CorefScorer>();
-        scoreSingleDoc.add(new ScorerPairwise());
-        scoreSingleDoc.get(currentSieve).calculateScore(document);
-        additionalCorrectLinksCount = (int) scoreSingleDoc.get(currentSieve).precisionNumSum;
-        additionalLinksCount = (int) scoreSingleDoc.get(currentSieve).precisionDenSum;
-      } else {
-        scoreSingleDoc.add(new ScorerPairwise());
-        scoreSingleDoc.get(currentSieve).calculateScore(document);
-        additionalCorrectLinksCount = (int) (scoreSingleDoc.get(currentSieve).precisionNumSum - scoreSingleDoc.get(currentSieve-1).precisionNumSum);
-        additionalLinksCount = (int) (scoreSingleDoc.get(currentSieve).precisionDenSum - scoreSingleDoc.get(currentSieve-1).precisionDenSum);
-      }
-      linksCountInPass.get(currentSieve).setFirst(linksCountInPass.get(currentSieve).first() + additionalCorrectLinksCount);
-      linksCountInPass.get(currentSieve).setSecond(linksCountInPass.get(currentSieve).second() + additionalLinksCount);
+        additionalCorrectLinksCount = 0;
+        additionalLinksCount = 0;
+        //output scores
+        if(doScore()){
+            scoreMUC.get(currentSieve).calculateScore(document);
+            scoreBcubed.get(currentSieve).calculateScore(document);
+            scorePairwise.get(currentSieve).calculateScore(document);
+            if(currentSieve==0) {
+                singleDocMentionScorer = new MentionScorer();
+                singleDocStats = new Statistics();
 
-      printSieveScore(document, sieve);
+                scoreSingleDoc = new ArrayList<CorefScorer>();
+                scoreSingleDoc.add(new ScorerPairwise());
+                scoreSingleDoc.get(currentSieve).calculateScore(document);
+                additionalCorrectLinksCount = (int) scoreSingleDoc.get(currentSieve).precisionNumSum;
+                additionalLinksCount = (int) scoreSingleDoc.get(currentSieve).precisionDenSum;
+            } else {
+                scoreSingleDoc.add(new ScorerPairwise());
+                scoreSingleDoc.get(currentSieve).calculateScore(document);
+                additionalCorrectLinksCount = (int) (scoreSingleDoc.get(currentSieve).precisionNumSum - scoreSingleDoc.get(currentSieve-1).precisionNumSum);
+                additionalLinksCount = (int) (scoreSingleDoc.get(currentSieve).precisionDenSum - scoreSingleDoc.get(currentSieve-1).precisionDenSum);
+            }
+            linksCountInPass.get(currentSieve).setFirst(linksCountInPass.get(currentSieve).first() + additionalCorrectLinksCount);
+            linksCountInPass.get(currentSieve).setSecond(linksCountInPass.get(currentSieve).second() + additionalLinksCount);
+
+            printSieveScore(document, sieve);
+        }
     }
+    
+    
+    public static String signature(Properties props) {
+        StringBuilder os = new StringBuilder();
+        os.append(Constants.SIEVES_PROP + ":" +
+                props.getProperty(Constants.SIEVES_PROP,
+                        Constants.SIEVEPASSES));
+        os.append(Constants.SCORE_PROP + ":" +
+                props.getProperty(Constants.SCORE_PROP,
+                        "false"));
+        os.append(Constants.CONLL_SCORER + ":" +
+                props.getProperty(Constants.CONLL_SCORER,
+                        Constants.conllMentionEvalScript));
+        return os.toString();
     }
-    
-    
-      public static String signature(Properties props) {
-    StringBuilder os = new StringBuilder();
-    os.append(Constants.SIEVES_PROP + ":" +
-            props.getProperty(Constants.SIEVES_PROP,
-                    Constants.SIEVEPASSES));
-    os.append(Constants.SCORE_PROP + ":" +
-            props.getProperty(Constants.SCORE_PROP,
-                    "false"));
-    os.append(Constants.CONLL_SCORER + ":" +
-            props.getProperty(Constants.CONLL_SCORER,
-                    Constants.conllMentionEvalScript));
-    //os.append(Dictionaries.signature(props));
-    return os.toString();
-  }
 
-  public static void initScorers() {
-    linksCountInPass = new ArrayList<Pair<Integer, Integer>>();
-    scorePairwise = new ArrayList<CorefScorer>();
-    scoreBcubed = new ArrayList<CorefScorer>();
-    scoreMUC = new ArrayList<CorefScorer>();
-    for(int i = 0 ; i < sieveClassNames.length ; i++){
-      scorePairwise.add(new ScorerPairwise());
-      scoreBcubed.add(new ScorerBCubed(BCubedType.Bconll));
-      scoreMUC.add(new ScorerMUC());
-      linksCountInPass.add(new Pair<Integer, Integer>(0, 0));
-    }  
-  }
+    public static void initScorers() {
+        linksCountInPass = new ArrayList<Pair<Integer, Integer>>();
+        scorePairwise = new ArrayList<CorefScorer>();
+        scoreBcubed = new ArrayList<CorefScorer>();
+        scoreMUC = new ArrayList<CorefScorer>();
+        for(int i = 0 ; i < sieveClassNames.length ; i++){
+            scorePairwise.add(new ScorerPairwise());
+            scoreBcubed.add(new ScorerBCubed(BCubedType.Bconll));
+            scoreMUC.add(new ScorerMUC());
+            linksCountInPass.add(new Pair<Integer, Integer>(0, 0));
+        }  
+    }
 
-  public static boolean doScore() { return doScore; }
-
+    public static boolean doScore() { 
+        return doScore; 
+    }
   
-  public static void printF1(boolean printF1First) {
-    scoreMUC.get(sieveClassNames.length - 1).printF1(logger, printF1First);
-    scoreBcubed.get(sieveClassNames.length - 1).printF1(logger, printF1First);
-    scorePairwise.get(sieveClassNames.length - 1).printF1(logger, printF1First);
-  }
+    public static void printF1(boolean printF1First) {
+        scoreMUC.get(sieveClassNames.length - 1).printF1(logger, printF1First);
+        scoreBcubed.get(sieveClassNames.length - 1).printF1(logger, printF1First);
+        scorePairwise.get(sieveClassNames.length - 1).printF1(logger, printF1First);
+    }
   
-  private static void printSieveScore(Document document, DeterministicCorefSieve sieve) {
-    logger.fine("===========================================\n");
-    logger.fine("pass"+currentSieve+" " + sieve.getClass()+": \t"+ sieve.flagsToString());
-    scoreMUC.get(currentSieve).printF1(logger);
-    scoreBcubed.get(currentSieve).printF1(logger);
-    scorePairwise.get(currentSieve).printF1(logger);
-    logger.fine("# of Clusters: "+document.corefClusters.size() + "\t,\t# of additional links: \t"+additionalLinksCount
-        +"\t,\t# of additional correct links: \t"+additionalCorrectLinksCount
-        +"\t,\tprecision of new links: \t"+1.0*additionalCorrectLinksCount/additionalLinksCount);
-    logger.fine("# of total additional links: \t"+linksCountInPass.get(currentSieve).second()
-        +"\t,\t# of total additional correct links: \t"+linksCountInPass.get(currentSieve).first()
-        +"\t,\taccumulated precision of this pass: \t"+1.0*linksCountInPass.get(currentSieve).first()/linksCountInPass.get(currentSieve).second());
-    logger.fine("--------------------------------------");
     
-    if (Constants.VERBOSE) {
-        System.err.println("===========================================\n");
-         System.err.println("pass"+currentSieve+" " + sieve.getClass()+": "+ sieve.flagsToString());
-//        scoreMUC.get(currentSieve).printF1(logger);
-//        scoreBcubed.get(currentSieve).printF1(logger);
-//        scorePairwise.get(currentSieve).printF1(logger);
-//        
-        System.err.println(scoreMUC.get(currentSieve).getF1String(true));
-        System.err.println(scoreBcubed.get(currentSieve).getF1String(true));
-        System.err.println(scorePairwise.get(currentSieve).getF1String(true));
-        
-        System.err.println("# of Clusters: \t"+document.corefClusters.size() + "\t,\t# of additional links: \t"+additionalLinksCount
+    private static void printSieveScore(Document document, DeterministicCorefSieve sieve) {
+        logger.fine("===========================================\n");
+        logger.fine("pass"+currentSieve+" " + sieve.getClass()+": \t"+ sieve.flagsToString());
+        scoreMUC.get(currentSieve).printF1(logger);
+        scoreBcubed.get(currentSieve).printF1(logger);
+        scorePairwise.get(currentSieve).printF1(logger);
+        logger.fine("# of Clusters: "+document.corefClusters.size() + "\t,\t# of additional links: \t"+additionalLinksCount
             +"\t,\t# of additional correct links: \t"+additionalCorrectLinksCount
             +"\t,\tprecision of new links: \t"+1.0*additionalCorrectLinksCount/additionalLinksCount);
-        System.err.println("# of total additional links: \t"+linksCountInPass.get(currentSieve).second()
+        logger.fine("# of total additional links: \t"+linksCountInPass.get(currentSieve).second()
             +"\t,\t# of total additional correct links: \t"+linksCountInPass.get(currentSieve).first()
             +"\t,\taccumulated precision of this pass: \t"+1.0*linksCountInPass.get(currentSieve).first()/linksCountInPass.get(currentSieve).second());
-        System.err.println("--------------------------------------");
+        logger.fine("--------------------------------------");
+
+        if (Constants.VERBOSE) {
+            System.err.println("===========================================\n");
+            System.err.println("pass"+currentSieve+" " + sieve.getClass()+": "+ sieve.flagsToString());
+            System.err.println(scoreMUC.get(currentSieve).getF1String(true));
+            System.err.println(scoreBcubed.get(currentSieve).getF1String(true));
+            System.err.println(scorePairwise.get(currentSieve).getF1String(true));
+
+            System.err.println("# of Clusters: \t"+document.corefClusters.size() + "\t,\t# of additional links: \t"+additionalLinksCount
+                +"\t,\t# of additional correct links: \t"+additionalCorrectLinksCount
+                +"\t,\tprecision of new links: \t"+1.0*additionalCorrectLinksCount/additionalLinksCount);
+            System.err.println("# of total additional links: \t"+linksCountInPass.get(currentSieve).second()
+                +"\t,\t# of total additional correct links: \t"+linksCountInPass.get(currentSieve).first()
+                +"\t,\taccumulated precision of this pass: \t"+1.0*linksCountInPass.get(currentSieve).first()/linksCountInPass.get(currentSieve).second());
+            System.err.println("--------------------------------------");
         }
-    
-  }
-//  /** Print coref link info */
-//  private static void printLink(Logger logger, String header, IntTuple src, IntTuple dst, List<List<Mention>> orderedMentionsBySentence) {
-//    Mention srcMention = orderedMentionsBySentence.get(src.get(0)).get(src.get(1));
-//    Mention dstMention = orderedMentionsBySentence.get(dst.get(0)).get(dst.get(1));
-//    if(src.get(0)==dst.get(0)) {
-//      logger.fine(header + ": ["+srcMention.spanToString()+"](id="+srcMention.mentionID
-//          +") in sent #"+src.get(0)+" => ["+dstMention.spanToString()+"](id="+dstMention.mentionID+") in sent #"+dst.get(0) + " Same Sentence");
-//    } else {
-//      logger.fine(header + ": ["+srcMention.spanToString()+"](id="+srcMention.mentionID
-//          +") in sent #"+src.get(0)+" => ["+dstMention.spanToString()+"](id="+dstMention.mentionID+") in sent #"+dst.get(0));
-//    }
-//  }
-  
-  
-  
+
+    }
 }

@@ -17,7 +17,7 @@ public class Constants {
     
     public static final boolean MULTIPLE_DOCS_EVAL = false;
     
-    public static final boolean VERBOSE = true;
+    public static final boolean VERBOSE = false;
 
     /** if true, use given mention boundaries */
     public static final boolean USE_GOLD_MENTION_BOUNDARIES = false;
@@ -69,22 +69,10 @@ public class Constants {
     
     /** print the values of variables in this class */
     public static void printConstants(Logger logger) {
-        
-//        Field[] fields = Constants.class.getDeclaredFields();
-//        for ( Field field : fields  ) {
-//            try {
-//                logger.info(field.getName() + ":"  + field.get(LVCoref.class));
-//            } catch ( IllegalAccessException ex ) {
-//                System.out.println(ex);
-//          }
-//        }
-        
         if (Constants.USE_GOLD_MENTIONS) logger.info("USE_GOLD_MENTIONS on");
         else logger.info("USE_GOLD_MENTIONS off");
-        if (Constants.USE_GOLD_MENTION_BOUNDARIES) logger.info("USE_GOLD_MENTION_BOUNDARIES on");
-        else logger.info("USE_GOLD_MENTION_BOUNDARIES off");
-        if (Constants.USE_CONLL_AUTO) logger.info("use conll auto set -> if GOLD_NE, GOLD_PARSE, GOLD_POS, etc turned on, use auto");
-        else logger.info("use conll gold set -> if GOLD_NE, GOLD_PARSE, GOLD_POS, etc turned on, use gold");
+//        if (Constants.USE_GOLD_MENTION_BOUNDARIES) logger.info("USE_GOLD_MENTION_BOUNDARIES on");
+//        else logger.info("USE_GOLD_MENTION_BOUNDARIES off");
         if (Constants.REMOVE_SINGLETONS) logger.info("REMOVE_SINGLETONS on");
         else logger.info("REMOVE_SINGLETONS off");
         logger.info("=================================================================");
