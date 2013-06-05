@@ -10,3 +10,5 @@ sākums
 priekšā
 vieta
 piemērs
+AS
+SIA

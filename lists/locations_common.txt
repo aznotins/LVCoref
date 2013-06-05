@@ -6,3 +6,4 @@ skola
 novads
 rajons
 pagasts
+reģions
