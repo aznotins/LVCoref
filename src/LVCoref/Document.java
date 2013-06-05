@@ -48,6 +48,8 @@ public class Document {
     
     public Map<String,Pair<Integer,Integer> > properWords;
     
+    public Map<String, Node> acronyms;
+    
 	
     Document(){
 		tree = new ArrayList<Node>();
@@ -59,6 +61,7 @@ public class Document {
         goldCorefClusters = new HashMap<Integer, CorefCluster>();
         sentences = new ArrayList<Integer>();
         properWords = new HashMap();
+        acronyms = new HashMap<String, Node>();
 	}
     
     Document(Logger _logger) {
@@ -72,6 +75,21 @@ public class Document {
         sentences = new ArrayList<Integer>();
         this.logger = _logger;
         properWords = new HashMap();
+        acronyms = new HashMap<String, Node>();
+    }
+    
+    Document(Logger _logger, Dictionaries d) {
+        tree = new ArrayList<Node>();
+		mentions = new ArrayList<Mention>();
+        goldMentions = new ArrayList<Mention>();
+        dict = d;
+        refGraph = new RefGraph();
+        corefClusters = new HashMap<Integer, CorefCluster>();
+        goldCorefClusters = new HashMap<Integer, CorefCluster>();
+        sentences = new ArrayList<Integer>();
+        this.logger = _logger;
+        properWords = new HashMap();
+        acronyms = new HashMap<String, Node>();
     }
     
     
@@ -156,7 +174,10 @@ public class Document {
                 n.conll_fields.add("_");
                 n.conll_fields.add("_");
             }
-            n.conll_fields.add(n.getConllMentionColumn(this, true));
+            if (Constants.EXTRA_CONLL_COLUMNS) {
+                if (n.mention != null) n.conll_fields.add(n.mention.type.toString()); else n.conll_fields.add("_");
+                n.conll_fields.add(n.getConllMentionColumn(this, true));
+            }
         }
     }
     
@@ -330,7 +351,7 @@ public class Document {
                 
                 if (category.equals("profession")) category = "person";
                 if (category.equals("event")) continue;
-                if (category.equals("product")) continue;
+                //if (category.equals("product")) continue;
                 if (category.equals("media")) continue;
                 if (category.equals("time")) continue;
                 if (category.equals("sum")) continue;
@@ -410,13 +431,14 @@ public class Document {
     
 //    public void updateProperWords() {
 //        for(Node n : tree) {
-//            if (n.position > 1 && Character.isUpperCase(n.word.charAt(0)) || n.tag.charAt(0)=='n' && n.tag.charAt(1)=='p') {
-//                properWords.add(n.lemma.toLowerCase());
+//            if (n.position > 1 && n.isProper()) {
+//                //properWords.add(n.lemma.toLowerCase());
 //                Pair<Integer,Integer> p = properWords.get(n.lemma.toLowerCase());
 //                if (p == null) {
 //                    properWords.put(n.lemma, new Pair(1,1));
 //                } else {
-//                    p.first
+//                    p.first = p.first+1;
+//                    p.second = p.second+1;
 //                    properWords.get(n.lemma)
 //                }
 //                
@@ -661,15 +683,21 @@ public class Document {
         }
     }
    
-    public void setAbbreviationMentions(){
-        for (Node n : tree) {            
-            if (n.isAbbreviation() && n.mention == null) {
-                Mention m = setMention(n.id, n.id, "organization", MentionType.PROPER);
-                if (m != null) {
-                    m.strict = true;
-                    LVCoref.logger.fine(Utils.getMentionComment(this, m, "Set abbreviation mention"));
-                } else {
-                    LVCoref.logger.fine("Couldn't create abbreviation mention: " + n.word + "("+ n.id +")");
+    public void setAbbreviationMentions(Boolean gold){
+        for (Node n : tree) {   
+            if (gold && n.mention == null) continue;
+            if (n.isAbbreviation()) {
+                if (gold) acronyms.put(n.word, n);
+                if(n.mention == null) {
+                
+                    Mention m = setMention(n.id, n.id, "organization", MentionType.PROPER);
+                    if (m != null) {
+                        m.strict = true;
+                        acronyms.put(n.word, n);
+                        LVCoref.logger.fine(Utils.getMentionComment(this, m, "Set abbreviation mention"));
+                    } else {
+                        LVCoref.logger.fine("Couldn't create abbreviation mention: " + n.word + "("+ n.id +")");
+                    }
                 }
                 
             }
@@ -685,7 +713,7 @@ public class Document {
             Node n = m.node.parent;
             Boolean nested = false;
             while (l++ < max_depth && n != null && m.node.sentNum == n.sentNum) {
-                if (n.mention != null && (/*m.type == MentionType.NOMINAL || */m.type == MentionType.PROPER && n.mention.type == MentionType.PROPER && n.isProper())) {
+                if (n.mention != null && (/*m.type == MentionType.NOMINAL || */m.strict == false || m.strict && n.mention.type == MentionType.NOMINAL && m.mentionCase == Dictionaries.Case.GENITIVE /*&&n.isProper()*/)) {
                     //remove m
                     n.mention.start = Math.min(n.mention.start, m.start);
                     nested = true;
@@ -745,7 +773,9 @@ public class Document {
     
     public void removePleonasticMentions() {
         List <Mention> mm = new ArrayList<Mention>();
-        Set<String> plVerbs = new HashSet<String>(Arrays.asList("būt","nebūt","kļūt","izskatīties", "nozīmēt"));
+        Set<String> plVerbs = new HashSet<String>(Arrays.asList("radīt","vedināt","liecināt", "nozīmēt"));
+        Set<String> plVerbsAdv = new HashSet<String>(Arrays.asList("būt","nebūt","kļūt","izskatīties", "nozīmēt"));
+        Set<String> mod = new HashSet<String>(Arrays.asList("viss"));
         
         for (Mention m : mentions) {
             boolean remove = false;
@@ -753,7 +783,7 @@ public class Document {
             
             if (m.node.lemma.equals("tas")) {
                 //apstākļa vārds
-                if(m.node.parent != null && plVerbs.contains(m.node.parent.lemma)) {
+                if(m.node.parent != null && plVerbsAdv.contains(m.node.parent.lemma)) {
                     for (Node n: m.node.parent.children) {
                         if ( n.tag.charAt(0) == 'r') {
                             remove = true;
@@ -763,6 +793,10 @@ public class Document {
                 }
 
                 if (m.node.next(this) != null && m.node.next(this).isRelativeClaus(this)) {
+                    remove = true;
+                }
+                
+                if (m.node.next(this) != null && mod.contains(m.node.next(this).lemma)) {
                     remove = true;
                 }
             }
@@ -815,7 +849,7 @@ public class Document {
             int left = m.node.id;
             while (
                     n != null 
-                    && (n.isNounGenitive() || n.isProperAdjective() 
+                    && (n.isNounGenitive() || (n.isProperAdjective() || n.isDefiniteAdjective())
                     && (m.gender == Dictionaries.Gender.UNKNOWN || m.gender == n.getGender()) 
                     && (m.number == Dictionaries.Number.UNKNOWN || m.number == n.getNumber()) 
                     || m.isPerson() && n.isProper /*|| n.isQuote()*/)) {
@@ -911,6 +945,21 @@ public class Document {
         normalizeMentions();
     }
     
+    public void removeExcludedMentions() {
+        List <Mention> mm = new ArrayList<Mention>();
+        for (Mention m : mentions) {
+            if (dict.excludeWords.contains(m.node.lemma.toLowerCase())) {
+                removeMention(m);
+                 LVCoref.logger.fine(Utils.getMentionComment(this, m, "Removed excluded mention"));
+            } else {
+                mm.add(m);
+            }
+        }
+        mentions.clear();
+        mentions = mm;
+        normalizeMentions();
+    }
+    
     
     public void removeUndefiniedMentions() {        
         Set<String> exclude = new HashSet<String>(Arrays.asList("viss", "cits", "dažs", "daudz", "maz", "cits",  "cita"));
@@ -946,7 +995,7 @@ public class Document {
         for (Mention m : mentions) {
             //if (m.type == MentionType.PRONOMINAL) continue;
             //if (m.type == MentionType.PROPER) continue;
-            if ((m.type == MentionType.NOMINAL && !m.strict/*|| m.type != MentionType.PROPER*/) && m.mentionCase == Dictionaries.Case.GENITIVE && m.node.parent != null && m.node.parent.isNoun()) {
+            if ((/*m.type == MentionType.NOMINAL && */!m.strict/*|| m.type != MentionType.PROPER*/) && m.mentionCase == Dictionaries.Case.GENITIVE && m.node.parent != null && m.node.parent.isNoun()) {
                 removeMention(m);
                 LVCoref.logger.fine(Utils.getMentionComment(this, m,"Removed genitive mention"));
             } else {
@@ -1195,6 +1244,7 @@ public class Document {
                                             + " @words="+n.mention.words
                                             + " @modifiers="+n.mention.modifiers
                                             + " @ProperMod="+n.mention.properModifiers
+                                            + " @acro="+n.mention.getAcronym(this)
                                     + "'>"
                                     + " <em class='c"+n.mention.corefClusterID+"'>"+" " + n.word+"</em>"
                                     + "["+n.mention.corefClusterID+"]"
@@ -1216,6 +1266,7 @@ public class Document {
                                             + " @words="+n.mention.words
                                             + " @modifiers="+n.mention.modifiers
                                             + " @ProperMod="+n.mention.properModifiers
+                                            + " @acro="+n.mention.getAcronym(this)
                                         +"'>"
                                     + "<em>" + n.word+"</em>"
                                 + "</span>");
@@ -1293,6 +1344,11 @@ public class Document {
                 }
             }
         }
-    }    
+    }   
+    
+    
+    public CorefCluster getCluster(int i) {
+        return corefClusters.get(i);
+    }
     
 }

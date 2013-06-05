@@ -21,7 +21,6 @@ public class CorefCluster {
     
     public Set<Mention> corefMentions;
     
-    
     /**
      * First Mention for cluster
      */
@@ -37,7 +36,9 @@ public class CorefCluster {
      */
     public Set<String> heads;
     
-      private static final long serialVersionUID = 8655265337578515592L;
+    public Set<String> modifiers;
+    
+     private static final long serialVersionUID = 8655265337578515592L;
 
 //    // Attributes for cluster - can include multiple attribute e.g., {singular, plural}
 //    protected Set<Number> numbers;
@@ -62,10 +63,19 @@ public class CorefCluster {
         words = new HashSet<String>();
         firstMention = null;
         representative = null;
+        modifiers = new HashSet<String>();
     }
    
     public void add(Mention m) {
         corefMentions.add(m);
+        modifiers.addAll(m.modifiers);
+    }
+    
+    public boolean includeModifiers(CorefCluster c) {
+        Set<String> new_modifiers = new HashSet<String>(this.modifiers);
+        new_modifiers.removeAll(c.modifiers);
+        if (new_modifiers.size() > 0) return false;
+        return true;
     }
     
 //    public static void mergeClusters(CorefCluster to, CorefCluster from) {        

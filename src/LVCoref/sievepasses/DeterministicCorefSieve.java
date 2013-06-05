@@ -132,26 +132,37 @@ public abstract class DeterministicCorefSieve  {
       Dictionaries dict,
       Set<Mention> roleSet*/
       ) {
-      
-      if (flags.USE_APPOSITION) Resolve.appositive(document);
-      if (flags.USE_PREDICATENOMINATIVES) Resolve.predicativeNominative(document);
+      if (flags.USE_APPOSITION) {
+          Resolve.appositive(document);
+      }
+      if (flags.USE_PREDICATENOMINATIVES) {
+          Resolve.predicativeNominative(document);
+      }
+      if (flags.USE_ACRONYM) {
+        Resolve.acronymMatch(document);          
+      }
       if (flags.USE_RELAXED_HEADMATCH) {
           //Resolve.headMatch(document);
           //Resolve.modifierHeadMatch(document);
           //Resolve.naiveHeadMatch(document);
+          Resolve.relaxedHeadMatch(document);
+          //Resolve.relaxedHeadMatch2(document);
       }
       
       if (flags.DO_PRONOUN) {
           document.setTmpMentions();
           document.initializeEntities();
           Resolve.relaxedSintaxPronounMatch(document);
-//          Resolve.firstPerson(document);
-//          Resolve.firstPluralPerson(document);
-//          Resolve.secondPerson(document);
+          Resolve.firstPerson(document);
+          Resolve.firstPluralPerson(document);
+          Resolve.secondPerson(document);
           document.removeTmpMentions();
           
       }
       if (flags.USE_EXACTSTRINGMATCH) Resolve.exactStringMatch(document);
+      if (flags.USE_NAIVE_MATCH) {
+          Resolve.naiveHeadMatch(document);
+      }
       
       
       

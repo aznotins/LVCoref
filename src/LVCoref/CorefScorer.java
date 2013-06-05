@@ -92,7 +92,7 @@ public abstract class CorefScorer {
   }
   
   public String getF1String(boolean printF1First) {
-    NumberFormat nf = new DecimalFormat("0.000000");
+    NumberFormat nf = new DecimalFormat("0.000");
 
     double r = getRecall();
     double p = getPrecision();
@@ -110,6 +110,7 @@ public abstract class CorefScorer {
 
     if(printF1First) {
       String str = "F1 = "+F1+", P = "+P+" ("+(int) precisionNumSum+"/"+(int) precisionDenSum+"), R = "+R+" ("+(int) recallNumSum+"/"+(int) recallDenSum+")";
+      System.err.println(F1F1 +"\t" + PP + "\t" + RR);
       if(scoreType == ScoreType.Pairwise){
         return "Pairwise "+str;
       } else if(scoreType == ScoreType.BCubed){
@@ -120,6 +121,7 @@ public abstract class CorefScorer {
     } else {
         return "& "+PP+" & "+RR + " & "+F1F1;
     }
+    
   }
 
 }

@@ -35,6 +35,82 @@ public class Resolve {
       //relaxedPronounMatch(d);
       //categoryPronounMatch(d);
       
+      
+    }
+    
+    
+    
+    public static void relaxedHeadMatch(Document d) {
+        //Head match
+        for (Mention m : d.mentions) {
+            if (!m.needsReso()) continue;
+            if (m.type == MentionType.NOMINAL) {
+                //simple look at previous mentions (without using sintax tree)
+                
+                int sentenceWindow = Constants.SENTENCE_WINDOW; //need to be larger for proper heads
+
+                Mention prev = m.prev(d);
+                while ( prev != null && (m.sentNum - prev.sentNum <= sentenceWindow || m.type == MentionType.PROPER)) {
+                     if (/*!prev.needsReso() &&*/ d.getCluster(m.corefClusterID).includeModifiers(d.getCluster(prev.corefClusterID)) &&(prev.type == MentionType.NOMINAL || prev.type == MentionType.PROPER)) {
+                         if (prev.headString.equals(m.headString)) {
+                             if (m.sameGender(prev) &&  m.sameNumber(prev)) {
+                                    //d.refGraph.setRef(m, prev);
+                                        d.mergeClusters(m, prev);
+                                        LVCoref.logger.fine(Utils.getMentionPairString(d, m, prev, "Head match(include all words)"));
+                                        
+                                        m.addRefComm(prev, "headMatch(includeAll)");
+                                        m.setAsResolved();
+                                        break;
+//                                        d.mergeClusters(m, prev);
+//                                        LVCoref.logger.fine("Head match :" + prev.headString +"("+prev.node.tag+")#"+prev.id+" <- " + m.headString+"("+m.node.tag+")#"+m.id);
+//                                        m.addRefComm(prev, "headMatch");
+//                                        m.setAsResolved();
+//                                        break;
+
+                                }
+                         }
+                     }
+                     prev = prev.prev(d);
+                }
+            }
+        }
+    }
+    
+    
+        public static void relaxedHeadMatch2(Document d) {
+        //Head match
+        for (Mention m : d.mentions) {
+            if (!m.needsReso()) continue;
+            if (m.type == MentionType.NOMINAL) {
+                //simple look at previous mentions (without using sintax tree)
+                
+                int sentenceWindow = Constants.SENTENCE_WINDOW; //need to be larger for proper heads
+
+                Mention prev = m.prev(d);
+                while (prev != null && (m.sentNum - prev.sentNum <= sentenceWindow || m.type == MentionType.PROPER)) {
+                     if (!prev.needsReso() &&  (prev.type == MentionType.NOMINAL || prev.type == MentionType.PROPER)) {
+                         if (prev.headString.equals(m.headString)) {
+                             if (m.sameGender(prev) &&  m.sameNumber(prev)) {
+                                    //d.refGraph.setRef(m, prev);
+                                        d.mergeClusters(m, prev);
+                                        LVCoref.logger.fine(Utils.getMentionPairString(d, m, prev, "Head match(include all words)"));
+                                        
+                                        m.addRefComm(prev, "headMatch(includeAll)");
+                                        m.setAsResolved();
+                                        break;
+//                                        d.mergeClusters(m, prev);
+//                                        LVCoref.logger.fine("Head match :" + prev.headString +"("+prev.node.tag+")#"+prev.id+" <- " + m.headString+"("+m.node.tag+")#"+m.id);
+//                                        m.addRefComm(prev, "headMatch");
+//                                        m.setAsResolved();
+//                                        break;
+
+                                }
+                         }
+                     }
+                     prev = prev.prev(d);
+                }
+            }
+        }
     }
     
     public static void headMatch(Document d){
@@ -52,7 +128,7 @@ public class Resolve {
                      if (prev.type == MentionType.NOMINAL || prev.type == MentionType.PROPER) {
                          if (prev.headString.equals(m.headString) ||
                              d.dict.belongsToSameGroup(prev.headString, m.headString, d.dict.sinonyms)) {
-                             if (   m.gender == prev.gender &&  m.number == prev.number ) {
+                             if (   m.sameGender(prev) &&  m.sameNumber(prev)) {
                                  if (!genetiveBad(d, m) && !genetiveBad(d, prev)) {
                                     //d.refGraph.setRef(m, prev);
                                     if(includeWords(prev, m)) {
@@ -109,6 +185,22 @@ public class Resolve {
         }
     }
     
+    public static void acronymMatch(Document d){
+        //Head match
+        for (Mention m : d.mentions) {
+            //if (!m.needsReso()) continue;
+            if (m.type != MentionType.PROPER) continue;
+            String a = m.getAcronym(d);
+            if ( d.acronyms.containsKey(a)) {
+                Mention prev = d.acronyms.get(a).mention;
+                if (prev == null) continue;
+                d.mergeClusters(m, prev);
+                LVCoref.logger.fine(Utils.getMentionPairString(d, m, prev, "Acronym  match"));                                      
+                m.addRefComm(prev, "accronym");
+            }
+        }
+    }
+    
     
         public static void modifierHeadMatch(Document d){
         //Head match
@@ -155,7 +247,7 @@ public class Resolve {
     
     
     public static void exactStringMatch(Document d){
-        for (Mention m : d.mentions) {
+        for (Mention m : d.mentions) {            
             if (m.needsReso()) {
                 if (m.type == MentionType.NOMINAL || m.type == MentionType.PROPER) {
 
@@ -163,9 +255,10 @@ public class Resolve {
 
                     int sentenceWindow = Constants.SENTENCE_WINDOW; //need to be larger for proper heads
 
-                    Mention prev = m.prev(d);
+                    Mention prev = m.prev(d);                    
                     while ( prev != null && (m.sentNum - prev.sentNum <= sentenceWindow || m.type == MentionType.PROPER)) {
-                         if (prev.type == MentionType.NOMINAL || prev.type == MentionType.PROPER) {
+                        if (m.type == MentionType.PROPER || prev!=null && prev.type == MentionType.PROPER) {
+                         if (m.type == MentionType.PROPER && prev.type == MentionType.PROPER) {
                              if (prev.normString.equals(m.normString) && prev.number == m.number /*&& prev.type == m.type*/) {
                                 //d.refGraph.setRef(m, prev);
                                 d.mergeClusters(m, prev);
@@ -175,6 +268,7 @@ public class Resolve {
                                 break;
                              }
                          }
+                        }
                          prev = prev.prev(d);
                     }
                 }
@@ -289,7 +383,7 @@ public class Resolve {
                          n.type == MentionType.NOMINAL && m.type == MentionType.PROPER ||
                          n.type == MentionType.PROPER && m.type == MentionType.NOMINAL ){
 
-                        if ( n.sameGender(m) && n.sameCase(m) && n.sameNumber(m) && !n.isGenitive(m)) {
+                        if ( n.sameGender(m) && n.sameCase(m) && n.sameNumber(m) && !n.isGenitive(m) /*|| n.node.isAbbreviation()*/) {
                             if (genetiveTest(d, n, m)) {
                                 //d.refGraph.setRef(m, n);
                                 d.mergeClusters(m, n);
@@ -299,6 +393,27 @@ public class Resolve {
                         }
                     }
                 }
+                
+                if (parent != null && parent.tag.equals("zq")) {
+                    parent = parent.parent;
+                    if (parent != null && parent.mention != null) {
+                        Mention n = parent.mention;
+                        if ( n.type == MentionType.PROPER && m.type == MentionType.PROPER ||
+                             n.type == MentionType.NOMINAL && m.type == MentionType.PROPER ||
+                             n.type == MentionType.PROPER && m.type == MentionType.NOMINAL ){
+
+                            if ( /*n.sameGender(m) && n.sameCase(m) && n.sameNumber(m) &&*/ !n.isGenitive(m) || n.node.isAbbreviation()) {
+                                if (genetiveTest(d, n, m)) {
+                                    //d.refGraph.setRef(m, n);
+                                    d.mergeClusters(m, n);
+                                    LVCoref.logger.fine(Utils.getMentionPairString(d, m, n, "Appositive"));
+                                    m.addRefComm(n, "Appositive");
+                                }
+                            }
+                        }
+                    }
+                }
+
             //}
         }
     }

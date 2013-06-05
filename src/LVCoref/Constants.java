@@ -13,6 +13,8 @@ public class Constants {
     
     public static final boolean USE_SINTAX = true;
     
+    public static final boolean EXTRA_CONLL_COLUMNS = false;
+    
     public static final boolean MULTIPLE_DOCS_EVAL = true;
     
     public static final boolean VERBOSE = true;

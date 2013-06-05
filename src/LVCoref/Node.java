@@ -140,6 +140,7 @@ public class Node {
     
     public Boolean isAbbreviation(){
         if (tag.charAt(0) == 'z') return false;
+        if (word.length() < 2) return false;
         for (int i = 0; i < word.length(); i++) {
             if (!Character.isLetter(word.charAt(i))) return false;
         }
@@ -162,6 +163,13 @@ public class Node {
     public Boolean isPlural() {
         if (tag.charAt(0) == 'n' && tag.charAt(3) == 'p') return true;
         if (tag.charAt(0) == 'p' && tag.charAt(4) == 'p') return true;
+        return false;
+    }
+    
+    public Boolean isDefiniteAdjective(){
+        if (tag.charAt(0) == 'a' && tag.charAt(5) == 'y') {
+            return true;
+        }
         return false;
     }
     

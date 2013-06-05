@@ -217,11 +217,12 @@ public class LVCoref {
             docID = 0;
         }
         
+        Dictionaries dictionaries = new Dictionaries();
         
         if (Constants.MULTIPLE_DOCS_EVAL) {
             for (documentID=0; documentID < inputConllList.size(); documentID++) {
                 System.err.println("NEW DOCUMENT: " + inputConllList.get(documentID));
-                Document d = new Document(logger);
+                Document d = new Document(logger, dictionaries);
                 try {
                     d.readCONLL(inputConllList.get(documentID));
                 } catch (Exception ex) {
@@ -239,7 +240,7 @@ public class LVCoref {
          */
         switch(inputType) {
             case CONLL:
-                Document d = new Document(logger);
+                Document d = new Document(logger, dictionaries);
                 try {
                     d.readCONLL(conllInput);
                 } catch (Exception ex) {
@@ -254,7 +255,7 @@ public class LVCoref {
             default:
                 BufferedReader in = new BufferedReader(new InputStreamReader(System.in, "UTF8"));
                 while (!stopProcess) {
-                    Document doc = new Document(logger);
+                    Document doc = new Document(logger, dictionaries);
                     try {
                         doc.readCONLL(in);
                     } catch (Exception ex) {
@@ -312,6 +313,7 @@ public class LVCoref {
         
         if (Constants.USE_GOLD_MENTIONS && mmaxGold.length() > 0) {
             d.useGoldMentions();
+            d.setAbbreviationMentions(true);
             d.setProperNodeMentions(false);
             d.setMentionCategories();
             d.setMentionModifiers(false);
@@ -319,22 +321,22 @@ public class LVCoref {
             if (nerAnnotation.length() > 0) d.setMentionsNER(nerAnnotation);
             d.setListMentions();
             d.setQuoteMentions();
-            d.setAbbreviationMentions();
-                         d.setMentions();
+            d.setAbbreviationMentions(false);
+                         //d.setMentions();
             d.setProperNodeMentions(true);
             d.setDetalizedNominalMentions();
             
             d.setMentionCategories();
 //            d.setTmpMentions();
-            
-            
+           
             d.tweakPersonMentions();d.tweakPersonMentions();//FIXME 
+            
             
             d.removePleonasticMentions();
             
             d.removeUndefiniedMentions();
             //d.removeNestedMentions();
-            
+            d.removeExcludedMentions();
             d.removeGenitiveMentions();
             
             d.setMentionModifiers(true);
