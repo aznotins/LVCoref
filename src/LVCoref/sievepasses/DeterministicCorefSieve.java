@@ -152,10 +152,13 @@ public abstract class DeterministicCorefSieve  {
       if (flags.DO_PRONOUN) {
           document.setTmpMentions();
           document.initializeEntities();
-          Resolve.relaxedSintaxPronounMatch(document);
+
           Resolve.firstPerson(document);
           Resolve.firstPluralPerson(document);
           Resolve.secondPerson(document);
+          //          Resolve.relaxedSintaxPronounMatch(document);
+          Resolve.relativePronounMatch(document);
+          Resolve.pronounMatch(document);
           document.removeTmpMentions();
           
       }

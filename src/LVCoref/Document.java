@@ -262,7 +262,7 @@ public class Document {
                 }          
 				int parent = parent_in_sentence + sentence_start_id - 1;
 				//System.out.println(parent);
-				Node node = new Node(token, lemma, tag, parent, node_id);
+				Node node = new Node(token, lemma, tag, parent, node_id, this);
                 
                 int columnCount = Math.min(fields.length, Constants.savedColumnCount);
                 node.conll_fields.addAll(Arrays.asList(fields).subList(0, columnCount));
@@ -413,9 +413,10 @@ public class Document {
 
             Set<Mention> cm = corefClusters.get(m.corefClusterID).corefMentions;
             Set<Mention> cn = corefClusters.get(n.corefClusterID).corefMentions;
-
+            //System.err.print(getCluster(m.corefClusterID).modifiers + "+" + getCluster(n.corefClusterID));
             for (Mention mm : cm) {
-                cn.add(mm);
+                //cn.add(mm);
+                getCluster(n.corefClusterID).add(mm);
                 mm.corefClusterID = n.corefClusterID;
             }
 
@@ -624,7 +625,7 @@ public class Document {
                     
                     if (tree.get(j).tag.charAt(0) == 'v' && !Character.isUpperCase(
                         tree.get(j).word.charAt(0))) break; //nesatur d.v.
-                    if (tree.get(j).tag.equals("zq") || tree.get(j).word.equals("\'")) {
+                    if (tree.get(j).isQuote()) {
                         if (i + 1 <= j-1) {
                             String s = getSubString(i+1, j-1);
                             boolean add = false;
@@ -639,7 +640,10 @@ public class Document {
                                 LVCoref.logger.fine("Quote Mention :("+i+" " + j+") " + getSubString(i+1, j-1));
                                 //assert(i+1 <= j-1);
                                 Mention m = setMention(i+1, j-1, "", MentionType.PROPER);
-                                if (m != null) LVCoref.logger.fine(Utils.getMentionComment(this, m, ""));
+                                if (m != null) {
+                                    LVCoref.logger.fine(Utils.getMentionComment(this, m, ""));
+                                    m.bucket = "quote";
+                                }
                             }                            
                             i = j;
                             break;
@@ -687,14 +691,14 @@ public class Document {
         for (Node n : tree) {   
             if (gold && n.mention == null) continue;
             if (n.isAbbreviation()) {
-                if (gold) acronyms.put(n.word, n);
-                if(n.mention == null) {
-                
+                //if (gold) acronyms.put(n.word, n);
+                acronyms.put(n.word, n);
+                if(n.mention == null) {                
                     Mention m = setMention(n.id, n.id, "organization", MentionType.PROPER);
                     if (m != null) {
-                        m.strict = true;
-                        acronyms.put(n.word, n);
+                        m.strict = true;                        
                         LVCoref.logger.fine(Utils.getMentionComment(this, m, "Set abbreviation mention"));
+                        m.bucket = "acronym";
                     } else {
                         LVCoref.logger.fine("Couldn't create abbreviation mention: " + n.word + "("+ n.id +")");
                     }
@@ -792,7 +796,7 @@ public class Document {
                     }
                 }
 
-                if (m.node.next(this) != null && m.node.next(this).isRelativeClaus(this)) {
+                if (m.node.next(this) != null && m.node.next(this).isRelativeClaus()) {
                     remove = true;
                 }
                 
@@ -1218,7 +1222,7 @@ public class Document {
                     
                     if (n.mention != null) { 
                         String notGoldError = "";
-                        if (LVCoref.props.getProperty(Constants.GOLD_MENTIONS_PROP, "").length() < 1 && n.goldMention == null)
+                        if (LVCoref.props.getProperty(Constants.GOLD_MENTIONS_PROP, "").length() > 0 && n.goldMention == null)
                                  notGoldError = " notGold";
                         if (n.mention != null && corefClusters.get(n.mention.corefClusterID).corefMentions.size() > 1) {
                             Mention ant = refGraph.getFinalResolutions().get(n.mention);
@@ -1229,6 +1233,9 @@ public class Document {
                                         + "title='"
                                             + "@cID=" + n.mention.corefClusterID
                                             + " @mID=" + n.mention.id
+                                            + " @gender=" + n.mention.gender
+                                            + " @number=" + n.mention.number
+                                            + " @case=" + n.mention.mentionCase
                                             + " @POS=" + n.tag+":"+n.lemma    
                                             + " @properNode=" + n.isProper 
                                             + " @wID=" + n.id
@@ -1245,6 +1252,7 @@ public class Document {
                                             + " @modifiers="+n.mention.modifiers
                                             + " @ProperMod="+n.mention.properModifiers
                                             + " @acro="+n.mention.getAcronym(this)
+                                            + " @type=" +n.mention.bucket
                                     + "'>"
                                     + " <em class='c"+n.mention.corefClusterID+"'>"+" " + n.word+"</em>"
                                     + "["+n.mention.corefClusterID+"]"
@@ -1254,7 +1262,9 @@ public class Document {
                             out.print(" <span "
                                         + "class='singleton" +notGoldError +"'"
                                         + "title='"
-                                            + " @mID="+n.mention.id
+                                            + " @mID="+n.mention.id+ " @gender=" + n.mention.gender
+                                            + " @number=" + n.mention.number
+                                            + " @case=" + n.mention.mentionCase
                                             + " @POS=" + n.tag+":"+n.lemma 
                                             + " @properNode=" + n.isProper 
                                             + " @wID=" + n.id
@@ -1267,6 +1277,7 @@ public class Document {
                                             + " @modifiers="+n.mention.modifiers
                                             + " @ProperMod="+n.mention.properModifiers
                                             + " @acro="+n.mention.getAcronym(this)
+                                            + " @type=" +n.mention.bucket
                                         +"'>"
                                     + "<em>" + n.word+"</em>"
                                 + "</span>");
@@ -1284,7 +1295,7 @@ public class Document {
                                 + " @wID=" + n.id
                                 + " @span=["+n.nodeProjection(this) +"]"
                                 + " @properNode=" + n.isProper      
-                                + " @relative=" + n.isRelativeClaus(this)
+                                + " @relative=" + n.isRelativeClaus()
                             +"'>"
                                 + n.word 
                             + "</span>");
@@ -1309,9 +1320,10 @@ public class Document {
             
             for (Integer c_i : this.corefClusters.keySet()) {
                 CorefCluster c = this.corefClusters.get(c_i);
-                if (c.corefMentions.size() > 0) {
+                if (c.corefMentions.size() > 1) {
                     out.println("<div class='mentionCluster'>");
                     out.println("========== " + c_i + " ==========");
+                    out.println(c.modifiers);
                     for (Mention m : c.corefMentions) {
                         String projection = m.nerString;//= m.node.nodeProjection(this);
                         projection = projection.replace(m.node.word, "<b>"+m.node.word+"</b>");
@@ -1321,7 +1333,7 @@ public class Document {
                                 + "<a href='#"+m.id+"'>"
                                 + projection
                                 + "</a>"
-                                + "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;("+m.getContext(this, 4)+")"
+                                + "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp"+m.categories+"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;("+m.getContext(this, 4)+")"
                                 + "</div>");
                     }
                     out.println("</div>");
@@ -1349,6 +1361,11 @@ public class Document {
     
     public CorefCluster getCluster(int i) {
         return corefClusters.get(i);
+    }
+    
+    public Node getNode(int i) {
+        if (i > 0 && i < tree.size()) return tree.get(i);
+        return null;
     }
     
 }

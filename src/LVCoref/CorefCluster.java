@@ -73,7 +73,9 @@ public class CorefCluster {
     
     public boolean includeModifiers(CorefCluster c) {
         Set<String> new_modifiers = new HashSet<String>(this.modifiers);
+        //System.out.println(new_modifiers +"-"+c.modifiers);
         new_modifiers.removeAll(c.modifiers);
+        //System.out.println(new_modifiers);
         if (new_modifiers.size() > 0) return false;
         return true;
     }

@@ -12,10 +12,11 @@ import java.util.HashSet;
 import java.util.Set;
 
 public class Mention implements Comparable{
-    
+    Document document;
 	public Integer id;
     
     public Boolean resolved = false;
+    public String bucket = ""; //acronym quote etc
     
 	public String headString;
     public String nerString = "";
@@ -93,6 +94,7 @@ public class Mention implements Comparable{
         categories = m.categories;       
         modifiers = m.modifiers;
         properModifiers = m.properModifiers;
+        document = m.document;
     }
   
     
@@ -115,6 +117,7 @@ public class Mention implements Comparable{
         modifiers = new HashSet<String>();
         properModifiers = new HashSet<String>();
         this.type = type;
+        document = d;
         
         //this.category = d.dict.getCategory(node.lemma);
         //this.categories = d.dict.getCategories(node.lemma);
@@ -191,6 +194,7 @@ public class Mention implements Comparable{
     }
     
     public boolean sameGender(Mention m) {
+        if (gender == Gender.UNKNOWN || m.gender == Gender.UNKNOWN) return true;
         if (gender == m.gender) return true;
         return false;
     }
@@ -201,11 +205,13 @@ public class Mention implements Comparable{
     }
     
     public boolean sameNumber(Mention m) {
+        if (number == Number.UNKNOWN || m.number == Number.UNKNOWN) return true;
         if (number == m.number) return true;
         return false;
     }
     
     public boolean sameCase(Mention m) {
+        if (mentionCase == Case.UNKNOWN || m.mentionCase == Case.UNKNOWN) return true;
         if (mentionCase == m.mentionCase) return true;
         return false;
     }
@@ -227,35 +233,43 @@ public class Mention implements Comparable{
     }
     
     public String toString() {
-      StringBuilder result = new StringBuilder();
-      String newLine = System.getProperty("line.separator");
-
-      result.append( this.getClass().getName() );
-      result.append( " Object {" );
-      result.append(newLine);
-
-      //determine fields declared in this class only (no fields of superclass)
-      Field[] fields = this.getClass().getDeclaredFields();
-
-      //print field names paired with their values
-      for ( Field field : fields  ) {
-        result.append("  ");
-        try {
-          result.append( field.getName() );
-          result.append(": ");
-          //requires access to private field:
-          result.append( field.get(this) );
-        } catch ( IllegalAccessException ex ) {
-          System.out.println(ex);
-        }
-        result.append(newLine);
-      }
-      result.append("}");
-      result.append(newLine);
-
-      return result.toString();
+        return "["+nerString + "] " + "@head="+ headString + " "+" @id="+id+ " "+ " ("+getContext(document, 3) + ")";
+        
+//      StringBuilder result = new StringBuilder();
+//      String newLine = System.getProperty("line.separator");
+//
+//      result.append( this.getClass().getName() );
+//      result.append( " Object {" );
+//      result.append(newLine);
+//
+//      //determine fields declared in this class only (no fields of superclass)
+//      Field[] fields = this.getClass().getDeclaredFields();
+//
+//      //print field names paired with their values
+//      for ( Field field : fields  ) {
+//        result.append("  ");
+//        try {
+//          result.append( field.getName() );
+//          result.append(": ");
+//          //requires access to private field:
+//          result.append( field.get(this) );
+//        } catch ( IllegalAccessException ex ) {
+//          System.out.println(ex);
+//        }
+//        result.append(newLine);
+//      }
+//      result.append("}");
+//      result.append(newLine);
+//
+//      return result.toString();
     }
     
+    public boolean categoryMatch(Mention m) {
+        if (categories.size() == 0 ||  m.categories.size()==0) return true;
+        if (categories.contains("other") || m.categories.contains("other")) return true;
+        if (categories.containsAll(m.categories)) return true;
+        return false;
+    }
     
     public Mention prev(Document d) {
         if (id > 0) return d.mentions.get(id-1);

@@ -2,11 +2,13 @@ package LVCoref;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 
 public class Node {
+    public Document document;
 	public Node parent;
     public int parentID;
 	public int id;
@@ -48,7 +50,7 @@ public class Node {
     public List<Integer> mentionEndList;
 	
 	
-	Node(String word, String lemma, String tag, int parent_id, Integer id) {
+	Node(String word, String lemma, String tag, int parent_id, Integer id, Document d) {
 		this.word = word;
 		this.lemma = lemma;
 		this.tag = tag;
@@ -67,6 +69,7 @@ public class Node {
         this.mentionEndList = new ArrayList<Integer>();
         
         this.conll_fields = new ArrayList<String>();
+        document = d;
 	}
     
     
@@ -91,10 +94,16 @@ public class Node {
         if (id > 0) return d.tree.get(id-1);
         return null;
     }
+    public Node prev() {
+        return document.getNode(id-1);
+    }
     
     public Node next(Document d) {
         if (id + 1 < d.tree.size()) return d.tree.get(id+1);
         return null;
+    }
+    public Node next() {
+        return document.getNode(id+1);
     }
     
     
@@ -221,17 +230,79 @@ public class Node {
         return false;
     }
     
-    public boolean isRelativeClaus(Document d) {
+    public boolean isRelativeClaus() {
         if (tag.equals("zc")) {
-            Node next = this.next(d);
+            Node next = this.next();
             if (next == null) return false;
-            Node nextnext = next.next(d);
-            if (next != null && d.dict.relativeClauseW.contains(next.lemma) || next.tag.charAt(0)=='s' && nextnext != null && d.dict.relativeClauseW.contains(nextnext.lemma)) {
+            Node nextnext = next.next();
+            if (next != null && document.dict.relativeClauseW.contains(next.lemma) || next.tag.charAt(0)=='s' && nextnext != null && document.dict.relativeClauseW.contains(nextnext.lemma)) {
                 return true;
             }
         }
         return false;
     }
+    
+    public boolean isRelativePronoun() {
+        if (this.isPronoun() && (this.prev()!= null && this.prev().isRelativeClaus() || this.prev().tag.startsWith("s") && this.prev().prev()!=null && this.prev().prev().isRelativePronoun())) return true;
+        return false;
+    }
+    
+    
+    public int getDepth() {
+        int r = 0;
+        Node q  = this;
+        while (q.parent != null && q.parent.sentNum == sentNum) {
+            r++;
+            q = q.parent;
+        }
+        return r;
+    }
+    
+    public int minDistance(Node n) {
+        int r = 0;            
+        if (sentNum != n.sentNum) {
+            r = Math.abs(sentNum-n.sentNum) + this.getDepth() + n.getDepth();
+        } else {
+            Node q = document.getCommonAncestor(this, n);
+            Node t = n;
+            while (t != q) {
+                r++;
+                t = t.parent;
+            }
+            t = this;
+            while (t != q) {
+                r++;
+                t = t.parent;
+            }
+        }
+        return r;
+    }
+    
+    public Node getCommonAncestor(Node n, Node m) {
+        Set<Node> path = new HashSet<Node>(); //all path nodes traversed by going up
+        path.add(n);
+        path.add(m);
+        Node nn = n, mm = m;
+        while (nn != null && mm != null) {
+            nn = nn.parent;
+            mm = mm.parent;
+            if (nn != null) {
+                if (path.contains(nn)) {
+                    return nn;
+                } else {
+                    path.add(nn);
+                }
+                if (path.contains(mm)) {
+                    return mm;
+                } else {
+                    path.add(mm);
+                }
+            }
+        }
+        return null; //something went wrong
+    }
+    
+    
     
     /**
      * Could be optimized

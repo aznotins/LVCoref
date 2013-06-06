@@ -285,9 +285,10 @@ public class LVCoref {
             d.setMentionModifiers(false);
         } else {
             if (nerAnnotation.length() > 0) d.setMentionsNER(nerAnnotation);
+            d.setAbbreviationMentions(false);
             d.setListMentions();
             d.setQuoteMentions();
-            d.setAbbreviationMentions(false);
+            
                          //d.setMentions();
             d.setProperNodeMentions(true);
             d.setDetalizedNominalMentions();
@@ -320,7 +321,7 @@ public class LVCoref {
             coref(d, sieve);
         }
         
-        d.removePronounSingletonMentions(); //Remove unresolved pronoun mentions
+        //d.removePronounSingletonMentions(); //Remove unresolved pronoun mentions
         if (Constants.REMOVE_SINGLETONS) d.removeSingletonMentions();
 
         //set final mention borders for precise border conll output and html visualization
