@@ -150,3 +150,6 @@ pirts
 apsardze
 autoosta
 sanatorija
+
+medijs
+žurnāls
