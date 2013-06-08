@@ -83,7 +83,7 @@ public class MMAX2 {
         catch (java.io.IOException ex) {
             ex.printStackTrace();
         }
-        Utils.toWriter(writer, "<?xml version=\"1.0\" encoding=\""+"UTF-8"+"\"?>\n<!DOCTYPE words SYSTEM \"words.dtd\">\n<markables xmlns=\"www.eml.org/NameSpaces/"+"sentence"+"\">\n");
+        Utils.toWriter(writer, "<?xml version=\"1.0\" encoding=\""+"UTF-8"+"\"?>\n<!DOCTYPE markables SYSTEM \"markables.dtd\">\n<markables xmlns=\"www.eml.org/NameSpaces/"+"sentence"+"\">\n");
         
         int start = -1;
         int end;
