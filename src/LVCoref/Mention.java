@@ -275,6 +275,10 @@ public class Mention implements Comparable{
         if (id > 0) return d.mentions.get(id-1);
         return null;
     }
+    public Mention prev() {
+        if (id > 0) return document.mentions.get(id-1);
+        return null;
+    }
     
     public Mention prevSyntactic(Document d) {
         for (Node n : node.children);
