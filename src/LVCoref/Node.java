@@ -164,6 +164,10 @@ public class Node {
         return tag.charAt(0) == 'p';
     }
     
+    public Boolean isNumber() {
+        return tag.charAt(0) == 'm' || tag.equals("xo") || tag.equals("xn");
+    }
+    
     public Boolean isQuote() {
         if (tag.equals("zq") || word.equals("\'")) return true;
         return false;

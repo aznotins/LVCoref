@@ -50,7 +50,7 @@ public class Utils {
     public static String getMentionPairString(Document d, Mention m, Mention n, String comment) {
         String s = ""; 
         if (LVCoref.props.getProperty(Constants.MMAX_GOLD_PROP, "").length() > 0) {
-            if (m.node.goldMention != null && n.node.goldMention != null && m.node.goldMention.goldCorefClusterID == n.node.goldMention.goldCorefClusterID){
+            if (m.node.goldMention != null && n.node.goldMention != null && n.node.goldMention.goldCorefClusterID == n.node.goldMention.goldCorefClusterID){
                 s+= "+ ";
             } else {
                 s+= "- ";

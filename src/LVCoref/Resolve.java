@@ -16,14 +16,14 @@ import org.apache.commons.jexl2.MapContext;
 
 public class Resolve {
     public static void go(Document d) {
-        //acronymMatch(d);
-        //relaxedHeadMatch(d);
-        //exactStringMatch(d);
+
         
-        //naiveHeadMatch(d);
+//        naiveHeadMatch(d);
+        
         exactStringMatch(d);
         appositive(d);
         plainAppositive(d);
+        acronymMatch(d);
         predicativeNominative(d);
         firstPersonPlural(d);
         firstPersonSingular(d);
@@ -63,7 +63,7 @@ public class Resolve {
         Mention t;
         for (Mention s: d.mentions) {
             jexlContext.set("s", s);
-            t = MentionBrowser.getFirstFromSintax(s, expression, jexlContext);            
+            t = MentionBrowser.getFirstFromSintax(s, expression, jexlContext); 
             if (t != null) _resolve(d, s, t, comment);
         }
     }
@@ -98,8 +98,18 @@ public class Resolve {
         }
     }
     private static void _resolve(Document d, Mention s, Mention t, String comment) {
+        if (s.corefClusterID == t.corefClusterID) return;
         d.mergeClusters(s, t);
         s.addRefComm(t, comment);
+        if (LVCoref.doScore()) {
+            if ((s.node.goldMention == null || t.node.goldMention == null || s.node.goldMention.corefClusterID != t.node.goldMention.corefClusterID) &&!s.tmp && !t.tmp) {
+                System.out.println("-" + Utils.getMentionPairString(d, s, t, comment));
+            } else {
+                if (s.node.goldMention != null && t.node.goldMention != null && s.node.goldMention.corefClusterID == t.node.goldMention.corefClusterID &&!s.tmp && !t.tmp) {
+                    System.out.println("+" + Utils.getMentionPairString(d, s, t, comment));
+                }
+            }
+        }
         LVCoref.logger.fine(Utils.getMentionPairString(d, s, t, comment));
         s.setAsResolved();
     }
@@ -116,7 +126,12 @@ public class Resolve {
         System.out.println("Operation count = " + Filter.op);
     }    
     public static void relaxedHeadMatch(Document d) {
-        String filter = "!Filter.pronominal(s) && Filter.sameHead(s,t) && Filter.containsAllClusterModifiers(s,t)";
+        String filter = "!Filter.pronominal(s) "
+                + "&& Filter.sameHead(s,t) "
+                + "&& Filter.sameGender(s,t) "
+                + "&& Filter.sameNumber(s,t) "
+                + "&& Filter.containsAllClusterModifiers(s,t)"
+                + "&& Filter.modifierConstraint(s,t)";
         _resolveFirst(d, filter, "allClusterModifiers");
         System.out.println("Operation count = " + Filter.op);
     }    
@@ -128,22 +143,22 @@ public class Resolve {
 
     public static void firstPersonSingular(Document d) {
         String filter = "Filter.firstPersonSingular(s) && Filter.fistPersonSingular(t)";
-        _resolveFirst(d, filter, "firstPersonSingular");
+        _resolveFirstFromAll(d, filter, "firstPersonSingular");
         System.out.println("Operation count = " + Filter.op);
     }
     public static void firstPersonPlural(Document d) {
         String filter = "Filter.fistPersonPlural(s) && Filter.fistPersonPlural(t)";
-        _resolveFirst(d, filter, "firstPersonPlural");
+        _resolveFirstFromAll(d, filter, "firstPersonPlural");
         System.out.println("Operation count = " + Filter.op);
     }
     public static void secondPersonSingular(Document d) {
         String filter = "Filter.secondPersonSingular(s) && Filter.secondPersonSingular(t)";
-        _resolveFirst(d, filter, "secondPersonSingular");
+        _resolveFirstFromAll(d, filter, "secondPersonSingular");
         System.out.println("Operation count = " + Filter.op);
     }
     public static void secondPersonPlural(Document d) {
         String filter = "Filter.secondPersonPlural(s) && Filter.secondPersonPlural(t)";
-        _resolveFirst(d, filter, "secondPersonPlural");
+        _resolveFirstFromAll(d, filter, "secondPersonPlural");
         System.out.println("Operation count = " + Filter.op);
     }
 
@@ -155,7 +170,9 @@ public class Resolve {
                 + "&& Filter.sameGender(s,t) "
                 + "&& Filter.sameNumber(s,t) "
                 + "&& Filter.sameCase(s,t) "
-                + "&& Filter.distance(s,t) < 2 "
+                + "&& Filter.sameCategoryConstraint(s,t) "
+                + "&& !Filter.dominated(s,t) "
+                + "&& Filter.distance(s,t) < 3 "
                 + "&& (!Filter.genitive(s,t) || Filter.isPerson(s) || Filter.isPerson(t)) "
                 + "&& !((Filter.isLocation(s) || Filter.isLocation(t)) && (Filter.locative(s) || Filter.locative(t)))"
                 + "&& Filter.sentenceDistance(s,t) < 1 "
@@ -173,22 +190,27 @@ public class Resolve {
                 + "&& Filter.sameGender(s,t) "
                 + "&& Filter.sameNumber(s,t) "
                 + "&& Filter.sameCase(s,t) "
+                + "&& Filter.sameCategoryConstraint(s,t) "
                 + "&& (!Filter.genitive(s,t) || Filter.isPerson(s) || Filter.isPerson(t)) "
                 //+ "&& !((Filter.isLocation(s) || Filter.isLocation(t)) && (Filter.locative(s) || Filter.locative(t)))"
                 + "&& Filter.distance(s,t) < 1 "
                 + "&& Filter.inPlainApposition(s,t) ";
 //                + "||"
 //                + "Filter.isQuoteMention(s)";
-        _resolveAllFromSameSentence(d, filter, "appositive");
+        _resolveAllFromSameSentence(d, filter, "plain_appositive");
         System.out.println("Operation count = " + Filter.op);
     } 
     
     public static void sintaxPronounMatch(Document d) {
         String filter = "Filter.pronominal(s) "
+                + "&& !Filter.personPronounsSkewed(s)"
                 + "&& !Filter.pronominalIndefinite(s)"
-                + "&& !Filter.isResolved(s) "
+                + "&& !Filter.pronominalModificator(s)"
+                + "&& !Filter.pronominalRelative(s)"
+                + "&& Filter.sameCategoryConstraint(s,t) "
+                //+ "&& !Filter.isResolved(s) "
                 + "&& !Filter.pronominal(t) "
-                + "&& Filter.sentenceDistance(s,t) < 3 "
+                + "&& Filter.sentenceDistance(s,t) < 2 "
                 + "&& ( Filter.sameGender(s,t) && Filter.sameNumber(s,t)"
                     + "|| Filter.pronominalReflexive(s)"
                     + "|| Filter.pronominalPossesive(s) )"
@@ -202,9 +224,10 @@ public class Resolve {
         String filter = "Filter.pronominalRelative(s) "
                 //+ "&& !Filter.pronominal(t) "
                 + "&& Filter.sentenceDistance(s,t) < 1 "
-                + "&& Filter.distance(s,t) < 3"
-                + "&& Filter.sameGender(s,t)"
-                + "&& Filter.sameNumber(s,t)";
+                + "&& (Filter.distance(s,t) < 3 || Filter.isQuoteMention(t) && Filter.distance(s,t) < 5)"
+                //+ "&& Filter.sameGender(s,t)"
+                //+ "&& Filter.sameNumber(s,t)"
+                + "";
         _resolveFirst(d, filter, "relativePronounMatch");
         System.out.println("Operation count = " + Filter.op);
     }
@@ -213,8 +236,10 @@ public class Resolve {
         String filter = "Filter.nominative(s) "
                 + "&& Filter.nominative(t) "
                 + "&& Filter.sentenceDistance(s,t) < 1"
+                + "&& Filter.distance(s,t) < 6"
                 + "&& Filter.sameNumber(s,t)"
-                + "&& Filter.sameGender(s,t)"
+                + "&& Filter.sameGender(s,t)"                
+                + "&& Filter.sameCategory(s,t) "
                 + "&& Filter.inPredicativeNominative(s,t)";
         _resolveAllFromSameSentence(d, filter, "predicativeNominative");
         System.out.println("Operation count = " + Filter.op);

@@ -24,7 +24,7 @@ public class Mention implements Comparable{
     
     public boolean tmp = false;
     public boolean strict = false; //listed mentions, this head is important for genetives
-    
+    public boolean modifiersSet = false;
     /**
      * Info about parse tree
      */
@@ -337,5 +337,10 @@ public class Mention implements Comparable{
             r += q.word.charAt(0);
         }
         return r.toUpperCase();
+    }
+    
+    
+    public boolean isQuote() {
+        return bucket.equals("quote");
     }
 }

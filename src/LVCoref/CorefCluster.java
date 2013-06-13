@@ -37,6 +37,7 @@ public class CorefCluster {
     public Set<String> heads;
     
     public Set<String> modifiers;
+    public Set<String> properModifiers;
     
      private static final long serialVersionUID = 8655265337578515592L;
 
@@ -64,11 +65,13 @@ public class CorefCluster {
         firstMention = null;
         representative = null;
         modifiers = new HashSet<String>();
+        properModifiers = new HashSet<String>();
     }
    
     public void add(Mention m) {
         corefMentions.add(m);
         modifiers.addAll(m.modifiers);
+        properModifiers.addAll(m.properModifiers);
     }
     
     public boolean includeModifiers(CorefCluster c) {

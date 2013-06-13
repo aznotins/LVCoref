@@ -23,14 +23,14 @@ public class ScorerMUC extends CorefScorer {
       rNum += g.corefMentions.size();
       
       Set<CorefCluster> partitions = new HashSet<CorefCluster>();
-      //LVCoref.logger.fine("--GoldCluster #" + g.id );
+      LVCoref.logger.fine("--GoldCluster #" + g.id );
       for (Mention goldMention : g.corefMentions){        
         if(goldMention.node.mention == null) {  // twinless goldmention
           rNum--;
-          //LVCoref.logger.fine("\t* ["+goldMention.nerString+"]"+ "\t"+goldMention.getContext(doc, 3)+ "\t@ "+ goldMention.node.id );
+          LVCoref.logger.fine("\t* ["+goldMention.nerString+"]"+ "\t"+goldMention.getContext(doc, 3)+ "\t@ "+ goldMention.node.id );
         } else {
           partitions.add(doc.corefClusters.get(goldMention.node.mention.corefClusterID));
-          //LVCoref.logger.fine("\t"+goldMention.node.mention.corefClusterID+" ["+goldMention.nerString+"]" + "\t"+goldMention.getContext(doc, 3)+"\t@ "+ goldMention.node.id);
+          LVCoref.logger.fine("\t"+goldMention.node.mention.corefClusterID+" ["+goldMention.nerString+"]" + "\t"+goldMention.getContext(doc, 3)+"\t@ "+ goldMention.node.id);
         }
       }
       rNum -= partitions.size();

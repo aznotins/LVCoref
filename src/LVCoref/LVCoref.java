@@ -284,11 +284,10 @@ public class LVCoref {
             d.setMentionCategories();
             d.setMentionModifiers(false);
         } else {
+            d.setQuoteMentions();
             if (nerAnnotation.length() > 0) d.setMentionsNER(nerAnnotation);
             d.setAbbreviationMentions(false);
             d.setListMentions();
-            d.setQuoteMentions();
-            
                          //d.setMentions();
             d.setProperNodeMentions(true);
             d.setDetalizedNominalMentions();
@@ -298,6 +297,7 @@ public class LVCoref {
             d.tweakPersonMentions();d.tweakPersonMentions();//FIXME 
             
             d.removePleonasticMentions();
+            d.removeNestedQuoteMentions();
             
             d.removeUndefiniedMentions();
             //d.removeNestedMentions();
@@ -398,7 +398,10 @@ public class LVCoref {
  
         if (Boolean.parseBoolean(props.getProperty(Constants.LOG_PROP, "false"))) {
             d.outputCONLL(logPath + timeStamp+ "_" + documentID + ".conll");
+            
             d.htmlOutput(logPath + timeStamp+ "_" + documentID + ".html");
+            d.htmlOutput(logPath + "log.html");
+            d.outputCONLL(logPath + "log.conll");
         }
 
         if (mmaxExport) {

@@ -12,3 +12,6 @@ vieta
 piemērs
 AS
 SIA
+VAS
+un
+,

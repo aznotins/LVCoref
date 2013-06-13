@@ -6,6 +6,7 @@ package LVCoref;
 
 import LVCoref.Document;
 import LVCoref.Mention;
+import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -85,7 +86,10 @@ public class Filter {
         _updateOperationCount();
         return s.node.isRelativePronoun();
     }
-    
+    public static boolean pronominalModificator(Mention s) {
+        _updateOperationCount();
+        return s.node.parent != null && s.node.parent.isNoun();
+    }
     
     public static boolean genitive(Mention s, Mention t) {
         _updateOperationCount();
@@ -132,6 +136,11 @@ public class Filter {
         if (cat.size() >= 1) return true;
         return false;
     }
+    public static boolean sameCategoryConstraint(Mention s, Mention t) {
+        _updateOperationCount();
+        if (s.categoryMatch(t)) return true;
+        return false;
+    }
     
     public static boolean isResolved(Mention s) {
         _updateOperationCount();
@@ -159,24 +168,49 @@ public class Filter {
     
     public static boolean firstPersonSingular(Mention s) {
         _updateOperationCount();
-        return s.headString.equals("es");
+        return s.node.lemma.equals("es");
     }
     public static boolean firstPersonPlural(Mention s) {
         _updateOperationCount();
-        return s.headString.equals("mēs");
+        return s.node.lemma.equals("mēs");
     }
     public static boolean secondPersonSingular(Mention s) {
         _updateOperationCount();
-        return s.headString.equals("tu");
+        return s.node.lemma.equals("tu");
     }
     public static boolean secondPersonPlural(Mention s) {
         _updateOperationCount();
-        return s.headString.equals("jūs");
+        return s.node.lemma.equals("jūs");
     }
     
     public static boolean containsAllClusterModifiers(Mention s, Mention t) {
         _updateOperationCount();
         return s.document.getCluster(s.corefClusterID).includeModifiers(t.document.getCluster(t.corefClusterID));
+    }
+    
+    public static boolean modifierConstraint(Mention s, Mention t) {
+        _updateOperationCount();
+        
+        Set<String> ss = s.document.getCluster(s.corefClusterID).properModifiers;
+        Set<String> tt = s.document.getCluster(t.corefClusterID).properModifiers;
+        
+        boolean ok = true;
+        for (String mod: ss) {
+            if (!tt.contains(mod)) {
+                ok = false;
+                break;
+            }
+        }
+        if (!ok) {
+            ok = true;
+            for (String mod: tt) {
+                if (!ss.contains(mod)) {
+                    ok = false;
+                    break;
+                }
+            }
+        }
+        return ok;
     }
     
     public static boolean inPredicativeNominative(Mention s, Mention t) {   
@@ -191,7 +225,12 @@ public class Filter {
     public static boolean inApposition(Mention s, Mention t) {
         _updateOperationCount();
         Node h = s.document.getCommonAncestor(s.node, t.node);
-        if (h == s.node || h == t.node) return true;
+        int sint = s.node.minDistance(t.node);
+        
+        if (h == s.node || h == t.node)  {
+            if (sint > 1 && s.type == Dictionaries.MentionType.PROPER && t.type == Dictionaries.MentionType.PROPER) return false;
+            return true;
+        }
         return false;
     }
     public static boolean inPlainApposition(Mention s, Mention t) {
@@ -202,6 +241,31 @@ public class Filter {
         return false;
     }
     
+    public static boolean dominated(Mention s, Mention t) {
+        //if (true) return false;
+        if (s.start >= t.start && s.start <= t.end || t.start >= s.start && t.start <=s.end) return true;
+        return false;
+    }
+    public static boolean iwithini(Mention s, Mention t) {
+        //if (true) return false;
+        if (s.node.parent == t.node.parent && !s.node.parent.lemma.equals("būt") && !Filter.pronominalReflexive(s) && !Filter.pronominalPossesive(s)) return true;
+        int i = s.node.minDistance(t.node);
+        Node q = s.node.getCommonAncestor(s.node, t.node);
+        if (q != s.node && q!=t.node && i < 4) return true;
+        return false;
+    }
+    
+    //neņemt vērā
+    public static boolean personPronounsSkewed(Mention s) {
+        if (s.node.lemma.equals("mēs") || s.node.lemma.equals("jūs") || s.node.lemma.equals("tu")) return true;
+        return false;
+    }
+    
+    public static boolean hasCategory(Mention s) {
+        if (s.categories.size() == 0) return true;
+        if (s.categories.contains("other")) return true;
+        return false;
+    }
     
     private static void _updateOperationCount() {
         op++;

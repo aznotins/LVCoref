@@ -621,8 +621,8 @@ public class Document {
             Node n =tree.get(i);
             if (n.isQuote()) {
                 int j = i;
-                while (++j - i <= max_l) {
-                    
+                while (++j - i <= max_l && j < tree.size()) {
+                    if (tree.get(j).sentNum != n.sentNum) break;
                     if (tree.get(j).tag.charAt(0) == 'v' && !Character.isUpperCase(
                         tree.get(j).word.charAt(0))) break; //nesatur d.v.
                     if (tree.get(j).isQuote()) {
@@ -639,13 +639,14 @@ public class Document {
                             if (add) {
                                 LVCoref.logger.fine("Quote Mention :("+i+" " + j+") " + getSubString(i+1, j-1));
                                 //assert(i+1 <= j-1);
-                                Mention m = setMention(i+1, j-1, "", MentionType.PROPER);
+                                Mention m = setMention(i+1, j-1, "", MentionType.PROPER);                                
                                 if (m != null) {
+                                    m.categories.addAll(dict.getCategories(m.node.lemma));
                                     LVCoref.logger.fine(Utils.getMentionComment(this, m, ""));
                                     m.bucket = "quote";
                                 }
                             }                            
-                            i = j;
+                            i = j-1;
                             break;
                         }                        
                     }
@@ -717,7 +718,7 @@ public class Document {
             Node n = m.node.parent;
             Boolean nested = false;
             while (l++ < max_depth && n != null && m.node.sentNum == n.sentNum) {
-                if (n.mention != null && (/*m.type == MentionType.NOMINAL || */m.strict == false || m.strict && n.mention.type == MentionType.NOMINAL && m.mentionCase == Dictionaries.Case.GENITIVE /*&&n.isProper()*/)) {
+                if (n.mention != null && n.id > m.node.id && (/*m.type == MentionType.NOMINAL || */m.strict == false || m.strict && n.mention.type == MentionType.NOMINAL && m.mentionCase == Dictionaries.Case.GENITIVE /*&&n.isProper()*/)) {
                     //remove m
                     n.mention.start = Math.min(n.mention.start, m.start);
                     nested = true;
@@ -734,6 +735,21 @@ public class Document {
         mentions.clear();
         mentions = mm;
         normalizeMentions();
+    }
+    
+    public void removeNestedQuoteMentions() {
+        for (Mention m : mentions) {
+            if (m.isQuote()) {
+                for (int i = m.start; i <= m.end; i++) {
+                    Node q = tree.get(i);
+                    if (q.mention != null && !q.mention.isQuote()) {
+                        q.mention.tmp = true;
+                        LVCoref.logger.fine(Utils.getMentionComment(this, m, "Removed nested quote mention"));
+                    }
+                }
+            }
+        }
+       removeTmpMentions();
     }
     
     
@@ -846,7 +862,7 @@ public class Document {
         }
     }
     
-    public void setMentionModifiers(boolean updateMargins) {
+    public void setMentionModifiers_v0(boolean updateMargins) {
         for (Mention m : mentions) {
             if (m.type != MentionType.NOMINAL && m.type != MentionType.PROPER) continue;
             Node n = m.node.prev(this);
@@ -877,8 +893,113 @@ public class Document {
             }
         }
     }
+    public void setMentionModifiers_v2(boolean updateMargins) {
+        for (Mention m : mentions) {
+            if (m.type != MentionType.NOMINAL && m.type != MentionType.PROPER) continue;
+            Node n = m.node.prev(this);
+            int left = m.node.id;
+            while (
+                    n != null 
+                    && (n.isNounGenitive() || (n.isProperAdjective() || n.isDefiniteAdjective() || n.isNumber())
+                    && (m.gender == Dictionaries.Gender.UNKNOWN || m.gender == n.getGender()) 
+                    && (m.number == Dictionaries.Number.UNKNOWN || m.number == n.getNumber()) 
+                    || m.isPerson() && n.isProper /*|| n.isQuote()*/)) {
+//                if (n.isQuote()) {
+//                    left--;
+//                    n = n.prev(this);
+//                    continue;
+//                }
+                m.modifiers.add(n.lemma.toLowerCase());
+                if (n.isProper()) {
+                    m.properModifiers.add(n.lemma.toLowerCase());
+                    m.type = MentionType.PROPER;
+                }
+                left--;
+                n = n.prev(this);
+            }
+            if (updateMargins) m.start = Math.min(left, m.start);
+            
+            if (left != m.node.id) {
+                LVCoref.logger.fine(Utils.getMentionComment(this, m, "Added mention modifiers "+"("+getSubString(left, m.node.id)+ ")"));
+            }
+        }
+    }
     
     
+    public void setMentionModifiers(boolean updateMargins) {
+        for (Mention m: mentions) {
+            if (!m.modifiersSet) setMentionModifiers(m, updateMargins);
+        }
+    }
+        
+     public void setMentionModifiers(Mention m, Boolean updateMargins) {
+         if (m.node.isPronoun()) { m.modifiersSet = true; return;}
+         if (m.node.isAbbreviation()) { m.modifiersSet = true; return;}
+         if (m.bucket.equals("quote")) {
+             m.modifiersSet = true; 
+             for (int i = m.start; i <= m.end; i++) {
+                 m.modifiers.add(tree.get(i).lemma.toLowerCase());
+                 if (tree.get(i).isProper) m.properModifiers.add(tree.get(i).lemma.toLowerCase());
+             }
+             return;
+         }
+            for (int i = m.start; i <= m.end; i++) {
+               if (tree.get(i).isProper) m.properModifiers.add(tree.get(i).lemma.toLowerCase());
+            }
+         int starts = m.start;
+         Node start = m.node.getSpanStart(m.document);
+         Node q = m.node.prev();
+         while (q != null && q.id >= start.id) {
+             if (q == null) break;
+             if (q.mention != null) {
+                 if (!q.mention.modifiersSet) setMentionModifiers(q.mention, updateMargins);
+                 int nesMentionStart = q.mention.start;
+                 m.modifiers.addAll(q.mention.modifiers);
+                 m.modifiers.add(q.lemma.toLowerCase());
+                 m.words.addAll(q.mention.words);
+                 m.properModifiers.addAll(q.mention.properModifiers);
+                  if (updateMargins) m.start = Math.min(m.start, q.mention.start);
+                  if (q.mention.type == Dictionaries.MentionType.PROPER) m.type = q.mention.type;
+                 while (q != null && q.id > nesMentionStart) q = q.prev();                 
+             } else if (q.isNounGenitive() || q.isNumber() || q.isProperAdjective()) {
+                 m.modifiers.add(q.lemma.toLowerCase());
+                 m.words.add(q.lemma.toLowerCase());
+                  if (updateMargins) m.start = Math.min(m.start, q.id);
+             } else if (q.tag.startsWith("a") || q.isNumber() || q.isPronoun() && q.mention != null && q.mention.mentionCase == Dictionaries.Case.GENITIVE) {
+                 m.words.add(q.lemma.toLowerCase());
+                  if (updateMargins) m.start = Math.min(m.start, q.id);
+             //} else if (q.isQuote()) {
+             } else {
+                 break;
+             }
+             if (q.isProper) {
+                 m.type = Dictionaries.MentionType.PROPER;
+                 m.properModifiers.add(q.lemma.toLowerCase());
+             }
+             //if (q.tag.startsWith("v")) break;     
+             q = q.prev();
+         }
+         Node before = tree.get(m.start).prev();
+         if (before != null) {
+            if (before.mention != null && before.isAbbreviation()) {
+                m.modifiers.addAll(before.mention.modifiers);
+                m.words.addAll(before.mention.words);
+                m.modifiers.add(before.lemma.toLowerCase());
+                if (updateMargins) m.start = Math.min(m.start, before.mention.start);
+            } else if (before.isQuote() ){
+                before = before.prev();
+                if (before != null && before.mention != null && before.mention.bucket.equals("quote")) {
+                    m.modifiers.addAll(before.mention.modifiers);
+                    m.modifiers.add(before.lemma.toLowerCase());
+                    m.words.addAll(before.mention.words);
+                    if (updateMargins) m.start = Math.min(m.start, before.mention.start);
+                }
+            }
+         }
+         if (starts != m.start) System.out.println(getSubString(m.start, m.end));
+         m.modifiersSet = true;
+     }
+        
     
     
     public void tweakPersonMentions(){
@@ -908,7 +1029,9 @@ public class Document {
                             head.mention.categories.add("person");
                             remove = true;
                         }
-                        LVCoref.logger.fine(Utils.getMentionComment(this, m,"Couldnt tweak person mention"));
+                        head.mention.start = Math.min(head.mention.start, m.start);
+                        head.mention.end= Math.max(head.mention.end, m.end);
+                        LVCoref.logger.fine(Utils.getMentionComment(this, head.mention,"Couldnt tweak person mention cause of "));
                     }
                 }
             }
@@ -999,7 +1122,7 @@ public class Document {
         for (Mention m : mentions) {
             //if (m.type == MentionType.PRONOMINAL) continue;
             //if (m.type == MentionType.PROPER) continue;
-            if ((/*m.type == MentionType.NOMINAL && */!m.strict/*|| m.type != MentionType.PROPER*/) && m.mentionCase == Dictionaries.Case.GENITIVE && m.node.parent != null && m.node.parent.isNoun()) {
+            if ((/*m.type == MentionType.NOMINAL && */!m.bucket.equals("quote")&&!m.strict/*|| m.type != MentionType.PROPER*/) && m.mentionCase == Dictionaries.Case.GENITIVE && m.node.parent != null && m.node.parent.isNoun()) {
                 removeMention(m);
                 LVCoref.logger.fine(Utils.getMentionComment(this, m,"Removed genitive mention"));
             } else {
@@ -1196,9 +1319,11 @@ public class Document {
                     +"<html>\n"
                     + "<head>"
                     + "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\">"
-                    +"<script src=\"jquery-1.8.3.min.js\" type=\"text/javascript\"></script>\n"
+                    +"<script src=\"jquery-1.8.3.min.js\" type=\"text/javascript\"></script>\n"                    
+                    //+"<link rel='stylesheet' type='text/css' href='bootstrap/css/bootstrap.css'>"
                     +"<link rel='stylesheet' type='text/css' href='style.css'>"
                     //+"<script src=\"http://code.jquery.com/jquery-latest.min.js\" type=\"text/javascript\"></script>\n"
+                    //+"<script src=\"bootstrap/js/bootstrap.min.js\" type=\"text/javascript\"></script>\n"
                     +"<script src=\"scripts.js\" type=\"text/javascript\"></script>\n"
                     + "</head>" 
                     
@@ -1215,7 +1340,7 @@ public class Document {
                     //if (n.mentionStartList.size()>0) out.print(n.mentionStartList);
                     int count = n.mentionStartList.size();
                     for (int mid = 0; mid < count; mid++) {
-                        out.println("<span class='span' id='s"+n.mentionStartList.get(mid)+"'> [ ");
+                        out.println("<span class='label label-"+mentions.get(n.mentionStartList.get(mid)).category+"' id='s"+n.mentionStartList.get(mid)+"'> [ ");
                     }
                     
                     
@@ -1227,7 +1352,7 @@ public class Document {
                         if (n.mention != null && corefClusters.get(n.mention.corefClusterID).corefMentions.size() > 1) {
                             Mention ant = refGraph.getFinalResolutions().get(n.mention);
                             out.print(" <span "
-                                        + "class='coref"+notGoldError+"'"
+                                        + "class='coref"+notGoldError+" '"
                                         + "style='background-color:#"+corefColor.get(n.mention.corefClusterID)+";'"
                                         + "id='"+n.mention.id+"' "
                                         + "title='"
@@ -1260,7 +1385,7 @@ public class Document {
 
                         } else if (n.mention != null) {
                             out.print(" <span "
-                                        + "class='singleton" +notGoldError +"'"
+                                       + "class='singleton "+notGoldError+"'"
                                         + "title='"
                                             + " @mID="+n.mention.id+ " @gender=" + n.mention.gender
                                             + " @number=" + n.mention.number
@@ -1305,6 +1430,7 @@ public class Document {
                     count = n.mentionEndList.size();
                     for (int mid = 0; mid < count; mid++) {
                         out.println(" ] </span>");
+                        //out.println(" <span class='badge'>"+n.mention.corefClusterID+"</span></span>");
                     }
                     if (n.sentRoot) root = n;
                     
@@ -1330,6 +1456,7 @@ public class Document {
                         
                         out.println
                                 ("<div>"
+                                + ((LVCoref.doScore()&&m.node.goldMention!=null)?"["+m.node.goldMention.goldCorefClusterID+"]":"")
                                 + "<a href='#"+m.id+"'>"
                                 + projection
                                 + "</a>"
