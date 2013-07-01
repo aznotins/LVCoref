@@ -277,6 +277,7 @@ public class LVCoref {
         }
         if (mmaxGold.length() > 0) { d.addAnnotationMMAX(mmaxGold); }
         
+        d.updateProperWords();
         if (Constants.USE_GOLD_MENTIONS && mmaxGold.length() > 0) {
             d.useGoldMentions();
             d.setAbbreviationMentions(true);
@@ -296,6 +297,9 @@ public class LVCoref {
            
             d.tweakPersonMentions();d.tweakPersonMentions();//FIXME 
             
+            
+            //d.removePluralMentions();
+                    
             d.removePleonasticMentions();
             d.removeNestedQuoteMentions();
             

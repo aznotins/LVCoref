@@ -62,14 +62,10 @@ public class MentionBrowser {
                 if (t == null || dist < minDist) {
                     t = prev;
                     minDist = dist;
-//                     System.out.println("--closer " +t + "@" + minDist);
                 }
             }
             prev = prev.prev();
         }
-//        if (s.type == Dictionaries.MentionType.PRONOMINAL) {
-//            System.out.println(s + " " + t + " " + minDist);
-//        }
         return t;
     }
     

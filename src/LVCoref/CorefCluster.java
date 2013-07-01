@@ -72,6 +72,7 @@ public class CorefCluster {
         corefMentions.add(m);
         modifiers.addAll(m.modifiers);
         properModifiers.addAll(m.properModifiers);
+        words.addAll(m.words);
     }
     
     public boolean includeModifiers(CorefCluster c) {

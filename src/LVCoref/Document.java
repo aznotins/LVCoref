@@ -46,7 +46,7 @@ public class Document {
     
     public Logger logger;
     
-    public Map<String,Pair<Integer,Integer> > properWords;
+    public Set<String> properWords;
     
     public Map<String, Node> acronyms;
     
@@ -60,7 +60,7 @@ public class Document {
         corefClusters = new HashMap<Integer, CorefCluster>();
         goldCorefClusters = new HashMap<Integer, CorefCluster>();
         sentences = new ArrayList<Integer>();
-        properWords = new HashMap();
+        properWords = new HashSet();
         acronyms = new HashMap<String, Node>();
 	}
     
@@ -74,7 +74,7 @@ public class Document {
         goldCorefClusters = new HashMap<Integer, CorefCluster>();
         sentences = new ArrayList<Integer>();
         this.logger = _logger;
-        properWords = new HashMap();
+        properWords = new HashSet();
         acronyms = new HashMap<String, Node>();
     }
     
@@ -88,7 +88,7 @@ public class Document {
         goldCorefClusters = new HashMap<Integer, CorefCluster>();
         sentences = new ArrayList<Integer>();
         this.logger = _logger;
-        properWords = new HashMap();
+        properWords = new HashSet();
         acronyms = new HashMap<String, Node>();
     }
     
@@ -313,18 +313,17 @@ public class Document {
     
     
     
-    
+    /**
+     * Add MMAX Gold Annotation
+     * @param filename
+     * @return if annotation was ok
+     */
     public Boolean addAnnotationMMAX(String filename) {
         try {
             File mmax_file = new File(filename);
             DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
  
             org.w3c.dom.Document doc = dBuilder.parse(mmax_file);
-            //optional, but recommended - http://stackoverflow.com/questions/13786607/normalization-in-dom-parsing-with-java-how-does-it-work	
-            //doc.getDocumentElement().normalize();
-            
-            //org.w3c.dom.Element root = doc.getDocumentElement();
-            //NodeList markables = root.getChildNodes();
             NodeList markables = doc.getElementsByTagName("markable");
             Map<String, Integer> classToInt = new HashMap<String, Integer>();
             Integer cluster_c = 0;
@@ -339,7 +338,6 @@ public class Document {
                 
                 String[] intervals = span.split(",");
                 String[] interval = intervals[0].split("\\.\\.");
-                //TODO: more intervals w1..w2,w3
                 int start = Integer.parseInt(interval[0].substring(5)) - 1 ;
                 int end = start;
                 if (interval.length > 1) {
@@ -400,28 +398,23 @@ public class Document {
     }
     
       
-    
+    /**
+     * Put all mentions from m cluster to n
+     * @param m Mention
+     * @param n Mention
+     * @return true if cluster were changed
+     */
     public boolean mergeClusters(Mention m, Mention n) {
         assert(m != null && n != null);
         assert(corefClusters.get(m.corefClusterID) != null && corefClusters.get(n.corefClusterID) != null);
-
-        // put all mentions from m corefCluster to n corefCluster
-        
         if (corefClusters.get(m.corefClusterID) != corefClusters.get(n.corefClusterID)) {
-        
             int removeID = m.corefClusterID;
-
             Set<Mention> cm = corefClusters.get(m.corefClusterID).corefMentions;
             Set<Mention> cn = corefClusters.get(n.corefClusterID).corefMentions;
-            //System.err.print(getCluster(m.corefClusterID).modifiers + "+" + getCluster(n.corefClusterID));
             for (Mention mm : cm) {
-                //cn.add(mm);
                 getCluster(n.corefClusterID).add(mm);
                 mm.corefClusterID = n.corefClusterID;
             }
-
-            //LVCoref.logger.fine("Merge clusters from " +removeID +" to " + n.corefClusterID +" " + Utils.linearizeMentionSet(cn));
-
             corefClusters.remove(removeID);
             return true;
         } else {
@@ -430,30 +423,21 @@ public class Document {
     }
     
     
-//    public void updateProperWords() {
-//        for(Node n : tree) {
-//            if (n.position > 1 && n.isProper()) {
-//                //properWords.add(n.lemma.toLowerCase());
-//                Pair<Integer,Integer> p = properWords.get(n.lemma.toLowerCase());
-//                if (p == null) {
-//                    properWords.put(n.lemma, new Pair(1,1));
-//                } else {
-//                    p.first = p.first+1;
-//                    p.second = p.second+1;
-//                    properWords.get(n.lemma)
-//                }
-//                
-//                n.isProper = true;
-//                System.out.println(n.word + " " + n.id);
-//            }
-//        }
-//        for(Node n : tree) {
-//            if (n.position == 1 && Character.isUpperCase(n.word.charAt(0)) && properWords.contains(n.lemma.toLowerCase())) {
-//                n.isProper = true;
-//                System.out.println(n.word + " " + n.id);
-//            }
-//        }
-//    }
+    public void updateProperWords() {
+        for(Node n : tree) {
+            if (n.position > 1 && Character.isUpperCase(n.word.charAt(0))) {
+                //properWords.add(n.lemma.toLowerCase());
+                properWords.add(n.lemma.toLowerCase());
+                //System.out.println(n.word + " " + n.id);
+            }
+        }
+        for(Node n : tree) {
+            if (n.position == 1 && Character.isUpperCase(n.word.charAt(0)) && properWords.contains(n.lemma.toLowerCase())) {
+                n.isProper = true;
+                //System.out.println(n.word + " " + n.id);
+            }
+        }
+    }
     
     
     public int maxClusterID() {
@@ -862,7 +846,7 @@ public class Document {
         }
     }
     
-    public void setMentionModifiers_v0(boolean updateMargins) {
+    public void setMentionModifiers(boolean updateMargins) {
         for (Mention m : mentions) {
             if (m.type != MentionType.NOMINAL && m.type != MentionType.PROPER) continue;
             Node n = m.node.prev(this);
@@ -926,7 +910,7 @@ public class Document {
     }
     
     
-    public void setMentionModifiers(boolean updateMargins) {
+    public void setMentionModifiers_XXXXXXXX(boolean updateMargins) {
         for (Mention m: mentions) {
             if (!m.modifiersSet) setMentionModifiers(m, updateMargins);
         }

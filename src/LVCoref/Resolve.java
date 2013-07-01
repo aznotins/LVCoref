@@ -18,7 +18,7 @@ public class Resolve {
     public static void go(Document d) {
 
         
-//        naiveHeadMatch(d);
+        //naiveHeadMatch(d);
         
         exactStringMatch(d);
         appositive(d);
@@ -115,7 +115,8 @@ public class Resolve {
     }
     
     public static void naiveHeadMatch(Document d) {
-        String filter = "!Filter.pronominal(s) && Filter.sameHead(s,t)";
+        //String filter = "!Filter.pronominal(s) && Filter.sameHead(s,t)";
+        String filter = "!Filter.pronominal(s) && Filter.sameHead(s,t) && Filter.sameGender(s,t) && Filter.sameNumber(s,t)";
         _resolveFirst(d, filter, "naiveHead");
         System.out.println("Operation count = " + Filter.op);
     }
@@ -130,8 +131,9 @@ public class Resolve {
                 + "&& Filter.sameHead(s,t) "
                 + "&& Filter.sameGender(s,t) "
                 + "&& Filter.sameNumber(s,t) "
-                + "&& Filter.containsAllClusterModifiers(s,t)"
-                + "&& Filter.modifierConstraint(s,t)";
+                //+ "&& Filter.containsAllClusterModifiers(s,t)"
+                + "&& Filter.modifierConstraint(s,t)"
+                + "";
         _resolveFirst(d, filter, "allClusterModifiers");
         System.out.println("Operation count = " + Filter.op);
     }    
@@ -139,27 +141,6 @@ public class Resolve {
     public static void acronymMatch(Document d){
         String filter = "Filter.proper(s) && Filter.inAcronymList(s)";
         _resolveFirstFromAll(d, filter, "acronym");
-    }
-
-    public static void firstPersonSingular(Document d) {
-        String filter = "Filter.firstPersonSingular(s) && Filter.fistPersonSingular(t)";
-        _resolveFirstFromAll(d, filter, "firstPersonSingular");
-        System.out.println("Operation count = " + Filter.op);
-    }
-    public static void firstPersonPlural(Document d) {
-        String filter = "Filter.fistPersonPlural(s) && Filter.fistPersonPlural(t)";
-        _resolveFirstFromAll(d, filter, "firstPersonPlural");
-        System.out.println("Operation count = " + Filter.op);
-    }
-    public static void secondPersonSingular(Document d) {
-        String filter = "Filter.secondPersonSingular(s) && Filter.secondPersonSingular(t)";
-        _resolveFirstFromAll(d, filter, "secondPersonSingular");
-        System.out.println("Operation count = " + Filter.op);
-    }
-    public static void secondPersonPlural(Document d) {
-        String filter = "Filter.secondPersonPlural(s) && Filter.secondPersonPlural(t)";
-        _resolveFirstFromAll(d, filter, "secondPersonPlural");
-        System.out.println("Operation count = " + Filter.op);
     }
 
     public static void appositive(Document d) {
@@ -267,4 +248,88 @@ public class Resolve {
 //        return true;
 //      }
 
+    
+    
+    
+    
+    
+    
+//    
+//        public static void firstPersonSingular(Document d) {
+//        String filter = "Filter.firstPersonSingular(s) && Filter.fistPersonSingular(t)";
+//        _resolveFirstFromAll(d, filter, "firstPersonSingular");
+//        System.out.println("Operation count = " + Filter.op);
+//    }
+//    public static void firstPersonPlural(Document d) {
+//        String filter = "Filter.fistPersonPlural(s) && Filter.fistPersonPlural(t)";
+//        _resolveFirstFromAll(d, filter, "firstPersonPlural");
+//        System.out.println("Operation count = " + Filter.op);
+//    }
+//    public static void secondPersonSingular(Document d) {
+//        String filter = "Filter.secondPersonSingular(s) && Filter.secondPersonSingular(t)";
+//        _resolveFirstFromAll(d, filter, "secondPersonSingular");
+//        System.out.println("Operation count = " + Filter.op);
+//    }
+//    public static void secondPersonPlural(Document d) {
+//        String filter = "Filter.secondPersonPlural(s) && Filter.secondPersonPlural(t)";
+//        _resolveFirstFromAll(d, filter, "secondPersonPlural");
+//        System.out.println("Operation count = " + Filter.op);
+//    }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    public static void firstPersonSingular(Document d) {
+        Mention m_es = null;
+        for (Mention m : d.mentions) {
+            if (m.type == MentionType.PRONOMINAL && m.node.lemma.equals("es"))  {
+                if (m_es == null) m_es = m;
+                else {
+                    d.mergeClusters(m, m_es);
+                    _resolve(d, m, m_es, "firstPerson");
+                }
+            }
+        }
+    }
+    
+    public static void firstPersonPlural(Document d) {
+        Mention m_es = null;
+        for (Mention m : d.mentions) {
+            if (m.type == MentionType.PRONOMINAL && m.node.lemma.equals("mēs"))  {
+                if (m_es == null) m_es = m;
+                else {
+                    d.mergeClusters(m, m_es);
+                    _resolve(d, m, m_es, "firstPersonPlural");
+                }
+            }
+        }
+    }
+    
+    public static void secondPersonPlural(Document d) {
+        Mention m_es = null;
+        for (Mention m : d.mentions) {
+            if (m.type == MentionType.PRONOMINAL && m.node.lemma.equals("jūs"))  {
+                if (m_es == null) m_es = m;
+                else {d.mergeClusters(m, m_es);
+                    _resolve(d, m, m_es, "secondPersonPlural");
+                }
+            }
+        }
+    }
+        public static void secondPersonSingular(Document d) {
+        Mention m_es = null;
+        for (Mention m : d.mentions) {
+            if (m.type == MentionType.PRONOMINAL && m.node.lemma.equals("tu"))  {
+                if (m_es == null) m_es = m;
+                else {d.mergeClusters(m, m_es);
+                    _resolve(d, m, m_es, "secondPersonSingluar");
+                }
+            }
+        }
+    }
 }

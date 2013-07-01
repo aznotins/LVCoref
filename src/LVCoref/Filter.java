@@ -18,18 +18,21 @@ public class Filter {
     public static int op = 0;
     
     public static Boolean sameGender(Mention s, Mention t) {
+       //if (true) return true;
         _updateOperationCount();
         if (s.sameGender(t)) return true;
         return false;
     }
     
     public static Boolean sameNumber(Mention s, Mention t) {
+        //if (true) return true;
         _updateOperationCount();
         if (s.sameNumber(t)) return true;
         return false;
     }
     
     public static Boolean sameCase(Mention s, Mention t) {
+        //if (true) return true;
         _updateOperationCount();
         if (s.sameCase(t)) return true;
         return false;
@@ -62,6 +65,7 @@ public class Filter {
     }
     
     public static boolean proper(Mention s) {
+        //if (true) return true;
         _updateOperationCount();
         return s.type == Dictionaries.MentionType.PROPER;
     }
@@ -131,12 +135,14 @@ public class Filter {
     }
     
     public static boolean sameCategory(Mention s, Mention t) {
+        //if (true) return true;
         _updateOperationCount();
         Set<String> cat = s.document.dict.categoryIntersection(s.categories, t.categories);
         if (cat.size() >= 1) return true;
         return false;
     }
     public static boolean sameCategoryConstraint(Mention s, Mention t) {
+        //if (true) return true;
         _updateOperationCount();
         if (s.categoryMatch(t)) return true;
         return false;
@@ -153,14 +159,17 @@ public class Filter {
     }
     
     public static boolean isPerson(Mention s) {
+        //if (true) return true;
         _updateOperationCount();
         return s.categories.contains("person");
     }
     public static boolean isOrganization(Mention s) {
+        //if (true) return true;
         _updateOperationCount();
         return s.categories.contains("organization");
     }
     public static boolean isLocation(Mention s) {
+        //if (true) return true;
         _updateOperationCount();
         return s.categories.contains("location");
     }
@@ -184,19 +193,23 @@ public class Filter {
     }
     
     public static boolean containsAllClusterModifiers(Mention s, Mention t) {
+        //if (true) return true;
         _updateOperationCount();
         return s.document.getCluster(s.corefClusterID).includeModifiers(t.document.getCluster(t.corefClusterID));
     }
     
     public static boolean modifierConstraint(Mention s, Mention t) {
         _updateOperationCount();
+        //if (true) return true;
         
         Set<String> ss = s.document.getCluster(s.corefClusterID).properModifiers;
-        Set<String> tt = s.document.getCluster(t.corefClusterID).properModifiers;
+        Set<String> tt = t.document.getCluster(t.corefClusterID).properModifiers;
+        Set<String> ssw = s.document.getCluster(s.corefClusterID).words;
+        Set<String> ttw = t.document.getCluster(t.corefClusterID).words;
         
         boolean ok = true;
         for (String mod: ss) {
-            if (!tt.contains(mod)) {
+            if (!tt.contains(mod) && !tt.contains(mod)) {
                 ok = false;
                 break;
             }
@@ -204,7 +217,7 @@ public class Filter {
         if (!ok) {
             ok = true;
             for (String mod: tt) {
-                if (!ss.contains(mod)) {
+                if (!ss.contains(mod) && !ss.contains(mod)) {
                     ok = false;
                     break;
                 }
@@ -257,7 +270,8 @@ public class Filter {
     
     //neņemt vērā
     public static boolean personPronounsSkewed(Mention s) {
-        if (s.node.lemma.equals("mēs") || s.node.lemma.equals("jūs") || s.node.lemma.equals("tu")) return true;
+        if (s.node.lemma.equals("es") || s.node.lemma.equals("mēs") || s.node.lemma.equals("jūs") || s.node.lemma.equals("tu")) return true;
+       //if (s.node.lemma.equals("tas")) return true;
         return false;
     }
     

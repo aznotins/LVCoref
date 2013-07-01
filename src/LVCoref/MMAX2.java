@@ -25,9 +25,9 @@ public class MMAX2 {
         catch (java.io.IOException ex) {
             ex.printStackTrace();
         }
-        Utils.toWriter(writer, "<?xml version=\"1.0\" encoding=\""+"UTF-8"+"\"?>\n<!DOCTYPE markables SYSTEM \"markables.dtd\">\n<markables xmlns=\"www.eml.org/NameSpaces/"+"coref"+"\">\n");
-                    //writer.write("<?xml version=\"1.0\" encoding=\""+"UTF-8"+"\"?>\n<!DOCTYPE words SYSTEM \"words.dtd\">\n");
-        
+        Utils.toWriter(writer, "<?xml version=\"1.0\" encoding=\""+"UTF-8"+"\"?>\n"
+                + "<!DOCTYPE markables SYSTEM \"markables.dtd\">\n"
+                + "<markables xmlns=\"www.eml.org/NameSpaces/"+"coref"+"\">\n");        
         for (Mention m : d.mentions) {
             String span = "";
             if (m.start == m.end) span = "word_"+(m.start+1);
@@ -61,7 +61,9 @@ public class MMAX2 {
         catch (java.io.IOException ex) {
             ex.printStackTrace();
         }
-        Utils.toWriter(writer, "<?xml version=\"1.0\" encoding=\""+"UTF-8"+"\"?>\n<!DOCTYPE words SYSTEM \"words.dtd\">\n<words>\n");
+        Utils.toWriter(writer, "<?xml version=\"1.0\" encoding=\""+"UTF-8"+"\"?>\n"
+                + "<!DOCTYPE words SYSTEM \"words.dtd\">\n"
+                + "<words>\n");
         
         for (Node n : d.tree) {
             Utils.toWriter(writer, "<word id=\"word_"+(n.id+1)+"\">"+StringEscapeUtils.escapeXml(n.word) + "</word>\n");
