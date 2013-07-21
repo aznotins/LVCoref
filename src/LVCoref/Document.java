@@ -218,7 +218,7 @@ public class Document {
     
     
     public void readCONLL(String filename) throws Exception {
-        logger.fine("Read Conll " + filename);
+        if (logger != null) logger.fine("Read Conll " + filename);
 		BufferedReader in = null;        
         in = new BufferedReader(new FileReader(filename));		
         readCONLL(in);
@@ -227,7 +227,7 @@ public class Document {
     
     
     public void readCONLL(BufferedReader in) throws Exception {
-        logger.fine("Read conll stream");        
+        if (logger != null) logger.fine("Read conll stream");        
         String s;
 		int node_id = 0;
         int sentence_id = 0;
@@ -1475,7 +1475,7 @@ public class Document {
     }
     
     public Node getNode(int i) {
-        if (i > 0 && i < tree.size()) return tree.get(i);
+        if (i >= 0 && i < tree.size()) return tree.get(i);
         return null;
     }
     

@@ -275,7 +275,7 @@ public class LVCoref {
         } else {
             mmaxGold = props.getProperty(Constants.MMAX_GOLD_PROP, "");
         }
-        if (mmaxGold.length() > 0) { d.addAnnotationMMAX(mmaxGold); }
+        if (mmaxGold.length() > 0) {d.addAnnotationMMAX(mmaxGold); }
         
         d.updateProperWords();
         if (Constants.USE_GOLD_MENTIONS && mmaxGold.length() > 0) {

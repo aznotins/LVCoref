@@ -19,6 +19,8 @@ public class Node {
 	public String lemma;
 	public String word;
     
+    public String ne_annotation = "";
+    
     public int sentNum = -1;
     public int position;
     public boolean isProper = false;
@@ -231,6 +233,11 @@ public class Node {
     public Boolean isProper() {
         if (isProper) return true;
         //if (Character.isUpperCase(word.charAt(0))) return true; //FIXME very sloppy heurestics
+        return false;
+    }
+    
+    public Boolean isProperByFirstLetter() {
+        if (Character.isUpperCase(word.charAt(0))) return true; //FIXME very sloppy heurestics
         return false;
     }
     

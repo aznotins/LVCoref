@@ -16,8 +16,6 @@ import org.apache.commons.jexl2.MapContext;
 
 public class Resolve {
     public static void go(Document d) {
-
-        
         //naiveHeadMatch(d);
         
         exactStringMatch(d);
@@ -35,8 +33,6 @@ public class Resolve {
         relativePronounMatch(d);
         sintaxPronounMatch(d);
         d.removeTmpMentions();
-        
-        
     }
     
     private static void _resolveFirst(Document d, String filter, String comment) {        
@@ -118,13 +114,13 @@ public class Resolve {
         //String filter = "!Filter.pronominal(s) && Filter.sameHead(s,t)";
         String filter = "!Filter.pronominal(s) && Filter.sameHead(s,t) && Filter.sameGender(s,t) && Filter.sameNumber(s,t)";
         _resolveFirst(d, filter, "naiveHead");
-        System.out.println("Operation count = " + Filter.op);
+        if (Constants.VERBOSE) System.err.println("Operation count = " + Filter.op);
     }
    
     public static void exactStringMatch(Document d) {
         String filter = "Filter.proper(s) && Filter.proper(t) && !Filter.pronominal(s) && Filter.exactMatch(s,t)"; //if (prev.normString.equals(m.normString) &&( prev.number == m.number /*&& prev.type == m.type*/|| m.bucket.equals("acronym") || prev.bucket.equals("acronym"))) {
         _resolveFirst(d, filter, "exactStringMatch");
-        System.out.println("Operation count = " + Filter.op);
+        if (Constants.VERBOSE) System.err.println("Operation count = " + Filter.op);
     }    
     public static void relaxedHeadMatch(Document d) {
         String filter = "!Filter.pronominal(s) "
@@ -135,7 +131,7 @@ public class Resolve {
                 + "&& Filter.modifierConstraint(s,t)"
                 + "";
         _resolveFirst(d, filter, "allClusterModifiers");
-        System.out.println("Operation count = " + Filter.op);
+        if (Constants.VERBOSE) System.err.println("Operation count = " + Filter.op);
     }    
 
     public static void acronymMatch(Document d){
@@ -161,7 +157,7 @@ public class Resolve {
 //                + "||"
 //                + "Filter.isQuoteMention(s)";
         _resolveAllFromSameSentence(d, filter, "appositive");
-        System.out.println("Operation count = " + Filter.op);
+        if (Constants.VERBOSE) System.err.println("Operation count = " + Filter.op);
     } 
     public static void plainAppositive(Document d) {
         // "gazprom" prezidents //quotas
@@ -179,7 +175,7 @@ public class Resolve {
 //                + "||"
 //                + "Filter.isQuoteMention(s)";
         _resolveAllFromSameSentence(d, filter, "plain_appositive");
-        System.out.println("Operation count = " + Filter.op);
+        if (Constants.VERBOSE) System.err.println("Operation count = " + Filter.op);
     } 
     
     public static void sintaxPronounMatch(Document d) {
@@ -197,7 +193,7 @@ public class Resolve {
                     + "|| Filter.pronominalPossesive(s) )"
                 + "";
         _resolveFirstFromSintax(d, filter, "pronounMatch");
-        System.out.println("Operation count = " + Filter.op);
+        if (Constants.VERBOSE) System.err.println("Operation count = " + Filter.op);
     }
     
     public static void relativePronounMatch(Document d) {
@@ -210,7 +206,7 @@ public class Resolve {
                 //+ "&& Filter.sameNumber(s,t)"
                 + "";
         _resolveFirst(d, filter, "relativePronounMatch");
-        System.out.println("Operation count = " + Filter.op);
+        if (Constants.VERBOSE) System.err.println("Operation count = " + Filter.op);
     }
 
     public static void predicativeNominative(Document d) {
@@ -223,7 +219,7 @@ public class Resolve {
                 + "&& Filter.sameCategory(s,t) "
                 + "&& Filter.inPredicativeNominative(s,t)";
         _resolveAllFromSameSentence(d, filter, "predicativeNominative");
-        System.out.println("Operation count = " + Filter.op);
+        if (Constants.VERBOSE) System.err.println("Operation count = " + Filter.op);
     }
         
         
@@ -258,22 +254,22 @@ public class Resolve {
 //        public static void firstPersonSingular(Document d) {
 //        String filter = "Filter.firstPersonSingular(s) && Filter.fistPersonSingular(t)";
 //        _resolveFirstFromAll(d, filter, "firstPersonSingular");
-//        System.out.println("Operation count = " + Filter.op);
+//        if (Constants.VERBOSE) System.err.println("Operation count = " + Filter.op);
 //    }
 //    public static void firstPersonPlural(Document d) {
 //        String filter = "Filter.fistPersonPlural(s) && Filter.fistPersonPlural(t)";
 //        _resolveFirstFromAll(d, filter, "firstPersonPlural");
-//        System.out.println("Operation count = " + Filter.op);
+//        if (Constants.VERBOSE) System.err.println("Operation count = " + Filter.op);
 //    }
 //    public static void secondPersonSingular(Document d) {
 //        String filter = "Filter.secondPersonSingular(s) && Filter.secondPersonSingular(t)";
 //        _resolveFirstFromAll(d, filter, "secondPersonSingular");
-//        System.out.println("Operation count = " + Filter.op);
+//        if (Constants.VERBOSE) System.err.println("Operation count = " + Filter.op);
 //    }
 //    public static void secondPersonPlural(Document d) {
 //        String filter = "Filter.secondPersonPlural(s) && Filter.secondPersonPlural(t)";
 //        _resolveFirstFromAll(d, filter, "secondPersonPlural");
-//        System.out.println("Operation count = " + Filter.op);
+//        if (Constants.VERBOSE) System.err.println("Operation count = " + Filter.op);
 //    }
     
     
