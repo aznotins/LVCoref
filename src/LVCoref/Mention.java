@@ -280,6 +280,11 @@ public class Mention implements Comparable{
         return null;
     }
     
+    public Mention prevGold() {
+        if (id > 0) return document.goldMentions.get(id-1);
+        return null;
+    }
+    
     public Mention prevSyntactic(Document d) {
         for (Node n : node.children);
         

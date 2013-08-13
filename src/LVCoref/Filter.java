@@ -281,6 +281,11 @@ public class Filter {
         return false;
     }
     
+    public static boolean sameSentece(Mention s, Mention t) {
+        _updateOperationCount();
+        return s.sentNum == t.sentNum;
+    }
+    
     private static void _updateOperationCount() {
         op++;
     }

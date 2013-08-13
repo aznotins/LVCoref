@@ -245,12 +245,6 @@ public class Resolve {
 //      }
 
     
-    
-    
-    
-    
-    
-//    
 //        public static void firstPersonSingular(Document d) {
 //        String filter = "Filter.firstPersonSingular(s) && Filter.fistPersonSingular(t)";
 //        _resolveFirstFromAll(d, filter, "firstPersonSingular");
@@ -271,12 +265,6 @@ public class Resolve {
 //        _resolveFirstFromAll(d, filter, "secondPersonPlural");
 //        if (Constants.VERBOSE) System.err.println("Operation count = " + Filter.op);
 //    }
-    
-    
-    
-    
-    
-    
     
     
     

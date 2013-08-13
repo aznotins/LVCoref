@@ -62,6 +62,7 @@ public class Document {
         sentences = new ArrayList<Integer>();
         properWords = new HashSet();
         acronyms = new HashMap<String, Node>();
+        logger = Logger.getLogger(Document.class.getName());
 	}
     
     Document(Logger _logger) {
@@ -361,12 +362,14 @@ public class Document {
                     
                     MentionType type = head.getType();
                     Mention goldMention = new Mention(this, i, head, type , start, end); // @FIXME
+                    goldMention.document = this;
                     goldMention.start = start;
                     goldMention.end = end;
                     goldMentions.add(goldMention);
                     head.goldMention = goldMention;
                     goldMention.categories = new HashSet<String>();
                     goldMention.categories.add(category);
+                    goldMention.sentNum = head.sentNum;
                                         
                     if (cluster.equals("empty")) {
                         cluster_id = cluster_c++;
@@ -389,7 +392,7 @@ public class Document {
                 }
                 
             }
-                
+            sortGoldMentions();   
         } catch (Exception e) {
             System.err.println("Error adding MMAX2 annotation:" + e.getMessage());
             return false;
@@ -1130,12 +1133,38 @@ public class Document {
            mentions.get(i).id = i;
         }
     }
+    
+    public void sortGoldMentions() {
+        Collections.sort(goldMentions);
+        normalizeGoldMentions();
+    }
+    
+    public void normalizeGoldMentions() {
+        for(int i = 0; i < goldMentions.size(); i++) {
+           goldMentions.get(i).id = i;
+        }
+    }
         
     public void useGoldMentions() {
         for (Mention m : goldMentions) {
             Mention mm = new Mention(m);
             m.node.mention = mm;
             mentions.add(mm);
+        }
+    }
+    
+    public void useGoldClusters() {
+        for (int ci: goldCorefClusters.keySet()) {
+            CorefCluster cc = new CorefCluster(ci);
+            for (Mention m: goldCorefClusters.get(ci).corefMentions) {
+                Mention n = m.node.mention;
+                if (n != null) {
+                    cc.add(n);
+                    n.corefClusterID = ci;
+                } else {
+                }
+            }
+            corefClusters.put(ci, cc);
         }
     }
     
