@@ -238,7 +238,7 @@ public class LVCoref {
                     d.readCONLL(conllInput);
                 } catch (Exception ex) {
                     System.err.println("Could not read conll file");
-                    System.err.println(ex.getStackTrace());
+                    ex.printStackTrace();
                     break;
                 }
                 
@@ -253,7 +253,7 @@ public class LVCoref {
                         doc.readCONLL(in);
                     } catch (Exception ex) {
                         System.err.println("Could not read conll from stream");
-                        System.err.println(ex.getStackTrace());
+                        ex.printStackTrace();
                         break;
                     }
                     if (doc.tree.size() > 0) processDocument(doc, props);  
@@ -269,9 +269,9 @@ public class LVCoref {
         String mmaxGold;
         if (Constants.MULTIPLE_DOCS_EVAL) {
             mmaxGold = mmaxGoldList.get(documentID);
-            if (nerList.size() > 0) {
-                nerAnnotation = nerList.get(documentID);
-            }
+//            if (nerList.size() > 0) {
+//                nerAnnotation = nerList.get(documentID);
+//            }
         } else {
             mmaxGold = props.getProperty(Constants.MMAX_GOLD_PROP, "");
         }
@@ -285,8 +285,11 @@ public class LVCoref {
             d.setMentionCategories();
             d.setMentionModifiers(false);
         } else {
+            //if (nerAnnotation.length() > 0) d.setMentionsNER(nerAnnotation);
+            d.setMentionsFromNEAnnotation();
+            
             d.setQuoteMentions();
-            if (nerAnnotation.length() > 0) d.setMentionsNER(nerAnnotation);
+            
             d.setAbbreviationMentions(false);
             d.setListMentions();
                          //d.setMentions();
@@ -390,7 +393,7 @@ public class LVCoref {
                 PrintStream ps;
                 try {
                     ps = new PrintStream(System.out, true, "UTF8");
-                    //d.outputCONLL(ps);
+                    d.outputCONLL(ps);
                 } catch (UnsupportedEncodingException ex) {
                     System.err.println("Unsupported output encoding");
                     Logger.getLogger(LVCoref.class.getName()).log(Level.SEVERE, null, ex);

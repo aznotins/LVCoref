@@ -252,6 +252,8 @@ public class Document {
 				String tag = fields[4];	
                 int position = Integer.parseInt(fields[0]);
                 int parent_in_sentence = Integer.parseInt(fields[6]);
+                String ner_label = "O";
+                if (fields.length >= 8) ner_label = fields[7];
                 //parent_in_sentence = 0;
                 if (position == 1) {
                     if ((sentence_start_id != node_id)) {
@@ -269,6 +271,7 @@ public class Document {
                 node.conll_fields.addAll(Arrays.asList(fields).subList(0, columnCount));
                 node.position = position;
                 node.sentNum = sentence_id;
+                node.ne_annotation = ner_label;
                 if (position == 1) { node.sentStart = true; }
                 if (parent_in_sentence == 0) node.sentRoot = true;
                 tree.add(node);
@@ -540,7 +543,7 @@ public class Document {
         }
     }
     
-      
+   
     
     public boolean setMentionsNER(String filename) {
         BufferedReader in = null;
@@ -598,6 +601,53 @@ public class Document {
             return false;
         }
         return true;
+    }
+    
+    
+    public void setMentionsFromNEAnnotation() {
+		String s;
+        int id  = 0;
+        int start = 0;
+        String cur_cat = "O";
+        Boolean isMention = false;
+        String cat;
+        Set<String> proper_cat = new HashSet<String>(Arrays.asList("person", "organization", "location", "product", "media"));
+        Set<String> filter_cat = new HashSet<String>(Arrays.asList("person", "organization", "location", "product", "media", "time", "sum", "profession", "event", "O"));
+        
+        for (Node n : tree) {
+            cat = n.ne_annotation;
+            if (isMention && (cat.equals("O") || !cur_cat.equals(cat) || tree.get(id).sentStart)) {
+                Mention m = null;
+                if (!cur_cat.equals("O")) {
+                    LVCoref.logger.fine("NER Mention :("+start+" " + (id-1)+") " + getSubString(start, id-1) + " " + cur_cat);
+                    if (proper_cat.contains(cur_cat)) {
+                        LVCoref.logger.fine("NER Mention PROPER " + cur_cat);
+                        m = setMention(start, id-1, cur_cat, MentionType.PROPER);
+                    } else if (filter_cat.contains(cur_cat)) {
+                        LVCoref.logger.fine("NER Mention NOMINAL " + cur_cat);
+                        m = setMention(start, id-1, cur_cat, MentionType.NOMINAL);
+                    }
+                    else {
+                        LVCoref.logger.fine("NER Unsupported category @" + cur_cat);
+                    }
+                }
+                if (m != null) {
+                    m.strict = true;
+                }
+                isMention = !cur_cat.equals("O");
+                if (isMention) {
+                    start = id;
+                    cur_cat = cat;
+                } else {
+                    cur_cat = "O";
+                }
+            } else if (!cat.equals("O") && !cat.equals(cur_cat)) {
+                isMention = true;
+                start = id;
+                cur_cat = cat;
+            }
+            id++;
+        }
     }
     
     
