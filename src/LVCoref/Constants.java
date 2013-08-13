@@ -9,6 +9,8 @@ public class Constants {
     /** if false, use mention prediction */
     public static final boolean USE_GOLD_MENTIONS = false;
     
+    public static final boolean PRINT_DECISIONS = false;
+    
     public static final int SENTENCE_WINDOW = 30;
     
     public static final boolean USE_SINTAX = true;
@@ -23,7 +25,7 @@ public class Constants {
     public static final boolean USE_GOLD_MENTION_BOUNDARIES = false;
 
     /** if true, remove singletons in post processing */
-    public static final boolean REMOVE_SINGLETONS = true;
+    public static final boolean REMOVE_SINGLETONS = false;
 
     /** if true, read *auto_conll, if false, read *gold_conll */
     public static final boolean USE_CONLL_AUTO = true;

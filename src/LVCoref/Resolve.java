@@ -99,10 +99,10 @@ public class Resolve {
         s.addRefComm(t, comment);
         if (LVCoref.doScore()) {
             if ((s.node.goldMention == null || t.node.goldMention == null || s.node.goldMention.corefClusterID != t.node.goldMention.corefClusterID) &&!s.tmp && !t.tmp) {
-                System.out.println("-" + Utils.getMentionPairString(d, s, t, comment));
+                if (Constants.PRINT_DECISIONS) System.out.println("-" + Utils.getMentionPairString(d, s, t, comment));
             } else {
                 if (s.node.goldMention != null && t.node.goldMention != null && s.node.goldMention.corefClusterID == t.node.goldMention.corefClusterID &&!s.tmp && !t.tmp) {
-                    System.out.println("+" + Utils.getMentionPairString(d, s, t, comment));
+                    if (Constants.PRINT_DECISIONS) System.out.println("+" + Utils.getMentionPairString(d, s, t, comment));
                 }
             }
         }
