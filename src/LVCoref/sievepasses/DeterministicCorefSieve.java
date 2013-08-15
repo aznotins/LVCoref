@@ -131,9 +131,10 @@ public abstract class DeterministicCorefSieve  {
       Mention ant,
       Dictionaries dict,
       Set<Mention> roleSet*/
-      ) {
+      ) {     
       if (flags.USE_APPOSITION) {
           Resolve.appositive(document);
+          Resolve.plainAppositive(document);
       }
       if (flags.USE_PREDICATENOMINATIVES) {
           Resolve.predicativeNominative(document);
@@ -152,20 +153,20 @@ public abstract class DeterministicCorefSieve  {
       if (flags.DO_PRONOUN) {
           document.setTmpMentions();
           document.initializeEntities();
-
-          Resolve.firstPerson(document);
-          Resolve.firstPluralPerson(document);
-          Resolve.secondPerson(document);
+          Resolve.relativePronounMatch(document);
+          Resolve.firstPersonPlural(document);
+          Resolve.firstPersonSingular(document);
+          Resolve.secondPersonSingular(document);
           //          Resolve.relaxedSintaxPronounMatch(document);
           Resolve.relativePronounMatch(document);
-          Resolve.pronounMatch(document);
-          document.removeTmpMentions();
-          
+          Resolve.sintaxPronounMatch(document);
+          document.removeTmpMentions();          
       }
       if (flags.USE_EXACTSTRINGMATCH) Resolve.exactStringMatch(document);
       if (flags.USE_NAIVE_MATCH) {
           Resolve.naiveHeadMatch(document);
       }
+      //Resolve.go(document);
       
       
       
