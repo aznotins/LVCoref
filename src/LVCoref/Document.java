@@ -1567,7 +1567,7 @@ public class Document {
                                         + " @words="+n.mention.words
                                         + " @modifiers="+n.mention.modifiers
                                         + " @ProperMod="+n.mention.properModifiers
-                                        + " @acro="+n.mention.getAcronym(this)
+                                        + " @acro="+n.mention.getAcronym()
                                         + " @type=" +n.mention.bucket
                                 + "'>"
                                 + " <em class='c"+n.mention.corefClusterID+"'>"+" " + n.word+"</em>"
@@ -1592,7 +1592,7 @@ public class Document {
                                         + " @words="+n.mention.words
                                         + " @modifiers="+n.mention.modifiers
                                         + " @ProperMod="+n.mention.properModifiers
-                                        + " @acro="+n.mention.getAcronym(this)
+                                        + " @acro="+n.mention.getAcronym()
                                         + " @type=" +n.mention.bucket
                                     +"'>"
                                 + "<em>" + n.word+"</em>"

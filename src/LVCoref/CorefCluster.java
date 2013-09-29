@@ -67,17 +67,13 @@ public class CorefCluster {
         modifiers = new HashSet<String>();
         properModifiers = new HashSet<String>();
     }
-    
-    public void updateRepresentative(Mention m) {
-        if (m.moreRepresentative(representative)) representative = m;
-    }
    
     public void add(Mention m) {
         corefMentions.add(m);
         modifiers.addAll(m.modifiers);
         properModifiers.addAll(m.properModifiers);
         words.addAll(m.words);
-        updateRepresentative(m);
+        if (m.moreRepresentative(representative)) representative = m;
         if (firstMention == null || firstMention.node.id > m.node.id) firstMention = m;
     }
     

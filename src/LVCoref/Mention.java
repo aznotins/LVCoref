@@ -332,7 +332,8 @@ public class Mention implements Comparable{
     }
  
     
-    public String getAcronym(Document d) {
+    public String getAcronym() {
+        Document d = this.document;
         String r = "";
         Set<String> exclude = new HashSet<String>(Arrays.asList("un"));
         for(int i = start; i <= end; i++) {
@@ -351,10 +352,11 @@ public class Mention implements Comparable{
     
     public boolean moreRepresentative(Mention p) {
         if (p == null) return true;
-        if (p.type!=Dictionaries.MentionType.PROPER && type==Dictionaries.MentionType.PROPER) return false;
+        if (p.type!=Dictionaries.MentionType.PROPER && type==Dictionaries.MentionType.PROPER) return true;
         if (getLength() > p.getLength()) {
             return true;
         }
+        if (node.id < p.node.id) return true;
         return false;
     }
     

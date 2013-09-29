@@ -405,11 +405,11 @@ public class LVCoref {
         }
 
         d.setConllCorefColumns();
-        
-                
-        for (CorefCluster c : d.corefClusters.values()) {
+               
+        for (int i : d.corefClusters.keySet()) {
+            CorefCluster c = d.getCluster(i);
             if (c.representative.titleRepresentative()) {
-                System.err.println(c.representative.nerString);
+                System.err.println(c.representative);
                 //System.out.println(c.representative);
             }
         }
