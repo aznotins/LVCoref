@@ -390,6 +390,7 @@ public class Document {
                 token.put("features", node.morphoFeatures);
                 token.put("parentIndex", node.parentIndex);
                 if (node.ne_annotation != null && node.ne_annotation != "O") token.put("namedEntityType", node.ne_annotation);
+                if (node.mention != null) token.put("namedEntityID", node.mention.corefClusterID);
                 tokensArr.add(token);
             }
             sentenceObj.put("tokens", tokensArr);

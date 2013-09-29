@@ -406,14 +406,6 @@ public class LVCoref {
 
         d.setConllCorefColumns();
         
-        
-        for (CorefCluster c : d.corefClusters.values()) {
-            if (c.representative.titleRepresentative()) {
-                System.err.println(c.representative.nerString);
-                System.out.println(c.representative);
-            }
-        }
-        
         PrintStream ps;
         switch (outputType) {
             case CONLL:
