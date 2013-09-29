@@ -162,7 +162,7 @@ public class LVCoref {
          */
         //Properties props = StringUtils.argsToProperties(args);
         props = StringUtils.argsToProperties(args);
-        //System.out.println(props);
+        System.err.println(props);
         String inputTypeString = props.getProperty(Constants.INPUT_PROP, "conll");
         if (inputTypeString.equalsIgnoreCase("conll")) inputType = inputTypes.STDIN_CONLL;
         if (inputTypeString.equalsIgnoreCase("json")) inputType = inputTypes.STDIN_JSON;
@@ -405,6 +405,15 @@ public class LVCoref {
         }
 
         d.setConllCorefColumns();
+        
+                
+        for (CorefCluster c : d.corefClusters.values()) {
+            if (c.representative.titleRepresentative()) {
+                System.err.println(c.representative.nerString);
+                //System.out.println(c.representative);
+            }
+        }
+        
         
         PrintStream ps;
         switch (outputType) {

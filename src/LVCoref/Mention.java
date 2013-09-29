@@ -164,7 +164,7 @@ public class Mention implements Comparable{
                 default:mentionCase = Case.UNKNOWN;
             };
             
-            switch(node.tag.charAt(2)) {
+            switch(node.tag.charAt(1)) {
                 case 'p':pronounType = PronounType.PERSONAL; break;
                 case 'x':pronounType = PronounType.REFLEXIVE; break;
                 case 's':pronounType = PronounType.POSSESIVE; break;
@@ -265,7 +265,7 @@ public class Mention implements Comparable{
     }
     
     public boolean categoryMatch(Mention m) {
-        if (categories.size() == 0 ||  m.categories.size()==0) return true;
+        if (categories == null || m.categories == null || categories.size() == 0 ||  m.categories.size()==0) return true;
         if (categories.contains("other") || m.categories.contains("other")) return true;
         if (categories.containsAll(m.categories)) return true;
         return false;

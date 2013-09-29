@@ -182,7 +182,7 @@ public class Document {
                 if (n.mention != null) n.conll_fields.add(n.mention.type.toString()); else n.conll_fields.add("_");
                 n.conll_fields.add(n.getConllMentionColumn(this, true));
             }
-            n.conll_fields.add(n.ne_annotation);
+            //n.conll_fields.add(n.ne_annotation);
         }
     }
     

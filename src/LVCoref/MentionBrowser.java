@@ -57,6 +57,7 @@ public class MentionBrowser {
         while (prev != null) {
             if (s.type == Dictionaries.MentionType.NOMINAL && Filter.sentenceDistance(s, prev) > Constants.SENTENCE_WINDOW) {break;}
             if (s.type == Dictionaries.MentionType.PRONOMINAL && Filter.sentenceDistance(s, prev) > 3) {break;}
+                        
             if (s != prev && _filterAgree(s, prev, expression, jexlContext)) {
                 int dist = s.node.minDistance(prev.node);
                 if (t == null || dist < minDist) {

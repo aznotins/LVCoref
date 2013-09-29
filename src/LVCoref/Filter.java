@@ -71,6 +71,7 @@ public class Filter {
     }
         
     public static boolean pronominal(Mention s) {
+        s = null;
         _updateOperationCount();
         return s.type == Dictionaries.MentionType.PRONOMINAL;
     }
@@ -92,7 +93,7 @@ public class Filter {
     }
     public static boolean pronominalModificator(Mention s) {
         _updateOperationCount();
-        return s.node.parent != null && s.node.parent.isNoun();
+        return s.node.parent != null && s.node.parent.isNoun() && s.mentionCase == Dictionaries.Case.GENITIVE;
     }
     
     public static boolean genitive(Mention s, Mention t) {
