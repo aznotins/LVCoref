@@ -16,7 +16,9 @@ import org.apache.commons.jexl2.MapContext;
 
 public class Resolve {
     
-    public static final boolean JEXL_DBG = true;
+    public static final boolean JEXL_SILENT = false;
+    public static final boolean JEXL_LENIENT = true;
+    public static final boolean JEXL_DBG = false;
     
     public static void go(Document d) {
         //naiveHeadMatch(d);
@@ -40,8 +42,9 @@ public class Resolve {
     
     private static void _resolveFirst(Document d, String filter, String comment) {        
         JexlEngine jexl = new JexlEngine();
-        jexl.setSilent(JEXL_DBG);
-        jexl.setLenient(JEXL_DBG);
+        jexl.setSilent(JEXL_SILENT);
+        jexl.setLenient(JEXL_LENIENT);
+        jexl.setDebug(JEXL_DBG);
         Expression expression = jexl.createExpression(filter);
         JexlContext jexlContext = new MapContext();
         jexlContext.set("Filter", Filter.class);
@@ -54,8 +57,9 @@ public class Resolve {
     }
     private static void _resolveFirstFromSintax(Document d, String filter, String comment) {        
         JexlEngine jexl = new JexlEngine();
-        jexl.setSilent(JEXL_DBG);
-        jexl.setLenient(JEXL_DBG);
+        jexl.setSilent(JEXL_SILENT);
+        jexl.setLenient(JEXL_LENIENT);
+        jexl.setDebug(JEXL_DBG);
         Expression expression = jexl.createExpression(filter);
         JexlContext jexlContext = new MapContext();
         jexlContext.set("Filter", Filter.class);
@@ -68,8 +72,9 @@ public class Resolve {
     }
     private static void _resolveFirstFromAll(Document d, String filter, String comment) {        
         JexlEngine jexl = new JexlEngine();
-        jexl.setSilent(JEXL_DBG);
-        jexl.setLenient(JEXL_DBG);
+        jexl.setSilent(JEXL_SILENT);
+        jexl.setLenient(JEXL_LENIENT);
+        jexl.setDebug(JEXL_DBG);
         Expression expression = jexl.createExpression(filter);
         JexlContext jexlContext = new MapContext();
         jexlContext.set("Filter", Filter.class);
@@ -82,8 +87,9 @@ public class Resolve {
     }
     private static void _resolveAllFromSameSentence(Document d, String filter, String comment) {        
         JexlEngine jexl = new JexlEngine();
-        jexl.setSilent(JEXL_DBG);
-        jexl.setLenient(JEXL_DBG);
+        jexl.setSilent(JEXL_SILENT);
+        jexl.setLenient(JEXL_LENIENT);
+        jexl.setDebug(JEXL_DBG);
         Expression expression = jexl.createExpression(filter);
         JexlContext jexlContext = new MapContext();
         jexlContext.set("Filter", Filter.class);

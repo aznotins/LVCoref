@@ -71,7 +71,6 @@ public class Filter {
     }
         
     public static boolean pronominal(Mention s) {
-        s = null;
         _updateOperationCount();
         return s.type == Dictionaries.MentionType.PRONOMINAL;
     }
@@ -128,8 +127,8 @@ public class Filter {
     
     public static boolean inAcronymList(Mention s) {
         _updateOperationCount();
-        String a = s.getAcronym(d);
-        if ( d.acronyms.containsKey(a)) {
+        String a = s.getAcronym();
+        if ( s.document.acronyms.containsKey(a)) {
             return true;
         }
         return false;
