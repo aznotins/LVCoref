@@ -67,12 +67,18 @@ public class CorefCluster {
         modifiers = new HashSet<String>();
         properModifiers = new HashSet<String>();
     }
+    
+    public void updateRepresentative(Mention m) {
+        if (m.moreRepresentative(representative)) representative = m;
+    }
    
     public void add(Mention m) {
         corefMentions.add(m);
         modifiers.addAll(m.modifiers);
         properModifiers.addAll(m.properModifiers);
         words.addAll(m.words);
+        updateRepresentative(m);
+        if (firstMention == null || firstMention.node.id > m.node.id) firstMention = m;
     }
     
     public boolean includeModifiers(CorefCluster c) {
@@ -95,16 +101,20 @@ public class CorefCluster {
     
     
       /** Print cluster information */
-//  public void printCorefCluster(Logger logger){
-//    logger.finer("Cluster ID: "+id);//+"\tNumbers: "+numbers+"\tGenders: "+genders+"\tanimacies: "+animacies);
-//    logger.finer("NE: "+nerStrings+"\tfirst Mention's ID: "+firstMention.id+"\tHeads: "+heads+"\twords: "+words);
-//    TreeMap<Integer, edu.stanford.nlp.dcoref.Mention> forSortedPrint = new TreeMap<Integer, edu.stanford.nlp.dcoref.Mention>();
-//    for(Mention m : this.corefMentions){
+  public void printCorefCluster(Logger logger){
+    logger.finer("Cluster ID: " + id 
+            + "\nttNE: "+nerStrings+"\n"
+            + "\n\tfirst Mention: "+firstMention.id + " ("+firstMention.nerString+") "
+            + "\n\trepresentative: "+representative.id + " ("+representative.nerString+") "
+            + "\n\tHeads: "+heads
+            + "\n\twords: "+words);
+    for(Mention m : this.corefMentions){
+        logger.finer("mention-> id:"+m.id+"\tspan: "+/*m.originalRef+*/"\t"+m.node.nodeProjection(m.document) +"\tsentNum: "+m.sentNum+"\tstartIndex: "+m.start);
 //      if(m.goldCorefClusterID==-1){
-//        logger.finer("mention-> id:"+m.id+"\toriginalRef: "+/*m.originalRef+*/"\t"+m.node.nodeProjection(d) +"\tsentNum: "+m.sentNum+"\tstartIndex: "+m.start);
+//        logger.finer("mention-> id:"+m.id+"\toriginalRef: "+/*m.originalRef+*/"\t"+m.node.nodeProjection(m.document) +"\tsentNum: "+m.sentNum+"\tstartIndex: "+m.start);
 //      } else{
-//        logger.finer("mention-> id:"+m.mentionID+"\toriginalClusterID: "+m.goldCorefClusterID+"\t"+m.spanToString() +"\tsentNum: "+m.sentNum+"\tstartIndex: "+m.startIndex +"\toriginalRef: "+m.originalRef+"\tType: "+m.mentionType);
+//        logger.finer("mention-> id:"+m.id+"\toriginalClusterID: "+m.goldCorefClusterID+"\t"+m.spanToString() +"\tsentNum: "+m.sentNum+"\tstartIndex: "+m.startIndex +"\toriginalRef: "+m.originalRef+"\tType: "+m.mentionType);
 //      }
-//    }
-//  }
+    }
+  }
 }

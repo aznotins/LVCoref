@@ -16,6 +16,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.JSONValue;
 import org.w3c.dom.NodeList;
 
 
@@ -179,6 +182,7 @@ public class Document {
                 if (n.mention != null) n.conll_fields.add(n.mention.type.toString()); else n.conll_fields.add("_");
                 n.conll_fields.add(n.getConllMentionColumn(this, true));
             }
+            n.conll_fields.add(n.ne_annotation);
         }
     }
     
@@ -247,9 +251,12 @@ public class Document {
 			if (s.trim().length() > 0) {
 				String[] fields = s.split("\t");
                 //for (int j = 0; j < fields.length; j++) System.out.println("<"+fields[j]++":"++">");
-				String token = fields[1];
+				String form = fields[1];
 				String lemma = fields[2];
 				String tag = fields[4];	
+                String simpleTag = fields[3];
+                String morphoFeatures = fields[5];
+                if (simpleTag.length() == 0 && tag.length() > 0) simpleTag = tag.substring(0, 1); // fix empty tag
                 int position = Integer.parseInt(fields[0]);
                 int parent_in_sentence = Integer.parseInt(fields[6]);
                 String ner_label = "O";
@@ -265,10 +272,12 @@ public class Document {
                 }          
 				int parent = parent_in_sentence + sentence_start_id - 1;
 				//System.out.println(parent);
-				Node node = new Node(token, lemma, tag, parent, node_id, this);
-                
+				Node node = new Node(form, lemma, tag, parent, node_id, this);
                 int columnCount = Math.min(fields.length, Constants.savedColumnCount);
                 node.conll_fields.addAll(Arrays.asList(fields).subList(0, columnCount));
+                node.simpleTag = simpleTag;
+                node.parentIndex = parent_in_sentence;
+                node.morphoFeatures = morphoFeatures;
                 node.position = position;
                 node.sentNum = sentence_id;
                 node.ne_annotation = ner_label;
@@ -289,6 +298,130 @@ public class Document {
         }
         initializeNodeTree();
 	}
+    
+    public void readJSON(BufferedReader in) throws Exception {
+        if (logger != null) logger.fine("Read json stream");        
+        String s;
+		int node_id = 0;
+        int sentence_id = 0;
+		int sentence_start_id = 0;
+        int empty_lines = 0;
+        
+        JSONObject data = new JSONObject();
+        StringBuilder builder = new StringBuilder();
+        for (String line = null; (line = in.readLine()) != null;) {
+            if (line.trim().length() == 0) break;
+            builder.append(line).append("\n");
+        }
+        String jsonString = builder.toString();
+        if (jsonString.length() == 0) return; //Empty document
+        try {
+            JSONObject jsonData = (JSONObject)JSONValue.parse(builder.toString());
+            if (jsonData == null) throw new Exception("Empty document");
+
+            JSONArray sentencesArr = (JSONArray) jsonData.get("sentences");
+            if (sentencesArr == null) throw new Exception("Sentences key not set");
+            for (int s_id = 0; s_id < sentencesArr.size(); s_id++) {
+                JSONObject sentence = (JSONObject)sentencesArr.get(s_id);
+                JSONArray tokens = (JSONArray) sentence.get("tokens");
+                for (int n_id = 0 ; n_id < tokens.size(); n_id++) {
+                    JSONObject token = (JSONObject)tokens.get(n_id);
+                    String form = token.get("form").toString();
+                    String lemma = token.get("lemma").toString();                    
+                    String tag = token.get("tag").toString();
+                    String simpleTag = token.get("pos").toString();
+                    if (simpleTag.length() == 0 && tag.length() > 0) simpleTag = tag.substring(0, 1);
+                    String morphoFeatures = token.get("features").toString();
+                    Integer position = Integer.parseInt(token.get("index").toString());
+                    Integer parent_in_sentence = Integer.parseInt(token.get("parentIndex").toString());
+                    String ner_label = "O";
+                    if (token.containsKey("namedEntityType")) ner_label = (String)token.get("namedEntityType");
+                    //parent_in_sentence = 0;
+                    if (position == 1) {
+                        if ((sentence_start_id != node_id)) {
+                            sentences.add(sentence_start_id);
+                            tree.get(node_id-1).sentEnd = true;
+                            sentence_start_id = node_id;
+                            sentence_id++;
+                        }
+                    }          
+                    int parent = parent_in_sentence + sentence_start_id - 1;
+                    Node node = new Node(form, lemma, tag, parent, node_id, this);
+                    node.simpleTag = simpleTag;
+                    node.morphoFeatures = morphoFeatures;
+                    node.parentIndex = parent_in_sentence;
+                    node.conll_fields.addAll(Arrays.asList(position.toString(), form, lemma, simpleTag, tag, morphoFeatures, parent_in_sentence.toString()));
+                    node.position = position;
+                    node.sentNum = sentence_id;
+                    node.ne_annotation = ner_label;
+                    if (position == 1) { node.sentStart = true; }
+                    if (parent_in_sentence == 0) node.sentRoot = true;
+                    tree.add(node);
+                    node_id++;
+                }
+            }
+            if (sentence_start_id != node_id) {
+                sentences.add(sentence_start_id);
+                tree.get(node_id-1).sentEnd = true;
+            }
+            initializeNodeTree();
+        } catch (Exception e) {
+            System.err.println("Error parsing input json data");
+            e.printStackTrace(System.err);
+        }
+	}
+    
+    
+    public void outputJSON(PrintStream out) {
+        JSONArray sentencesArr = new JSONArray();
+        for (int sentID = 0; sentID < sentences.size(); sentID++) {
+            JSONObject sentenceObj = new JSONObject();
+            int sentStart = sentences.get(sentID);
+            JSONArray tokensArr = new JSONArray();
+            for (int tokenID = sentStart; ; tokenID++) {
+                Node node = tree.get(tokenID);
+                if (node.sentEnd) break;
+                JSONObject token = new JSONObject();
+                token.put("index", node.position);
+                token.put("form", node.word);
+                token.put("lemma", node.lemma);
+                token.put("pos", node.simpleTag);
+                token.put("tag", node.tag);
+                token.put("features", node.morphoFeatures);
+                token.put("parentIndex", node.parentIndex);
+                if (node.ne_annotation != null && node.ne_annotation != "O") token.put("namedEntityType", node.ne_annotation);
+                tokensArr.add(token);
+            }
+            sentenceObj.put("tokens", tokensArr);
+            sentenceObj.put("text", sentenceText(sentID));
+            sentencesArr.add(sentenceObj);
+        }
+        
+        JSONObject NEMap = new JSONObject();
+        for (int cID : corefClusters.keySet()) {
+            CorefCluster cluster = corefClusters.get(cID);
+            JSONObject NEObj = new JSONObject();
+            NEObj.put("id", cID);
+            JSONArray aliasesArr = new JSONArray();
+            for (Mention m : cluster.corefMentions) {
+                aliasesArr.add(m.headString);
+            }
+            
+            JSONObject aliasesObj = new JSONObject();
+            NEObj.put("aliases", aliasesArr);
+            NEObj.put("type", cluster.firstMention.category);
+            if (cluster.representative.titleRepresentative()) NEObj.put("representative", cluster.representative.nerString);            
+            NEMap.put(cID, NEObj);
+        }
+        
+        JSONObject doc = new JSONObject();
+        doc.put("document", new JSONObject());
+        doc.put("sentences", sentencesArr);
+        doc.put("namedEntities", NEMap);
+        
+        out.println(doc.toString());
+        out.flush();
+    }
     
     
     public void initializeNodeTree() {
@@ -1392,128 +1525,130 @@ public class Document {
                     
                 +"<body><p class=text>");
             Node root = null;
-            for (Integer s: sentences) {
+            for (Integer i = 0; i < tree.size() ;i++) { 
+                Node n = tree.get(i);
+                if (n.sentStart) out.println("<div class='sentence'>"); 
                 
-                out.println("<div class='sentence'>"); 
-                
-                
-                for (Integer i = s; ;i++) {
-                    Node n = tree.get(i);
-                    
-                    //if (n.mentionStartList.size()>0) out.print(n.mentionStartList);
-                    int count = n.mentionStartList.size();
-                    for (int mid = 0; mid < count; mid++) {
-                        out.println("<span class='label label-"+mentions.get(n.mentionStartList.get(mid)).category+"' id='s"+n.mentionStartList.get(mid)+"'> [ ");
-                    }
-                    
-                    
-                    
-                    if (n.mention != null) { 
-                        String notGoldError = "";
-                        if (LVCoref.props.getProperty(Constants.GOLD_MENTIONS_PROP, "").length() > 0 && n.goldMention == null)
-                                 notGoldError = " notGold";
-                        if (n.mention != null && corefClusters.get(n.mention.corefClusterID).corefMentions.size() > 1) {
-                            Mention ant = refGraph.getFinalResolutions().get(n.mention);
-                            out.print(" <span "
-                                        + "class='coref"+notGoldError+" '"
-                                        + "style='background-color:#"+corefColor.get(n.mention.corefClusterID)+";'"
-                                        + "id='"+n.mention.id+"' "
-                                        + "title='"
-                                            + "@cID=" + n.mention.corefClusterID
-                                            + " @mID=" + n.mention.id
-                                            + " @gender=" + n.mention.gender
-                                            + " @number=" + n.mention.number
-                                            + " @case=" + n.mention.mentionCase
-                                            + " @POS=" + n.tag+":"+n.lemma    
-                                            + " @properNode=" + n.isProper 
-                                            + " @wID=" + n.id
-                                            + " @antID="+((ant == null)?null:ant.id)
-                                            + " @type="+n.mention.type
-                                            + " @cat="+n.mention.categories + ":"+n.mention.category
-                                            + " @resoInfo="+n.mention.comments+"]"
-                                            + " @span=["+n.nodeProjection(this) +"]"
-                                            + " @startM="+n.mention.start
-                                            + " @endM="+n.mention.end
-                                            + " @string="+n.mention.nerString
-                                            + " @normalized="+n.mention.normString
-                                            + " @words="+n.mention.words
-                                            + " @modifiers="+n.mention.modifiers
-                                            + " @ProperMod="+n.mention.properModifiers
-                                            + " @acro="+n.mention.getAcronym(this)
-                                            + " @type=" +n.mention.bucket
-                                    + "'>"
-                                    + " <em class='c"+n.mention.corefClusterID+"'>"+" " + n.word+"</em>"
-                                    + "["+n.mention.corefClusterID+"]"
-                                + "</span>"/*+n.mention.categories*/);
+                //if (n.mentionStartList.size()>0) out.print(n.mentionStartList);
+                int count = n.mentionStartList.size();
+                for (int mid = 0; mid < count; mid++) {
+                    out.println("<span class='label label-"+mentions.get(n.mentionStartList.get(mid)).category+"' id='s"+n.mentionStartList.get(mid)+"'> [ ");
+                }
 
-                        } else if (n.mention != null) {
-                            out.print(" <span "
-                                       + "class='singleton "+notGoldError+"'"
-                                        + "title='"
-                                            + " @mID="+n.mention.id+ " @gender=" + n.mention.gender
-                                            + " @number=" + n.mention.number
-                                            + " @case=" + n.mention.mentionCase
-                                            + " @POS=" + n.tag+":"+n.lemma 
-                                            + " @properNode=" + n.isProper 
-                                            + " @wID=" + n.id
-                                            + " @type="+n.mention.type
-                                            + " @cat"+n.mention.categories + ":"+n.mention.category
-                                            + " @span=["+n.nodeProjection(this) +"]"
-                                            + " @string="+n.mention.nerString
-                                            + " @normalized="+n.mention.normString
-                                            + " @words="+n.mention.words
-                                            + " @modifiers="+n.mention.modifiers
-                                            + " @ProperMod="+n.mention.properModifiers
-                                            + " @acro="+n.mention.getAcronym(this)
-                                            + " @type=" +n.mention.bucket
-                                        +"'>"
-                                    + "<em>" + n.word+"</em>"
-                                + "</span>");
-                        }
-                    } else {
-                        
-                        String notPredictedError = "";
-                        if (LVCoref.props.getProperty(Constants.GOLD_MENTIONS_PROP, "").length() < 1 && n.goldMention != null)
-                                 notPredictedError = " notPredicted";
-                        
+                if (n.mention != null) { 
+                    String notGoldError = "";
+                    if (LVCoref.props.getProperty(Constants.GOLD_MENTIONS_PROP, "").length() > 0 && n.goldMention == null)
+                             notGoldError = " notGold";
+                    if (n.mention != null && corefClusters.get(n.mention.corefClusterID).corefMentions.size() > 1) {
+                        Mention ant = refGraph.getFinalResolutions().get(n.mention);
                         out.print(" <span "
-                                + "class='"+notPredictedError+"'"
-                                + "title='"
-                                + " @POS=" + n.tag+":"+n.lemma    
-                                + " @wID=" + n.id
-                                + " @span=["+n.nodeProjection(this) +"]"
-                                + " @properNode=" + n.isProper      
-                                + " @relative=" + n.isRelativeClaus()
-                            +"'>"
-                                + n.word 
+                                    + "class='coref"+notGoldError+" '"
+                                    + "style='background-color:#"+corefColor.get(n.mention.corefClusterID)+";'"
+                                    + "id='"+n.mention.id+"' "
+                                    + "title='"
+                                        + "@cID=" + n.mention.corefClusterID
+                                        + " @mID=" + n.mention.id
+                                        + " @gender=" + n.mention.gender
+                                        + " @number=" + n.mention.number
+                                        + " @case=" + n.mention.mentionCase
+                                        + " @POS=" + n.tag+":"+n.lemma    
+                                        + " @properNode=" + n.isProper 
+                                        + " @wID=" + n.id
+                                        + " @antID="+((ant == null)?null:ant.id)
+                                        + " @type="+n.mention.type
+                                        + " @cat="+n.mention.categories + ":"+n.mention.category
+                                        + " @resoInfo="+n.mention.comments+"]"
+                                        + " @span=["+n.nodeProjection(this) +"]"
+                                        + " @startM="+n.mention.start
+                                        + " @endM="+n.mention.end
+                                        + " @string="+n.mention.nerString
+                                        + " @normalized="+n.mention.normString
+                                        + " @words="+n.mention.words
+                                        + " @modifiers="+n.mention.modifiers
+                                        + " @ProperMod="+n.mention.properModifiers
+                                        + " @acro="+n.mention.getAcronym(this)
+                                        + " @type=" +n.mention.bucket
+                                + "'>"
+                                + " <em class='c"+n.mention.corefClusterID+"'>"+" " + n.word+"</em>"
+                                + "["+n.mention.corefClusterID+"]"
+                            + "</span>"/*+n.mention.categories*/);
+
+                    } else if (n.mention != null) {
+                        out.print(" <span "
+                                   + "class='singleton "+notGoldError+"'"
+                                    + "title='"
+                                        + " @mID="+n.mention.id+ " @gender=" + n.mention.gender
+                                        + " @number=" + n.mention.number
+                                        + " @case=" + n.mention.mentionCase
+                                        + " @POS=" + n.tag+":"+n.lemma 
+                                        + " @properNode=" + n.isProper 
+                                        + " @wID=" + n.id
+                                        + " @type="+n.mention.type
+                                        + " @cat"+n.mention.categories + ":"+n.mention.category
+                                        + " @span=["+n.nodeProjection(this) +"]"
+                                        + " @string="+n.mention.nerString
+                                        + " @normalized="+n.mention.normString
+                                        + " @words="+n.mention.words
+                                        + " @modifiers="+n.mention.modifiers
+                                        + " @ProperMod="+n.mention.properModifiers
+                                        + " @acro="+n.mention.getAcronym(this)
+                                        + " @type=" +n.mention.bucket
+                                    +"'>"
+                                + "<em>" + n.word+"</em>"
                             + "</span>");
                     }
-                    
-                    //if (n.mentionEndList.size()>0) out.print(n.mentionEndList);
-                    count = n.mentionEndList.size();
-                    for (int mid = 0; mid < count; mid++) {
-                        out.println(" ] </span>");
-                        //out.println(" <span class='badge'>"+n.mention.corefClusterID+"</span></span>");
-                    }
-                    if (n.sentRoot) root = n;
-                    
-                    if (n.sentEnd) break;
+                } else {
+
+                    String notPredictedError = "";
+                    if (LVCoref.props.getProperty(Constants.GOLD_MENTIONS_PROP, "").length() < 1 && n.goldMention != null)
+                             notPredictedError = " notPredicted";
+
+                    out.print(" <span "
+                            + "class='"+notPredictedError+"'"
+                            + "title='"
+                            + " @POS=" + n.tag+":"+n.lemma    
+                            + " @wID=" + n.id
+                            + " @span=["+n.nodeProjection(this) +"]"
+                            + " @properNode=" + n.isProper      
+                            + " @relative=" + n.isRelativeClaus()
+                        +"'>"
+                            + n.word 
+                        + "</span>");
                 }
- 
-                if (root != null) { out.println(" <div class='parsetree' style='display:none;'>"+nodeSubTree(root)+"</div>"); }
-                out.println("</div>");
-                
+
+                //if (n.mentionEndList.size()>0) out.print(n.mentionEndList);
+                count = n.mentionEndList.size();
+                for (int mid = 0; mid < count; mid++) {
+                    out.println(" ] </span>");
+                    //out.println(" <span class='badge'>"+n.mention.corefClusterID+"</span></span>");
+                }
+                if (n.sentRoot) root = n;
+                if (n.sentEnd)  {
+                    if (root != null) { out.println(" <div class='parsetree' style='display:none;'>"+nodeSubTree(root)+"</div>"); }
+                    out.println("</div> <!--sentence-->");
+                }
             }
-            
+
             out.print("</p>");
             
             for (Integer c_i : this.corefClusters.keySet()) {
                 CorefCluster c = this.corefClusters.get(c_i);
-                if (c.corefMentions.size() > 1) {
-                    out.println("<div class='mentionCluster'>");
-                    out.println("========== " + c_i + " ==========");
-                    out.println(c.modifiers);
+                
+                if (c.corefMentions.size() > 0) {
+                    out.println(Utils.val("<div class='mentionCluster'>"));
+                    if (c.representative.titleRepresentative()) {
+                        out.println(Utils.bval(c.representative.nerString));
+                        out.println(Utils.bval(c.representative.headString));
+                    }
+                    
+                    out.println(Utils.val("========== " + c_i + " =========="));
+                    out.println(Utils.keyValue("Representative", c.representative.id));
+                    out.println(Utils.keyValue("Representative", c.representative.nerString));
+                    out.println(Utils.keyValue("Heads", c.heads));
+                    out.println(Utils.keyValue("Modifiers", c.modifiers));
+                    out.println(Utils.keyValue("Words", c.words));
                     for (Mention m : c.corefMentions) {
+                        //logger.finer("mention-> id:"+m.id+"\tspan: "+/*m.originalRef+*/"\t"+m.node.nodeProjection(m.document) +"\tsentNum: "+m.sentNum+"\tstartIndex: "+m.start);
                         String projection = m.nerString;//= m.node.nodeProjection(this);
                         projection = projection.replace(m.node.word, "<b>"+m.node.word+"</b>");
                         
@@ -1557,5 +1692,27 @@ public class Document {
         if (i >= 0 && i < tree.size()) return tree.get(i);
         return null;
     }
+    
+    
+    public String sentenceText(int idx) {
+        StringBuilder sb = new StringBuilder();
+        Set<String> noGapBefore = new HashSet(Arrays.asList(".", ",", ":", ";", "!", "?", ")", "]", "}", "%"));
+        Set<String> noGapAfter =  new HashSet(Arrays.asList("(", "[", "{"));
+        Set<String> quoteSymbols =  new HashSet(Arrays.asList("'", "\""));
+        
+        int s_start = sentences.get(idx);
+        boolean gap = false;
+        for (int t_id = s_start; ; t_id++) {
+            Node node = getNode(t_id);
+            sb.append(node.word);
+            if (node.sentEnd) {
+                break;
+            } else {
+                sb.append(" ");
+            }
+            // TODO uzlabot teksta veidošanu no sadalītiem tokeniem
+        }
+        return sb.toString();
+    }   
     
 }

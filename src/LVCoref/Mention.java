@@ -348,4 +348,26 @@ public class Mention implements Comparable{
     public boolean isQuote() {
         return bucket.equals("quote");
     }
+    
+    public boolean moreRepresentative(Mention p) {
+        if (p == null) return true;
+        if (p.type!=Dictionaries.MentionType.PROPER && type==Dictionaries.MentionType.PROPER) return false;
+        if (getLength() > p.getLength()) {
+            return true;
+        }
+        return false;
+    }
+    
+    public int getLength() {
+        int len = 0;
+        for (int i = start; i <= end; i++) {
+            len += document.tree.get(i).lemma.length();
+        }
+        return len;
+    }
+    
+    public boolean titleRepresentative(){
+        if (type == Dictionaries.MentionType.PROPER) return true;
+        return false;
+    }
 }

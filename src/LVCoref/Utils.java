@@ -23,6 +23,16 @@ public class Utils {
         return r;
     }
     
+    public static String val(String key) {
+        return "<span class='svalue' style='display:block;color:#666;'>"+key+"</span>";
+    }
+    public static String bval(String key) {
+        return "<b>" + val(key) + "</b>";
+    }
+    public static String keyValue(String key, Object value) {
+        String str = "<span class='key' style='display:inline-block;width:200px;color:#666; padding-left:10px;color:#666'>"+ key + "</span>" + "<span class='value' style='display:inline-block'>" + value.toString() + "</span><br />";
+        return str;
+    }
     
     
     public static String implode(Set<String> c, String glueString){

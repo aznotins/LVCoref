@@ -47,12 +47,11 @@ public class Constants {
     public static final String LOG_PROP = "lvcoref.log";
     public static final String MAXDIST_PROP = "lvcoref.maxdist";
     
-    public static final String STDOUT_PROP = "lvcoref.stdout";
+    public static final String INPUT_PROP = "lvcoref.input";
+    public static final String OUTPUT_PROP = "lvcoref.output";
     public static final String MMAX_EXPORT_PROP = "lvcoref.mmax.export";
     public static final String MMAX_EXPORT_PATH_PROP = "lvcoref.mmax.export.path";
     public static final String MMAX_EXPORT_NAME_PROP = "lvcoref.mmax.export.name";
-    public static final String CONLL_OUTPUT_PROP = "lvcoref.conll.output";
-    public static final String CONLL_INPUT_PROP = "lvcoref.conll.input";
     public static final String HTML_PROP = "lvcoref.html.output";
     public static final String MMAX_GOLD_PROP = "lvcoref.mmax.gold";
     public static final String NER_PROP = "lvcoref.ner";

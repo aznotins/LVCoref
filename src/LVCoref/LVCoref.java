@@ -30,8 +30,8 @@ import java.util.Arrays;
  */
 public class LVCoref {
     
-    private enum inputTypes {CONLL, STDIN_CONLL};
-    private enum outputTypes {CONLL, STDOUT_CONLL};
+    private enum inputTypes {CONLL, STDIN_JSON, STDIN_CONLL};
+    private enum outputTypes {CONLL, STDOUT_CONLL, STDOUT_JSON};
     public static final Logger logger = Logger.getLogger(LVCoref.class.getName());
     public static Properties props;
 
@@ -142,14 +142,13 @@ public class LVCoref {
             + "LVCoref: Latvian Coreference Resolver"
             + "\nParameters:"
 
-            + "\n\t" + Constants.STDOUT_PROP + ": write conll format results to console (default)"                  
+            + "\n\t" + Constants.INPUT_PROP + ": input format (json, conll - default)"   
+            + "\n\t" + Constants.OUTPUT_PROP + ": output format (json, conll - default)"  
             + "\n\t" + Constants.LOG_PROP + ": keep logs, defaults to false"
             + "\n\t" + Constants.LOG_PATH_PROP + ": directory path with trailing /, (default = data/logs/)"
-            + "\n\t" + Constants.CONLL_INPUT_PROP + ": path to conll input file"
             + "\n\t" + Constants.MMAX_EXPORT_PATH_PROP + ": MMAX export path with trailing / (default = data/mmax2/"
             + "\n\t" + Constants.MMAX_EXPORT_NAME_PROP + ": project name (if no specified timestamp is used"
             + "\n\t" + Constants.HTML_PROP + ": file path for html formatted coreference results, direcotory should include script.js, style.css"
-            + "\n\t" + Constants.CONLL_OUTPUT_PROP + ": file path for conll output to file"
             + "\n\t" + Constants.MMAX_GOLD_PROP + ": file path to existing  mmax coref_level gold annotation, used for scoring"
             + "\n\t" + Constants.NER_PROP + ": file path to existing NE tagged file"
             + "\n--------------------\n"
@@ -164,17 +163,21 @@ public class LVCoref {
         //Properties props = StringUtils.argsToProperties(args);
         props = StringUtils.argsToProperties(args);
         //System.out.println(props);
-                       
-        if (Boolean.parseBoolean(props.getProperty(Constants.STDOUT_PROP, "false"))) outputType = outputTypes.STDOUT_CONLL;
+        String inputTypeString = props.getProperty(Constants.INPUT_PROP, "conll");
+        if (inputTypeString.equalsIgnoreCase("conll")) inputType = inputTypes.STDIN_CONLL;
+        if (inputTypeString.equalsIgnoreCase("json")) inputType = inputTypes.STDIN_JSON;
+        
+        String outputTypeString = props.getProperty(Constants.OUTPUT_PROP, "conll");
+        if (outputTypeString.equalsIgnoreCase("conll")) outputType = outputTypes.STDOUT_CONLL;
+        if (outputTypeString.equalsIgnoreCase("json")) outputType = outputTypes.STDOUT_JSON;
+        
+        
         mmaxExport = Boolean.parseBoolean(props.getProperty(Constants.MMAX_EXPORT_PROP, "false"));
         maxSentDist = Integer.parseInt(props.getProperty(Constants.MAXDIST_PROP, "-1"));
 
         mmaxExport = Boolean.parseBoolean(props.getProperty(Constants.MMAX_EXPORT_PROP, "false"));
         mmaxExportPath = props.getProperty(Constants.MMAX_EXPORT_PATH_PROP, "");
         mmaxExportProjectName = props.getProperty(Constants.MMAX_EXPORT_NAME_PROP);
-
-        conllOutput = props.getProperty(Constants.CONLL_OUTPUT_PROP, ""); if (conllOutput.length() > 0) outputType = outputTypes.CONLL;
-        conllInput = props.getProperty(Constants.CONLL_INPUT_PROP, ""); if (conllInput.length() > 0) inputType = inputType.CONLL;
         
         htmlOutput = props.getProperty(Constants.HTML_PROP, "");
         nerAnnotation = props.getProperty(Constants.NER_PROP, "");
@@ -231,6 +234,7 @@ public class LVCoref {
         /*
          * Create document
          */
+        BufferedReader in;
         switch(inputType) {
             case CONLL:
                 Document d = new Document(logger, dictionaries);
@@ -245,8 +249,24 @@ public class LVCoref {
                 if (d.tree.size() > 0) processDocument(d, props);
                 
                 break;
+            case STDIN_JSON:
+                in = new BufferedReader(new InputStreamReader(System.in, "UTF8"));
+                while (!stopProcess) {
+                    Document doc = new Document(logger, dictionaries);
+                    try {
+                        doc.readJSON(in);
+                    } catch (Exception ex) {
+                        System.err.println("Could not read json from stream");
+                        ex.printStackTrace();
+                        break;
+                    }
+                    if (doc.tree.size() > 0) processDocument(doc, props);  
+                    else break;
+                    documentID++;
+                }
+                break;
             default:
-                BufferedReader in = new BufferedReader(new InputStreamReader(System.in, "UTF8"));
+                in = new BufferedReader(new InputStreamReader(System.in, "UTF8"));
                 while (!stopProcess) {
                     Document doc = new Document(logger, dictionaries);
                     try {
@@ -260,7 +280,7 @@ public class LVCoref {
                     else break;
                     documentID++;
                 }
-        }
+            }
         }
     };
         
@@ -301,17 +321,17 @@ public class LVCoref {
             d.tweakPersonMentions();d.tweakPersonMentions();//FIXME 
             
             
-            //d.removePluralMentions();
+            //--d.removePluralMentions();
                     
             d.removePleonasticMentions();
             d.removeNestedQuoteMentions();
             
             d.removeUndefiniedMentions();
-            //d.removeNestedMentions();
+            //--d.removeNestedMentions();
             d.removeExcludedMentions();
             d.removeGenitiveMentions();
             
-            d.setMentionModifiers(true);
+            d.setMentionModifiers(false);
         }
         //d.removePluralMentions(); //plurals seems to bring many errors
         
@@ -385,12 +405,31 @@ public class LVCoref {
         }
 
         d.setConllCorefColumns();
+        
+        
+        for (CorefCluster c : d.corefClusters.values()) {
+            if (c.representative.titleRepresentative()) {
+                System.err.println(c.representative.nerString);
+                System.out.println(c.representative);
+            }
+        }
+        
+        PrintStream ps;
         switch (outputType) {
             case CONLL:
                 d.outputCONLL(conllOutput);                
                 break;
+                
+            case STDOUT_JSON :
+                try {
+                    ps = new PrintStream(System.out, true, "UTF8");
+                    d.outputJSON(ps);
+                } catch (UnsupportedEncodingException ex) {
+                    System.err.println("Unsupported output encoding");
+                    Logger.getLogger(LVCoref.class.getName()).log(Level.SEVERE, null, ex);
+                }
+                break;
             default:
-                PrintStream ps;
                 try {
                     ps = new PrintStream(System.out, true, "UTF8");
                     d.outputCONLL(ps);

@@ -16,8 +16,11 @@ public class Node {
 	
 	public boolean isMention;
 	public String tag;
+    public String simpleTag;
 	public String lemma;
 	public String word;
+    public String morphoFeatures;
+    public int parentIndex;
     
     public String ne_annotation = "";
     
