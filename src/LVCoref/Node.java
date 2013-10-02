@@ -257,7 +257,16 @@ public class Node {
     }
     
     public boolean isRelativePronoun() {
-        if (this.isPronoun() && (this.prev()!= null && this.prev().isRelativeClaus() || this.prev().tag.startsWith("s") && this.prev().prev()!=null && this.prev().prev().isRelativePronoun())) return true;
+        if (this != null && 
+                this.isPronoun() &&
+                this.prev()!= null &&
+                (
+                    this.prev().isRelativeClaus() 
+                    || this.prev().tag.startsWith("s") 
+                    && this.prev().prev()!=null 
+                    && this.prev().prev().isRelativeClaus()
+                )
+        ) return true;
         return false;
     }
     

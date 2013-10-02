@@ -16,7 +16,7 @@ import org.apache.commons.jexl2.MapContext;
 
 public class Resolve {
     
-    public static final boolean JEXL_SILENT = false;
+    public static final boolean JEXL_SILENT = true;
     public static final boolean JEXL_LENIENT = true;
     public static final boolean JEXL_DBG = false;
     
