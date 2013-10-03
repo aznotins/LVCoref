@@ -380,7 +380,6 @@ public class Document {
             JSONArray tokensArr = new JSONArray();
             for (int tokenID = sentStart; ; tokenID++) {
                 Node node = tree.get(tokenID);
-                if (node.sentEnd) break;
                 JSONObject token = new JSONObject();
                 token.put("index", node.position);
                 token.put("form", node.word);
@@ -392,6 +391,7 @@ public class Document {
                 if (node.ne_annotation != null && node.ne_annotation != "O") token.put("namedEntityType", node.ne_annotation);
                 if (node.mention != null) token.put("namedEntityID", node.mention.corefClusterID);
                 tokensArr.add(token);
+                if (node.sentEnd) break;
             }
             sentenceObj.put("tokens", tokensArr);
             sentenceObj.put("text", sentenceText(sentID));
