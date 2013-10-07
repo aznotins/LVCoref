@@ -22,7 +22,7 @@ public class Statistics {
     int proper_c = 0;
     int singletons = 0;
     int max_len = 0;
-    Map<String,Integer> cat = new HashMap();
+    Map<String,Integer> cat = new HashMap<String, Integer>();
     
     int goldMentions = 0;
     int goldClusters = 0;
@@ -31,7 +31,7 @@ public class Statistics {
     int goldProper_c = 0;
     int goldSingletons = 0;
     int goldMax_len = 0;
-    Map<String,Integer> goldCat = new HashMap();
+    Map<String,Integer> goldCat = new HashMap<String, Integer>();
     
     
     public void add(Document d, boolean gold) {

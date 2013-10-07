@@ -3,7 +3,6 @@ package LVCoref;
 
 import java.util.HashSet;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.logging.Logger;
 
 /*
@@ -39,7 +38,8 @@ public class CorefCluster {
     public Set<String> modifiers;
     public Set<String> properModifiers;
     
-     private static final long serialVersionUID = 8655265337578515592L;
+     @SuppressWarnings("unused")
+	private static final long serialVersionUID = 8655265337578515592L;
 
 //    // Attributes for cluster - can include multiple attribute e.g., {singular, plural}
 //    protected Set<Number> numbers;

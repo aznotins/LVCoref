@@ -1,7 +1,5 @@
 package LVCoref;
 
-import java.lang.reflect.Field;
-import java.util.Properties;
 import java.util.logging.Logger;
 
 public class Constants {

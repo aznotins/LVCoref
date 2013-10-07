@@ -4,11 +4,9 @@ import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -200,7 +198,7 @@ public class Dictionaries {
     }
     
     public Set<String> categoryIntersection(Set<String> s1, Set<String> s2){
-        Set<String> r = new HashSet(s1);
+        Set<String> r = new HashSet<String>(s1);
         r.retainAll(s2);
         return r;
     }

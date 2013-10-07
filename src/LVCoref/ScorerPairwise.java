@@ -1,7 +1,5 @@
 package LVCoref;
 
-import java.util.*;
-
 public class ScorerPairwise extends CorefScorer {
 
   public ScorerPairwise(){

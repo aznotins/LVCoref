@@ -26,18 +26,11 @@
 
 package LVCoref.sievepasses;
 
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import LVCoref.Constants;
 import LVCoref.CorefCluster;
 import LVCoref.Dictionaries;
-import LVCoref.Dictionaries.Number;
 //import LVCoref.Dictionaries.Person;
 import LVCoref.Document;
 //import LVCoref.Document.DocType;
@@ -49,7 +42,6 @@ import LVCoref.SieveOptions;
 //import edu.stanford.nlp.ling.CoreAnnotations.SpeakerAnnotation;
 //import edu.stanford.nlp.ling.CoreAnnotations.UtteranceAnnotation;
 //import edu.stanford.nlp.trees.Tree;
-import edu.stanford.nlp.util.Pair;
 
 /**
  *  Base class for a Coref Sieve.

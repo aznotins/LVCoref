@@ -6,7 +6,6 @@ package LVCoref;
 
 import LVCoref.Document;
 import LVCoref.Mention;
-import java.util.HashSet;
 import java.util.Set;
 
 /**

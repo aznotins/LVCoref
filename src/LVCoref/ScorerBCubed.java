@@ -1,7 +1,5 @@
 package LVCoref;
 
-import java.util.*;
-
 /** 
  * B^3 scorer
  * @author heeyoung
