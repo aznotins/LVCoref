@@ -132,7 +132,8 @@ public class Resolve {
         if (Constants.VERBOSE) System.err.println("Operation count = " + Filter.op);
     }    
     public static void relaxedHeadMatch(Document d) {
-        String filter = "!Filter.pronominal(s) "
+        String filter = "!Filter.isTime(s)"
+                + "&& !Filter.pronominal(s) "
                 + "&& Filter.sameHead(s,t) "
                 + "&& Filter.sameGender(s,t) "
                 + "&& Filter.sameNumber(s,t) "

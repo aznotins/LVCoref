@@ -173,6 +173,9 @@ public class Filter {
         _updateOperationCount();
         return s.categories.contains("location");
     }
+    public static boolean isTime(Mention s) {
+        return s.categories.contains("time");
+    }
     
     
     public static boolean firstPersonSingular(Mention s) {
