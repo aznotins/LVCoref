@@ -1,6 +1,5 @@
 package LVCoref;
 
-import LVCoref.Dictionaries.MentionType;
 import LVCoref.ScorerBCubed.BCubedType;
 import LVCoref.sievepasses.*;
 import edu.stanford.nlp.util.Pair;
@@ -207,10 +206,10 @@ public class LVCoref {
         Constants.printConstants(logger); //output constants to console
         
         if (Constants.MULTIPLE_DOCS_EVAL) {
-            inputConllList = new ArrayList(Arrays.asList(conllInput.split(",")));
+            inputConllList = new ArrayList<String>(Arrays.asList(conllInput.split(",")));
             String mmaxGold = props.getProperty(Constants.MMAX_GOLD_PROP, "");
-            mmaxGoldList = new ArrayList(Arrays.asList(mmaxGold.split(",")));
-            nerList = new ArrayList(Arrays.asList(nerAnnotation.split(",")));
+            mmaxGoldList = new ArrayList<String>(Arrays.asList(mmaxGold.split(",")));
+            nerList = new ArrayList<String>(Arrays.asList(nerAnnotation.split(",")));
             if (inputConllList.size() != mmaxGoldList.size()) System.err.println("Incorrect number of files for evaluation");    
             docID = 0;
         }

@@ -6,12 +6,11 @@ import LVCoref.Dictionaries.MentionType;
 import LVCoref.Dictionaries.Number;
 import LVCoref.Dictionaries.Case;
 import LVCoref.Dictionaries.PronounType;
-import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
-public class Mention implements Comparable{
+public class Mention implements Comparable<Mention>{
     Document document;
 	public Integer id;
     
@@ -287,7 +286,7 @@ public class Mention implements Comparable{
     
     public Mention prevSyntactic(Document d) {
         for (Node n : node.children);
-        
+        	
         
         if (id > 0) return d.mentions.get(id-1);
         return null;
@@ -321,8 +320,7 @@ public class Mention implements Comparable{
     }
     
     @Override 
-    public int compareTo(Object o) {
-        Mention m = (Mention) o;
+    public int compareTo(Mention m) {
         return this.node.id - m.node.id;
     }  
     

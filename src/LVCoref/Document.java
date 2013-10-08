@@ -1,7 +1,6 @@
 package LVCoref;
 
 import LVCoref.Dictionaries.MentionType;
-import edu.stanford.nlp.util.Pair;
 import java.awt.Color;
 import java.io.BufferedReader;
 import java.io.File;
@@ -63,7 +62,7 @@ public class Document {
         corefClusters = new HashMap<Integer, CorefCluster>();
         goldCorefClusters = new HashMap<Integer, CorefCluster>();
         sentences = new ArrayList<Integer>();
-        properWords = new HashSet();
+        properWords = new HashSet<String>();
         acronyms = new HashMap<String, Node>();
         logger = Logger.getLogger(Document.class.getName());
 	}
@@ -78,7 +77,7 @@ public class Document {
         goldCorefClusters = new HashMap<Integer, CorefCluster>();
         sentences = new ArrayList<Integer>();
         this.logger = _logger;
-        properWords = new HashSet();
+        properWords = new HashSet<String>();
         acronyms = new HashMap<String, Node>();
     }
     
@@ -92,7 +91,7 @@ public class Document {
         goldCorefClusters = new HashMap<Integer, CorefCluster>();
         sentences = new ArrayList<Integer>();
         this.logger = _logger;
-        properWords = new HashSet();
+        properWords = new HashSet<String>();
         acronyms = new HashMap<String, Node>();
     }
     
@@ -301,13 +300,10 @@ public class Document {
     
     public void readJSON(BufferedReader in) throws Exception {
         if (logger != null) logger.fine("Read json stream");        
-        String s;
 		int node_id = 0;
         int sentence_id = 0;
 		int sentence_start_id = 0;
-        int empty_lines = 0;
         
-        JSONObject data = new JSONObject();
         StringBuilder builder = new StringBuilder();
         for (String line = null; (line = in.readLine()) != null;) {
             if (line.trim().length() == 0) break;
@@ -372,7 +368,8 @@ public class Document {
 	}
     
     
-    public void outputJSON(PrintStream out) {
+    @SuppressWarnings("unchecked")
+	public void outputJSON(PrintStream out) {
         JSONArray sentencesArr = new JSONArray();
         for (int sentID = 0; sentID < sentences.size(); sentID++) {
             JSONObject sentenceObj = new JSONObject();
@@ -403,12 +400,15 @@ public class Document {
             CorefCluster cluster = corefClusters.get(cID);
             JSONObject NEObj = new JSONObject();
             NEObj.put("id", cID);
-            JSONArray aliasesArr = new JSONArray();
-            for (Mention m : cluster.corefMentions) {
-                aliasesArr.add(m.headString);
-            }
             
-            JSONObject aliasesObj = new JSONObject();
+            Set<String> aliases = new HashSet<String>();
+            for (Mention m : cluster.corefMentions) {
+            	aliases.add(m.nerString); // PP - FIXME - te vajag Gintas frāžu normalizāciju, lai ir nominatīvi
+            	aliases.add(m.headString);
+                //System.err.printf("head:%s ner:%s\n", m.headString, m.nerString);
+            }
+            JSONArray aliasesArr = new JSONArray();
+            aliasesArr.addAll(aliases);            
             NEObj.put("aliases", aliasesArr);
             NEObj.put("type", cluster.firstMention.category);
             if (cluster.representative.titleRepresentative()) NEObj.put("isTitle", 1);
@@ -551,7 +551,7 @@ public class Document {
         if (corefClusters.get(m.corefClusterID) != corefClusters.get(n.corefClusterID)) {
             int removeID = m.corefClusterID;
             Set<Mention> cm = corefClusters.get(m.corefClusterID).corefMentions;
-            Set<Mention> cn = corefClusters.get(n.corefClusterID).corefMentions;
+            // Set<Mention> cn = corefClusters.get(n.corefClusterID).corefMentions;
             for (Mention mm : cm) {
                 getCluster(n.corefClusterID).add(mm);
                 mm.corefClusterID = n.corefClusterID;
@@ -730,6 +730,7 @@ public class Document {
                     id++;
                 }
             }
+            in.close();
         } catch (IOException ex) {
             System.err.println("Error reading NE annotation");
             Logger.getLogger(Document.class.getName()).log(Level.SEVERE, null, ex);
@@ -740,7 +741,6 @@ public class Document {
     
     
     public void setMentionsFromNEAnnotation() {
-		String s;
         int id  = 0;
         int start = 0;
         String cur_cat = "O";
@@ -1696,11 +1696,12 @@ public class Document {
     }
     
     
-    public String sentenceText(int idx) {
+    @SuppressWarnings("unused")
+	public String sentenceText(int idx) {
         StringBuilder sb = new StringBuilder();
-        Set<String> noGapBefore = new HashSet(Arrays.asList(".", ",", ":", ";", "!", "?", ")", "]", "}", "%"));
-        Set<String> noGapAfter =  new HashSet(Arrays.asList("(", "[", "{"));
-        Set<String> quoteSymbols =  new HashSet(Arrays.asList("'", "\""));
+        Set<String> noGapBefore = new HashSet<String>(Arrays.asList(".", ",", ":", ";", "!", "?", ")", "]", "}", "%"));
+        Set<String> noGapAfter =  new HashSet<String>(Arrays.asList("(", "[", "{"));
+        Set<String> quoteSymbols =  new HashSet<String>(Arrays.asList("'", "\""));
         
         int s_start = sentences.get(idx);
         boolean gap = false;

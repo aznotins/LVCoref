@@ -1,13 +1,7 @@
 package LVCoref;
 
 import LVCoref.Dictionaries.MentionType;
-import LVCoref.Dictionaries.Case;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
-import java.util.logging.Logger;
 import org.apache.commons.jexl2.Expression;
 import org.apache.commons.jexl2.JexlContext;
 import org.apache.commons.jexl2.JexlEngine;
