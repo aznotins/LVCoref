@@ -411,7 +411,8 @@ public class Document {
             JSONObject aliasesObj = new JSONObject();
             NEObj.put("aliases", aliasesArr);
             NEObj.put("type", cluster.firstMention.category);
-            if (cluster.representative.titleRepresentative()) NEObj.put("representative", cluster.representative.nerString);            
+            if (cluster.representative.titleRepresentative()) NEObj.put("isTitle", 1);
+            NEObj.put("representative", cluster.representative.nerString);
             NEMap.put(cID, NEObj);
         }
         
