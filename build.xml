@@ -9,6 +9,8 @@
   <property name="build" location="${basedir}/build"/>
   <property name="dist"  location="${basedir}/dist"/>
   <property name="lib"   location="${basedir}/lib"/>
+  <property name="lvtagger.dir" location="${basedir}/../LVTagger"/>
+	<property name="lvtagger.dist" location="${lvtagger.dir}/dist"/>
 
   <path id="project.class.path">
     <fileset dir="lib">
@@ -28,9 +30,9 @@
        <fileset dir="${lib}">
           <include name="*.jar"/>
         </fileset>
-<!--      	<fileset dir="${dist}">
-            <include name="*.jar"/>
-      	</fileset>-->
+      	<fileset dir="${lvtagger.dist}">
+          <include name="*.jar"/>
+        </fileset>
       </path>
   </target>
 
@@ -43,11 +45,15 @@
   	</javac>
   </target>
 
-  <target name="dist" depends="compile"
-          description="generate the distribution" >
-    <!-- Create the distribution directory -->
-    <mkdir dir="${dist}"/>
+  <target name="dist" depends="compile" description="generate the distribution" >
 
+  	<mkdir dir="${dist}"/>  	
+  	<copy todir="${dist}">
+        <fileset dir="${lvtagger.dist}">
+					<include name="**"/>
+        </fileset>
+    </copy>
+  	
     <!-- Put everything in ${build} into the lvcoref[-{DSTAMP}${TSTAMP}].jar file -->
     <jar jarfile="${dist}/lvcoref.jar" basedir="${build}">
         <manifest>
@@ -55,11 +61,6 @@
             <attribute name="Created-By" value="AZ"/>
         </manifest>
     </jar>
-<!--    <copy todir="${dist}">
-        <fileset dir="${basedir}">
-            <include name="lists/**"/>
-        </fileset>
-    </copy>-->
     
     <zip destfile="LVCoref.zip" basedir="." includes="dist/**,lists/**,lib/**,*.bat,*.sh,*.prop,README.md,LICENSE.txt">
         <zipfileset dir="other" prefix="" excludes="maltparser/**,maltparser-lvsynt/**,maltparser-lvsem/**,LVTagger/**" />
