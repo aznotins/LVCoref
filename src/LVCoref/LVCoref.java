@@ -330,7 +330,7 @@ public class LVCoref {
             d.removeExcludedMentions();
             d.removeGenitiveMentions();
             
-            d.setMentionModifiers(false);
+            d.setMentionModifiers_v2(true);
         }
         //d.removePluralMentions(); //plurals seems to bring many errors
         
@@ -405,13 +405,12 @@ public class LVCoref {
 
         d.setConllCorefColumns();
                
-        for (int i : d.corefClusters.keySet()) {
-            CorefCluster c = d.getCluster(i);
-            if (c.representative.titleRepresentative()) {
-                System.err.println(c.representative);
-                //System.out.println(c.representative);
-            }
-        }
+//        for (int i : d.corefClusters.keySet()) {
+//            CorefCluster c = d.getCluster(i);
+//            if (c.representative.titleRepresentative()) {
+//                System.err.println(c.representative);
+//            }
+//        }
         
         
         PrintStream ps;

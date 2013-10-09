@@ -15,6 +15,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+
+import lv.lumii.expressions.Expression;
+
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
@@ -402,17 +405,40 @@ public class Document {
             NEObj.put("id", cID);
             
             Set<String> aliases = new HashSet<String>();
+            
             for (Mention m : cluster.corefMentions) {
-            	aliases.add(m.nerString); // PP - FIXME - te vajag Gintas frāžu normalizāciju, lai ir nominatīvi
-            	aliases.add(m.headString);
+            	Expression e;
+				try {
+					e = new Expression(m.nerString);
+					String normalised = e.normalize();
+	            	if (normalised != null) aliases.add(normalised);
+	            	else aliases.add(m.nerString);   
+				} catch (Exception e1) {
+					e1.printStackTrace();
+				}
                 //System.err.printf("head:%s ner:%s\n", m.headString, m.nerString);
             }
+            //System.err.println(aliases.toString());
             JSONArray aliasesArr = new JSONArray();
             aliasesArr.addAll(aliases);            
             NEObj.put("aliases", aliasesArr);
             NEObj.put("type", cluster.firstMention.category);
             if (cluster.representative.titleRepresentative()) NEObj.put("isTitle", 1);
-            NEObj.put("representative", cluster.representative.nerString);
+            JSONObject oInflections = new JSONObject();
+            String representative = cluster.representative.nerString;;
+            try {
+            	Expression e = new Expression(cluster.representative.nerString);
+            	Map<String,String> inflections= e.getInflections(null);
+            	for (String i_case : inflections.keySet()) {
+            		oInflections.put(i_case, inflections.get(i_case));
+            	}
+            	representative = e.normalize();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+            if (representative == null) representative = cluster.representative.nerString;
+            NEObj.put("inflections", oInflections);
+            NEObj.put("representative", representative);
             NEMap.put(cID, NEObj);
         }
         
@@ -854,7 +880,7 @@ public class Document {
             }
             return m;
         } else {
-            System.err.println("setMention() mention with this head already set: " + "old=" + head.mention.nerString + " new=" + getSubString(from, to));
+            //System.err.println("setMention() mention with this head already set: " + "old=" + head.mention.nerString + " new=" + getSubString(from, to));
             LVCoref.logger.fine("setMention() mention with this head already set: " + "old=" + head.mention.nerString + " new=" + getSubString(from, to));
             return null;
         }
@@ -1072,7 +1098,7 @@ public class Document {
             int left = m.node.id;
             while (
                     n != null 
-                    && (n.isNounGenitive() || (n.isProperAdjective() || n.isDefiniteAdjective() || n.isNumber())
+                    && (n.isNounGenitive() && (n.isProper() /*|| n.mention != null*/) || (n.isProperAdjective() || n.isDefiniteAdjective() || n.isNumber())
                     && (m.gender == Dictionaries.Gender.UNKNOWN || m.gender == n.getGender()) 
                     && (m.number == Dictionaries.Number.UNKNOWN || m.number == n.getNumber()) 
                     || m.isPerson() && n.isProper /*|| n.isQuote()*/)) {
