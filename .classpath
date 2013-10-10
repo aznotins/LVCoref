@@ -8,5 +8,6 @@
 	<classpathentry kind="lib" path="lib/json_simple-1.1.jar"/>
 	<classpathentry kind="lib" path="lib/stanford-corenlp-1.3.5.jar"/>
 	<classpathentry kind="lib" path="lib/weka.jar"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/LVTagger"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
