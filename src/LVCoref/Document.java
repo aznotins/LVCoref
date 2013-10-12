@@ -407,6 +407,7 @@ public class Document {
             Set<String> aliases = new HashSet<String>();
             
             for (Mention m : cluster.corefMentions) {
+            	if (m.type == MentionType.PRONOMINAL) continue; // Vietniekvārdus aliasos neliekam
             	Expression e;
 				try {
 					e = new Expression(m.nerString);
@@ -1499,9 +1500,11 @@ public class Document {
                 cand.add(n);
             }
         }
-        //System.out.println("["+start+ ".." +end +"] head candidates: " + cand);
-        assert(cand.size() > 0);
-        Node head = cand.get(cand.size()-1);//FIXME
+        Node head;
+        if (cand.size() == 0) {
+        	System.err.println("["+start+ ".." +end +"] head candidates: " + cand);
+        	head = tree.get(end); // FIXME - teorētiski šeit nevajadzētu nonākt, bet nonāk; varbūt node.id lauki ir nepareizi? 
+        } else head = cand.get(cand.size()-1);//FIXME
         //Node head = cand.get(0);
         //needed if markable contains multiple head candidates
         //lowest common ancestor is returned
