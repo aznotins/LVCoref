@@ -31,9 +31,9 @@ public class MentionBrowser {
     
     public static Mention getFirstFromAll(Mention s, Expression expression, JexlContext jexlContext) {
         Mention t = null;
-        for (Mention tt: s.document.mentions) {
-            if (s != t && _filterAgree(s, t, expression, jexlContext)) {
-                t = tt;
+    	for (Mention tt: s.document.mentions) {
+            if (s != tt && _filterAgree(s, tt, expression, jexlContext)) {
+            	t = tt;
                 break;
             }
         }
@@ -72,8 +72,13 @@ public class MentionBrowser {
     
     public static boolean _filterAgree(Mention s, Mention t, Expression expression, JexlContext jexlContext) {
         Boolean agree = true;
-        jexlContext.set("t", t);
-        agree = (Boolean) expression.evaluate(jexlContext);
+        try {
+	        jexlContext.set("t", t);
+	        agree = (Boolean) expression.evaluate(jexlContext);
+        } catch (Exception ex) {
+        	ex.printStackTrace();
+        	System.err.println("Error evaluating jexl expression");
+        }
         return agree;
     }
     

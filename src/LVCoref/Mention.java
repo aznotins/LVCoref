@@ -13,6 +13,7 @@ import java.util.Set;
 public class Mention implements Comparable<Mention>{
     Document document;
 	public Integer id;
+	public String sel = "O"; // source comment
     
     public Boolean resolved = false;
     public String bucket = ""; //acronym quote etc
@@ -345,7 +346,14 @@ public class Mention implements Comparable<Mention>{
     
     
     public boolean isQuote() {
-        return bucket.equals("quote");
+    	boolean res = false;
+    	if (bucket.equals("quote")) res = true;
+    	else {
+    		Node prev = document.getNode(start-1);
+    		Node next = document.getNode(end+1);
+    		if (prev != null && next != null && prev.isQuote() && next.isQuote()) res = true;
+    	}
+        return res;
     }
     
     public boolean moreRepresentative(Mention p) {

@@ -559,6 +559,7 @@ public class Document {
             sortGoldMentions();   
         } catch (Exception e) {
             System.err.println("Error adding MMAX2 annotation:" + e.getMessage());
+            e.printStackTrace();
             return false;
         }
         return true;
@@ -779,7 +780,8 @@ public class Document {
             cat = n.ne_annotation;
             if (isMention && (cat.equals("O") || !cur_cat.equals(cat) || tree.get(id).sentStart)) {
                 Mention m = null;
-                if (!cur_cat.equals("O")) {
+                if (!cur_cat.equals("O")) { // && !n.ne_annotation.equals("product") && !n.ne_annotation.equals("time") && !n.ne_annotation.equals("sum") && !n.ne_annotation.equals("event")
+                	if (cur_cat.equals("profession")) cur_cat = "person";
                     LVCoref.logger.fine("NER Mention :("+start+" " + (id-1)+") " + getSubString(start, id-1) + " " + cur_cat);
                     if (proper_cat.contains(cur_cat)) {
                         LVCoref.logger.fine("NER Mention PROPER " + cur_cat);
@@ -794,6 +796,7 @@ public class Document {
                 }
                 if (m != null) {
                     m.strict = true;
+                    m.sel = "NER";
                 }
                 isMention = !cur_cat.equals("O");
                 if (isMention) {
@@ -940,9 +943,10 @@ public class Document {
             if (m.isQuote()) {
                 for (int i = m.start; i <= m.end; i++) {
                     Node q = tree.get(i);
-                    if (q.mention != null && !q.mention.isQuote()) {
+                    if (q.mention != null && q.mention != m) {
                         q.mention.tmp = true;
                         LVCoref.logger.fine(Utils.getMentionComment(this, m, "Removed nested quote mention"));
+                        System.out.println("REMOVED QUOTE " + q.mention.nerString);
                     }
                 }
             }
@@ -1744,4 +1748,11 @@ public class Document {
         return sb.toString();
     }   
     
+    
+    public void printAllMentions() {
+    	LVCoref.logger.fine("MENTIONS:");
+    	for (Mention m : mentions) {
+    		LVCoref.logger.fine(m.sel + "\t" + m + "\t" + m.categories);
+    	}
+    }
 }

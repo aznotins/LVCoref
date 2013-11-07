@@ -115,7 +115,7 @@ public class Resolve {
     
     public static void naiveHeadMatch(Document d) {
         //String filter = "!Filter.pronominal(s) && Filter.sameHead(s,t)";
-        String filter = "!Filter.pronominal(s) && Filter.sameHead(s,t) && Filter.sameGender(s,t) && Filter.sameNumber(s,t)";
+        String filter = "Filter.sameHead(s,t) && !Filter.pronominal(s) && Filter.sameGender(s,t) && Filter.sameNumber(s,t)";
         _resolveFirst(d, filter, "naiveHead");
         if (Constants.VERBOSE) System.err.println("Operation count = " + Filter.op);
     }
@@ -126,7 +126,7 @@ public class Resolve {
         if (Constants.VERBOSE) System.err.println("Operation count = " + Filter.op);
     }    
     public static void relaxedHeadMatch(Document d) {
-        String filter = "!Filter.isTime(s)"
+        String filter = "!Filter.isTime(s) && !Filter.isSum(s)"
                 + "&& !Filter.pronominal(s) "
                 + "&& Filter.sameHead(s,t) "
                 + "&& Filter.sameGender(s,t) "
@@ -139,14 +139,14 @@ public class Resolve {
     }    
 
     public static void acronymMatch(Document d){
-        String filter = "Filter.proper(s) && Filter.inAcronymList(s)";
+        String filter = "Filter.isAcronym(s) && Filter.proper(t) && Filter.isAcronymOf(s,t)";// 
         _resolveFirstFromAll(d, filter, "acronym");
     }
 
     public static void appositive(Document d) {
         // "gazprom" prezidents //quotas
-        String filter = "(Filter.nominal(s) && Filter.proper(t) "
-                    + "|| Filter.proper(s) && Filter.nominal(t) "
+        String filter = "(Filter.nominal(s) && Filter.proper(t) && !Filter.after(s,t) "
+                    + "|| Filter.proper(s) && Filter.nominal(t) && Filter.after(s,t) "
                     + "|| Filter.proper(s) && Filter.proper(t) )"
                 + "&& Filter.sameGender(s,t) "
                 + "&& Filter.sameNumber(s,t) "
@@ -165,8 +165,8 @@ public class Resolve {
     } 
     public static void plainAppositive(Document d) {
         // "gazprom" prezidents //quotas
-        String filter = "(Filter.nominal(s) && Filter.proper(t) "
-                    + "|| Filter.proper(s) && Filter.nominal(t) "
+        String filter = "(Filter.nominal(s) && Filter.proper(t) && !Filter.after(s,t) "
+                    + "|| Filter.proper(s) && Filter.nominal(t) && Filter.after(s,t)"
                     + "|| Filter.proper(s) && Filter.proper(t) )"
                 + "&& Filter.sameGender(s,t) "
                 + "&& Filter.sameNumber(s,t) "
@@ -215,12 +215,13 @@ public class Resolve {
 
     public static void predicativeNominative(Document d) {
         String filter = "Filter.nominative(s) "
+        		+ "&& !Filter.pronominalRelative(s) && !Filter.pronominalRelative(t)"
                 + "&& Filter.nominative(t) "
-                + "&& Filter.sentenceDistance(s,t) < 1"
-                + "&& Filter.distance(s,t) < 6"
+                + "&& Filter.sameSentece(s,t)"
+                + "&& Filter.distance(s,t) < 15"
                 + "&& Filter.sameNumber(s,t)"
                 + "&& Filter.sameGender(s,t)"                
-                + "&& Filter.sameCategory(s,t) "
+                + "&& Filter.sameCategoryConstraint(s,t) "
                 + "&& Filter.inPredicativeNominative(s,t)";
         _resolveAllFromSameSentence(d, filter, "predicativeNominative");
         if (Constants.VERBOSE) System.err.println("Operation count = " + Filter.op);

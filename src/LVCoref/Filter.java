@@ -133,6 +133,19 @@ public class Filter {
         return false;
     }
     
+    public static boolean isAcronym(Mention s) {
+    	if (s.start == s.end && s.node.isAbbreviation()) return true;
+    	return false;
+    }
+    
+    public static boolean isAcronymOf(Mention s, Mention t) {
+    	String acronym = s.node.word;
+		if (t.getAcronym().equals(acronym)) {
+			return true;
+		}
+    	return false;
+    }
+    
     public static boolean sameCategory(Mention s, Mention t) {
         //if (true) return true;
         _updateOperationCount();
@@ -174,6 +187,9 @@ public class Filter {
     }
     public static boolean isTime(Mention s) {
         return s.categories.contains("time");
+    }
+    public static boolean isSum(Mention s) {
+        return s.categories.contains("sum");
     }
     
     
@@ -231,6 +247,16 @@ public class Filter {
     public static boolean inPredicativeNominative(Mention s, Mention t) {   
         _updateOperationCount();
         Node h = s.document.getCommonAncestor(s.node, t.node);
+        
+        if (h == t.node) {
+        	for (Node c : t.node.children) {
+        		if (c.lemma.equals("būt")) return true;
+        	}
+        }
+        
+        if (s.node.parent != null && s.node.parent.mention != null) return false;
+        if (t.node.parent != null && t.node.parent.mention != null) return false;
+        
         if (s.sentNum != t.sentNum) return false;
         if (h != null) {
             if (h.lemma.equals("būt")) return true;
@@ -283,6 +309,10 @@ public class Filter {
         return false;
     }
     
+    public static boolean after(Mention s, Mention t) {
+    	return s.node.id > t.node.id;
+    }
+    
     public static boolean sameSentece(Mention s, Mention t) {
         _updateOperationCount();
         return s.sentNum == t.sentNum;
@@ -291,5 +321,6 @@ public class Filter {
     private static void _updateOperationCount() {
         op++;
     }
+
 }
 

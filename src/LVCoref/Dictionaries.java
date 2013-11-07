@@ -62,7 +62,7 @@ public class Dictionaries {
             pronouns.put("organization",new HashSet<String>());
             getWordsFromFile("lists/org_proper.txt", properNouns.get("organization"), true);
             getWordsFromFile("lists/org_common.txt", commonNouns.get("organization"), true);
-            pronouns.get("organization").addAll(Arrays.asList("kas", "kurš", "kura", "tas", "tā"));
+            pronouns.get("organization").addAll(Arrays.asList("kas", "tas", "tā")); //, "kurš", "kura"
             
             commonNouns.put("location",new HashSet<String>());
             properNouns.put("location",new HashSet<String>());

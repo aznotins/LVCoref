@@ -157,6 +157,7 @@ public class Node {
         if (word.length() < 2) return false;
         for (int i = 0; i < word.length(); i++) {
             if (!Character.isLetter(word.charAt(i))) return false;
+            if (!Character.isUpperCase(word.charAt(i))) return false;
         }
         return word.toUpperCase().equals(word);
     }

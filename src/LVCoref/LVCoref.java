@@ -159,7 +159,6 @@ public class LVCoref {
         /**
          * Parse arguments
          */
-        //Properties props = StringUtils.argsToProperties(args);
         props = StringUtils.argsToProperties(args);
         System.err.println(props);
         String inputTypeString = props.getProperty(Constants.INPUT_PROP, "conll");
@@ -170,6 +169,7 @@ public class LVCoref {
         if (outputTypeString.equalsIgnoreCase("conll")) outputType = outputTypes.STDOUT_CONLL;
         if (outputTypeString.equalsIgnoreCase("json")) outputType = outputTypes.STDOUT_JSON;
         
+        conllInput = props.getProperty(Constants.CONLL_INPUT_LIST, null);
         
         mmaxExport = Boolean.parseBoolean(props.getProperty(Constants.MMAX_EXPORT_PROP, "false"));
         maxSentDist = Integer.parseInt(props.getProperty(Constants.MAXDIST_PROP, "-1"));
@@ -224,7 +224,7 @@ public class LVCoref {
                     d.readCONLL(inputConllList.get(documentID));
                 } catch (Exception ex) {
                     System.err.println("Could not read conll file");
-                    System.err.println(ex.getStackTrace());
+                    ex.printStackTrace();
                 }
                 if (d.tree.size() > 0) processDocument(d, props);                
             }
@@ -305,7 +305,7 @@ public class LVCoref {
             d.setMentionModifiers(false);
         } else {
             //if (nerAnnotation.length() > 0) d.setMentionsNER(nerAnnotation);
-            d.setMentionsFromNEAnnotation();
+           d.setMentionsFromNEAnnotation();
             
             d.setQuoteMentions();
             
@@ -318,21 +318,21 @@ public class LVCoref {
             d.setMentionCategories();
            
             d.tweakPersonMentions();d.tweakPersonMentions();//FIXME 
-            
-            
-            //--d.removePluralMentions();
-                    
+                      
             d.removePleonasticMentions();
             d.removeNestedQuoteMentions();
-            
             d.removeUndefiniedMentions();
-            //--d.removeNestedMentions();
+            
+            //----
+            //d.removePluralMentions();
+            d.removeNestedMentions();
+            
             d.removeExcludedMentions();
             d.removeGenitiveMentions();
-            
+
             d.setMentionModifiers_v2(true);
         }
-        //d.removePluralMentions(); //plurals seems to bring many errors
+        
         
         d.updateMentions(); //FIXME move to constructor
         d.sortMentions(); //needed for normalization (array index equals to id)
@@ -340,6 +340,8 @@ public class LVCoref {
         //Set coreference cluster for each mention
         d.initializeEntities();
                
+        d.printAllMentions();
+        
         for(int i = 0; i < sieves.length; i++) {
             currentSieve = i;
             DeterministicCorefSieve sieve = sieves[i];

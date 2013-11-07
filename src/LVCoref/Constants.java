@@ -51,6 +51,7 @@ public class Constants {
     public static final String MMAX_EXPORT_PATH_PROP = "lvcoref.mmax.export.path";
     public static final String MMAX_EXPORT_NAME_PROP = "lvcoref.mmax.export.name";
     public static final String HTML_PROP = "lvcoref.html.output";
+    public static final String CONLL_INPUT_LIST = "lvcoref.input.conll";
     public static final String MMAX_GOLD_PROP = "lvcoref.mmax.gold";
     public static final String NER_PROP = "lvcoref.ner";
     
