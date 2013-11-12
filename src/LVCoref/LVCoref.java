@@ -20,6 +20,7 @@ import java.util.logging.Logger;
 
 import edu.stanford.nlp.util.StringUtils;
 import java.io.BufferedReader;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -30,9 +31,10 @@ import java.util.Arrays;
 public class LVCoref {
     
     private enum inputTypes {CONLL, STDIN_JSON, STDIN_CONLL};
-    private enum outputTypes {CONLL, STDOUT_CONLL, STDOUT_JSON};
+    private enum outputTypes {CONLL, STDOUT_CONLL, STDOUT_JSON, NONE};
     public static final Logger logger = Logger.getLogger(LVCoref.class.getName());
     public static Properties props;
+    public static Dictionaries dictionaries;
 
     /**
     * If true, we score the output of the given test document
@@ -142,7 +144,7 @@ public class LVCoref {
             + "\nParameters:"
 
             + "\n\t" + Constants.INPUT_PROP + ": input format (json, conll - default)"   
-            + "\n\t" + Constants.OUTPUT_PROP + ": output format (json, conll - default)"  
+            + "\n\t" + Constants.OUTPUT_PROP + ": output format (json, none, conll - default)"  
             + "\n\t" + Constants.LOG_PROP + ": keep logs, defaults to false"
             + "\n\t" + Constants.LOG_PATH_PROP + ": directory path with trailing /, (default = data/logs/)"
             + "\n\t" + Constants.MMAX_EXPORT_PATH_PROP + ": MMAX export path with trailing / (default = data/mmax2/"
@@ -155,12 +157,10 @@ public class LVCoref {
         System.out.flush();
     }
       
-	public static void main(String[] args) throws Exception {
-        /**
-         * Parse arguments
-         */
-        props = StringUtils.argsToProperties(args);
-        System.err.println(props);
+    
+    public static void initializeProperties(Properties properties) throws InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException, ClassNotFoundException {
+    	props = properties;
+    	
         String inputTypeString = props.getProperty(Constants.INPUT_PROP, "conll");
         if (inputTypeString.equalsIgnoreCase("conll")) inputType = inputTypes.STDIN_CONLL;
         if (inputTypeString.equalsIgnoreCase("json")) inputType = inputTypes.STDIN_JSON;
@@ -168,6 +168,7 @@ public class LVCoref {
         String outputTypeString = props.getProperty(Constants.OUTPUT_PROP, "conll");
         if (outputTypeString.equalsIgnoreCase("conll")) outputType = outputTypes.STDOUT_CONLL;
         if (outputTypeString.equalsIgnoreCase("json")) outputType = outputTypes.STDOUT_JSON;
+        if (outputTypeString.equalsIgnoreCase("none")) outputType = outputTypes.NONE;
         
         conllInput = props.getProperty(Constants.CONLL_INPUT_LIST, null);
         
@@ -205,6 +206,17 @@ public class LVCoref {
         
         Constants.printConstants(logger); //output constants to console
         
+        dictionaries = new Dictionaries();
+    }
+    
+    
+	public static void main(String[] args) throws Exception {
+
+		Properties properties = StringUtils.argsToProperties(args);
+        System.err.println(properties);
+        
+        initializeProperties(properties);
+        
         if (Constants.MULTIPLE_DOCS_EVAL) {
             inputConllList = new ArrayList<String>(Arrays.asList(conllInput.split(",")));
             String mmaxGold = props.getProperty(Constants.MMAX_GOLD_PROP, "");
@@ -213,8 +225,6 @@ public class LVCoref {
             if (inputConllList.size() != mmaxGoldList.size()) System.err.println("Incorrect number of files for evaluation");    
             docID = 0;
         }
-        
-        Dictionaries dictionaries = new Dictionaries();
         
         if (Constants.MULTIPLE_DOCS_EVAL) {
             for (documentID=0; documentID < inputConllList.size(); documentID++) {
@@ -226,7 +236,7 @@ public class LVCoref {
                     System.err.println("Could not read conll file");
                     ex.printStackTrace();
                 }
-                if (d.tree.size() > 0) processDocument(d, props);                
+                if (d.tree.size() > 0) processDocument(d);                
             }
         } else {
         
@@ -245,7 +255,7 @@ public class LVCoref {
                     break;
                 }
                 
-                if (d.tree.size() > 0) processDocument(d, props);
+                if (d.tree.size() > 0) processDocument(d);
                 
                 break;
             case STDIN_JSON:
@@ -259,7 +269,7 @@ public class LVCoref {
                         ex.printStackTrace();
                         break;
                     }
-                    if (doc.tree.size() > 0) processDocument(doc, props);  
+                    if (doc.tree.size() > 0) processDocument(doc);  
                     else break;
                     documentID++;
                 }
@@ -275,7 +285,7 @@ public class LVCoref {
                         ex.printStackTrace();
                         break;
                     }
-                    if (doc.tree.size() > 0) processDocument(doc, props);  
+                    if (doc.tree.size() > 0) processDocument(doc);  
                     else break;
                     documentID++;
                 }
@@ -284,7 +294,7 @@ public class LVCoref {
     };
         
     
-    public static void processDocument(Document d, Properties props) { 
+    public static void processDocument(Document d) { 
         String mmaxGold;
         if (Constants.MULTIPLE_DOCS_EVAL) {
             mmaxGold = mmaxGoldList.get(documentID);
@@ -355,7 +365,7 @@ public class LVCoref {
         //set final mention borders for precise border conll output and html visualization
         for (Node n : d.tree) {
             n.markMentionBorders(d, true);
-        }        
+        }
         
         if(doScore()) {        
             logger.fine("Pairwise score for this doc: ");
@@ -430,6 +440,8 @@ public class LVCoref {
                     Logger.getLogger(LVCoref.class.getName()).log(Level.SEVERE, null, ex);
                 }
                 break;
+            case NONE:
+            	break;
             default:
                 try {
                     ps = new PrintStream(System.out, true, "UTF8");

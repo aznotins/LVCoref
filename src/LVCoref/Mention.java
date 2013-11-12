@@ -1,14 +1,17 @@
 package LVCoref;
 
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+
 import LVCoref.Dictionaries.Animacy;
+import LVCoref.Dictionaries.Case;
 import LVCoref.Dictionaries.Gender;
 import LVCoref.Dictionaries.MentionType;
 import LVCoref.Dictionaries.Number;
-import LVCoref.Dictionaries.Case;
 import LVCoref.Dictionaries.PronounType;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
 
 public class Mention implements Comparable<Mention>{
     Document document;
@@ -266,6 +269,8 @@ public class Mention implements Comparable<Mention>{
     
     public boolean categoryMatch(Mention m) {
         if (categories == null || m.categories == null || categories.size() == 0 ||  m.categories.size()==0) return true;
+        if ((categories.contains("person") || categories.contains("profession")) 
+        		&& (m.categories.contains("person") || m.categories.contains("profession"))) return true;
         if (categories.contains("other") || m.categories.contains("other")) return true;
         if (categories.containsAll(m.categories)) return true;
         return false;

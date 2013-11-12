@@ -98,6 +98,7 @@ public class Resolve {
     }
     private static void _resolve(Document d, Mention s, Mention t, String comment) {
         if (s.corefClusterID == t.corefClusterID) return;
+        if (Constants.PRINT_DECISIONS) System.err.println(comment + "\t" + s.nerString + "\t" + t.nerString);        
         d.mergeClusters(s, t);
         s.addRefComm(t, comment);
         if (LVCoref.doScore()) {
@@ -134,7 +135,7 @@ public class Resolve {
                 //+ "&& Filter.containsAllClusterModifiers(s,t)"
                 + "&& Filter.modifierConstraint(s,t)"
                 + "";
-        _resolveFirst(d, filter, "allClusterModifiers");
+        _resolveFirst(d, filter, "relaxedHeadMath-allClusterModifiers");
         if (Constants.VERBOSE) System.err.println("Operation count = " + Filter.op);
     }    
 
@@ -174,7 +175,6 @@ public class Resolve {
                 + "&& Filter.sameCategoryConstraint(s,t) "
                 + "&& (!Filter.genitive(s,t) || Filter.isPerson(s) || Filter.isPerson(t)) "
                 //+ "&& !((Filter.isLocation(s) || Filter.isLocation(t)) && (Filter.locative(s) || Filter.locative(t)))"
-                + "&& Filter.distance(s,t) < 1 "
                 + "&& Filter.inPlainApposition(s,t) ";
 //                + "||"
 //                + "Filter.isQuoteMention(s)";

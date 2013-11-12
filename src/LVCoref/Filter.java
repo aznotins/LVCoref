@@ -6,6 +6,8 @@ package LVCoref;
 
 import LVCoref.Document;
 import LVCoref.Mention;
+
+import java.util.Arrays;
 import java.util.Set;
 
 /**
@@ -150,7 +152,8 @@ public class Filter {
         //if (true) return true;
         _updateOperationCount();
         Set<String> cat = s.document.dict.categoryIntersection(s.categories, t.categories);
-        if (cat.size() >= 1) return true;
+        boolean persons = (s.categories.contains("person") || s.categories.contains("profession")) && (t.categories.contains("person") || t.categories.contains("profession"));
+        if (cat.size() >= 1 || persons) return true;
         return false;
     }
     public static boolean sameCategoryConstraint(Mention s, Mention t) {
@@ -276,7 +279,7 @@ public class Filter {
     }
     public static boolean inPlainApposition(Mention s, Mention t) {
         _updateOperationCount();
-        if (s.end + 1 == t.start || t.start +1 == s.start) {
+        if (s.end + 1 == t.start || t.end +1 == s.start) {
             return true;
         }
         return false;

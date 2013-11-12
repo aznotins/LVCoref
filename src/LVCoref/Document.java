@@ -8,6 +8,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.util.*;
@@ -782,7 +783,7 @@ public class Document {
             if (isMention && (cat.equals("O") || !cur_cat.equals(cat) || tree.get(id).sentStart)) {
                 Mention m = null;
                 if (!cur_cat.equals("O")) { // && !n.ne_annotation.equals("product") && !n.ne_annotation.equals("time") && !n.ne_annotation.equals("sum") && !n.ne_annotation.equals("event")
-                	if (cur_cat.equals("profession")) cur_cat = "person";
+                	//if (cur_cat.equals("profession")) cur_cat = "person";
                     LVCoref.logger.fine("NER Mention :("+start+" " + (id-1)+") " + getSubString(start, id-1) + " " + cur_cat);
                     if (proper_cat.contains(cur_cat)) {
                         LVCoref.logger.fine("NER Mention PROPER " + cur_cat);
@@ -1756,6 +1757,19 @@ public class Document {
     	LVCoref.logger.fine("MENTIONS:");
     	for (Mention m : mentions) {
     		LVCoref.logger.fine(m.sel + "\t" + m + "\t" + m.categories);
+    	}
+    }
+    
+    public void printSimpleText(PrintStream s) {
+    	for (Node n : tree) {
+    		for (int i = 0; i < n.mentionStartList.size(); i++) s.print("[");
+    		s.print(n.word); s.print("#"+n.id);
+    		s.print(" ");
+    		for (int i = 0; i < n.mentionEndList.size(); i++) {
+    			if (n.mention != null) s.print(n.mention.corefClusterID); 
+    			s.print("] ");
+    		}
+    		if (n.sentEnd) s.println();
     	}
     }
 }
