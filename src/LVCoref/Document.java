@@ -948,7 +948,7 @@ public class Document {
                     if (q.mention != null && q.mention != m) {
                         q.mention.tmp = true;
                         LVCoref.logger.fine(Utils.getMentionComment(this, m, "Removed nested quote mention"));
-                        System.out.println("REMOVED QUOTE " + q.mention.nerString);
+                        //System.err.println("REMOVED QUOTE " + q.mention.nerString);
                     }
                 }
             }
