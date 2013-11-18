@@ -364,8 +364,11 @@ public class Mention implements Comparable<Mention>{
     // Vai šis mention ir vairāk reprezentatīvs par p
     public boolean moreRepresentative(Mention p) {
         if (p == null) return true;
+        //System.err.println(nerString +  "("+(category!=null?category:"null")+")"+ " : " + p.nerString + "("+(p.category!=null?p.category:"null")+")");
         if (this.type == MentionType.PRONOMINAL) return false; // PP - lai nav vietniekvārdi kā reprezentatīvākie
         if (p.type == MentionType.PRONOMINAL) return true;
+        if (p.category != null && this.category != null && p.category.equals("profession") && this.category.equals("person") && type == MentionType.PROPER) return true;
+        if (p.category != null && this.category != null && p.category.equals("person") && this.category.equals("profession") && p.type == MentionType.PROPER) return false;
         if (p.type!=Dictionaries.MentionType.PROPER && type==Dictionaries.MentionType.PROPER) return true;
         if (getLength() > p.getLength()) {
             return true;

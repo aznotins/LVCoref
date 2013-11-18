@@ -31,7 +31,7 @@ import java.util.Arrays;
 public class LVCoref {
     
     private enum inputTypes {CONLL, STDIN_JSON, STDIN_CONLL};
-    private enum outputTypes {CONLL, STDOUT_CONLL, STDOUT_JSON, NONE};
+    private enum outputTypes {CONLL, STDOUT_CONLL, STDOUT_JSON, NONE, TEXT};
     public static final Logger logger = Logger.getLogger(LVCoref.class.getName());
     public static Properties props;
     public static Dictionaries dictionaries;
@@ -168,6 +168,7 @@ public class LVCoref {
         String outputTypeString = props.getProperty(Constants.OUTPUT_PROP, "conll");
         if (outputTypeString.equalsIgnoreCase("conll")) outputType = outputTypes.STDOUT_CONLL;
         if (outputTypeString.equalsIgnoreCase("json")) outputType = outputTypes.STDOUT_JSON;
+        if (outputTypeString.equalsIgnoreCase("text")) outputType = outputTypes.TEXT;
         if (outputTypeString.equalsIgnoreCase("none")) outputType = outputTypes.NONE;
         
         conllInput = props.getProperty(Constants.CONLL_INPUT_LIST, null);
@@ -437,7 +438,16 @@ public class LVCoref {
                     d.outputJSON(ps);
                 } catch (UnsupportedEncodingException ex) {
                     System.err.println("Unsupported output encoding");
-                    Logger.getLogger(LVCoref.class.getName()).log(Level.SEVERE, null, ex);
+                    ex.printStackTrace();
+                }
+                break;
+            case TEXT :
+                try {
+                    ps = new PrintStream(System.out, true, "UTF8");
+                    d.printSimpleText(ps);
+                } catch (UnsupportedEncodingException ex) {
+                    System.err.println("Unsupported output encoding");
+                    ex.printStackTrace();
                 }
                 break;
             case NONE:
@@ -448,7 +458,7 @@ public class LVCoref {
                     d.outputCONLL(ps);
                 } catch (UnsupportedEncodingException ex) {
                     System.err.println("Unsupported output encoding");
-                    Logger.getLogger(LVCoref.class.getName()).log(Level.SEVERE, null, ex);
+                    ex.printStackTrace();
                 }
         }
         if (htmlOutput != null) {

@@ -424,7 +424,7 @@ public class Document {
             JSONArray aliasesArr = new JSONArray();
             aliasesArr.addAll(aliases);            
             NEObj.put("aliases", aliasesArr);
-            NEObj.put("type", cluster.firstMention.category);
+            NEObj.put("type", cluster.representative.category);
             if (cluster.representative.titleRepresentative()) NEObj.put("isTitle", 1);
             JSONObject oInflections = new JSONObject();
             String representative = cluster.representative.nerString;;
@@ -1766,7 +1766,11 @@ public class Document {
     		s.print(n.word); s.print("#"+n.id);
     		s.print(" ");
     		for (int i = 0; i < n.mentionEndList.size(); i++) {
-    			if (n.mention != null) s.print(n.mention.corefClusterID); 
+    			if (n.mention != null) {
+    				s.print("@");
+    				s.print(n.mention.category!=null? n.mention.category : "null");
+    				s.print(n.mention.corefClusterID); 
+    			}
     			s.print("] ");
     		}
     		if (n.sentEnd) s.println();
