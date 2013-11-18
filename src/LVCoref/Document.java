@@ -412,7 +412,7 @@ public class Document {
             	Expression e;
 				try {
 					e = new Expression(m.nerString);
-					String normalised = e.normalize();
+					String normalised = e.inflect("Nominatīvs", m.category);
 	            	if (normalised != null) aliases.add(normalised);
 	            	else aliases.add(m.nerString);   
 				} catch (Exception e1) {
@@ -430,11 +430,13 @@ public class Document {
             String representative = cluster.representative.nerString;;
             try {
             	Expression e = new Expression(cluster.representative.nerString);
-            	Map<String,String> inflections= e.getInflections(null);
+            	Map<String,String> inflections = e.getInflections(cluster.firstMention.category); //TODO - vai firstMention.category ir the pareizā lieta?
+            	//System.err.printf("Saucam getInflections vārdam '%s' ar kategoriju '%s'\n", cluster.representative.nerString, cluster.firstMention.category);
             	for (String i_case : inflections.keySet()) {
             		oInflections.put(i_case, inflections.get(i_case));
             	}
-            	representative = e.normalize();
+            	representative = e.inflect("Nominatīvs", cluster.firstMention.category);
+            	//System.err.printf("Locījām frāzi '%s' ar kategoriju '%s', dabūjām '%s'\n", cluster.representative.nerString, cluster.firstMention.category, representative);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
