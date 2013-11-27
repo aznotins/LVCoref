@@ -787,12 +787,19 @@ public class Document {
                 if (!cur_cat.equals("O")) { // && !n.ne_annotation.equals("product") && !n.ne_annotation.equals("time") && !n.ne_annotation.equals("sum") && !n.ne_annotation.equals("event")
                 	//if (cur_cat.equals("profession")) cur_cat = "person";
                     LVCoref.logger.fine("NER Mention :("+start+" " + (id-1)+") " + getSubString(start, id-1) + " " + cur_cat);
+                    int end = id-1;
+                    if (tree.get(start).isQuote()) {
+                    	start++; //System.err.println("Removed ner start quote :"  + getSubString(start, end));
+                    }                    
+                    if (tree.get(end).isQuote()) {
+                    	end--; //System.err.println("Removed ner end quote :"  + getSubString(start, end));
+                    }
                     if (proper_cat.contains(cur_cat)) {
                         LVCoref.logger.fine("NER Mention PROPER " + cur_cat);
-                        m = setMention(start, id-1, cur_cat, MentionType.PROPER);
+                        m = setMention(start, end, cur_cat, MentionType.PROPER);
                     } else if (filter_cat.contains(cur_cat)) {
                         LVCoref.logger.fine("NER Mention NOMINAL " + cur_cat);
-                        m = setMention(start, id-1, cur_cat, MentionType.NOMINAL);
+                        m = setMention(start, end, cur_cat, MentionType.NOMINAL);
                     }
                     else {
                         LVCoref.logger.fine("NER Unsupported category @" + cur_cat);
