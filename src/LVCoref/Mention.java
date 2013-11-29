@@ -16,17 +16,18 @@ import LVCoref.Dictionaries.PronounType;
 public class Mention implements Comparable<Mention>{
     Document document;
 	public Integer id;
-	public String sel = "O"; // source comment
-    
+	
+	// Source that created mention
+	public enum MentionSource { DEFAULT, NER, QUOTE, ABBREVIATION, TMP, LIST, ALLNODES, PROPERNODES, DETALIZEDNODES }
+	public MentionSource source = MentionSource.DEFAULT;
+    public boolean strict = false; //listed mentions, this head is important for genetives
+	
     public Boolean resolved = false;
-    public String bucket = ""; //acronym quote etc
     
 	public String headString;
     public String nerString = "";
     public String normString;
     
-    public boolean tmp = false;
-    public boolean strict = false; //listed mentions, this head is important for genetives
     public boolean modifiersSet = false;
     /**
      * Info about parse tree
@@ -73,6 +74,7 @@ public class Mention implements Comparable<Mention>{
     
     Mention(Mention m) {
         id = m.id;
+        source = m.source;
         resolved = m.resolved;
         headString = m.headString;
         nerString = m.nerString;
@@ -100,20 +102,23 @@ public class Mention implements Comparable<Mention>{
         document = m.document;
     }
   
-    
+    /**
+     * Create mention. Does not set mention category
+     * @param d
+     * @param id
+     * @param node
+     * @param type
+     * @param start
+     * @param end
+     */
     Mention(Document d, int id, Node node, MentionType type, int start, int end) {
         this.id = id;
 		this.root = node.id;
         this.node = node;
         this.headString = node.lemma;
-        //this.nerString = ner;
-        //        this.start = node.getSpanStart(d).id;
-//        this.end = node.getSpanEnd(d).id;
         this.start = start;
         this.end = end;
-        //this.nerString = node.nodeProjection(d);
         this.nerString = d.getSubString(start, end);
-                
         this.sentNum = node.sentNum;
         categories = new HashSet<String>();
         words = new HashSet<String>();
@@ -121,9 +126,6 @@ public class Mention implements Comparable<Mention>{
         properModifiers = new HashSet<String>();
         this.type = type;
         document = d;
-        
-        //this.category = d.dict.getCategory(node.lemma);
-        //this.categories = d.dict.getCategories(node.lemma);
         
         //Nomial word
         if (node.tag.charAt(0) == 'n') {
@@ -145,7 +147,6 @@ public class Mention implements Comparable<Mention>{
                 //case 's':mentionCase = Case.NOMINATIVE; break; //ģenetīvenis
                 default:mentionCase = Case.UNKNOWN;
             };
-            
         } 
         //Pronoun
         else if (node.tag.charAt(0) == 'p') {
@@ -178,22 +179,15 @@ public class Mention implements Comparable<Mention>{
                 case 'g':pronounType = PronounType.DEFINITE; break;
                 default:pronounType = PronounType.UNKNOWN;
             };
-            
-            //@TODO Anafora tags?
-            
             person = node.tag.charAt(2)-'0';
             this.comments = "";
-           
-            
-            
 
         } else {
             gender = Gender.UNKNOWN;
             number = Number.UNKNOWN;            
             mentionCase = Case.UNKNOWN;
             d.logger.fine("Unsuported tag: " + node.tag);
-        }
-        
+        }        
     }
     
     public boolean sameGender(Mention m) {
@@ -236,7 +230,7 @@ public class Mention implements Comparable<Mention>{
     }
     
     public String toString() {
-        return "["+nerString + "] " + "@head="+ headString + " "+" @id="+id+ " "+ " ("+getContext(document, 3) + ")";
+        return "["+nerString + "] " + source + " @head="+ headString + " "+" @id="+id+ " "+ " ("+getContext(document, 3) + ")";
         
 //      StringBuilder result = new StringBuilder();
 //      String newLine = System.getProperty("line.separator");
@@ -352,7 +346,7 @@ public class Mention implements Comparable<Mention>{
     
     public boolean isQuote() {
     	boolean res = false;
-    	if (bucket.equals("quote")) res = true;
+    	if (source == MentionSource.QUOTE) res = true;
     	else {
     		Node prev = document.getNode(start-1);
     		Node next = document.getNode(end+1);

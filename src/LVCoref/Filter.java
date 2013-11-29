@@ -4,11 +4,9 @@
  */
 package LVCoref;
 
-import LVCoref.Document;
-import LVCoref.Mention;
-
-import java.util.Arrays;
 import java.util.Set;
+
+import LVCoref.Mention.MentionSource;
 
 /**
  *
@@ -170,7 +168,7 @@ public class Filter {
     
     public static boolean isQuoteMention(Mention s) {
         _updateOperationCount();
-        return s.bucket.equals("quote");
+        return s.source == MentionSource.QUOTE;
     }
     
     public static boolean isPerson(Mention s) {

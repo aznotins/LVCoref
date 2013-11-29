@@ -315,8 +315,7 @@ public class LVCoref {
             d.setMentionCategories();
             d.setMentionModifiers(false);
         } else {
-            //if (nerAnnotation.length() > 0) d.setMentionsNER(nerAnnotation);
-           d.setMentionsFromNEAnnotation();
+            d.setMentionsFromNEAnnotation();
             
             d.setQuoteMentions();
             

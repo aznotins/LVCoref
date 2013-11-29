@@ -1,6 +1,8 @@
 package LVCoref;
 
 import LVCoref.Dictionaries.MentionType;
+import LVCoref.Mention.MentionSource;
+
 import java.util.List;
 import org.apache.commons.jexl2.Expression;
 import org.apache.commons.jexl2.JexlContext;
@@ -102,10 +104,10 @@ public class Resolve {
         d.mergeClusters(s, t);
         s.addRefComm(t, comment);
         if (LVCoref.doScore()) {
-            if ((s.node.goldMention == null || t.node.goldMention == null || s.node.goldMention.corefClusterID != t.node.goldMention.corefClusterID) &&!s.tmp && !t.tmp) {
+            if ((s.node.goldMention == null || t.node.goldMention == null || s.node.goldMention.corefClusterID != t.node.goldMention.corefClusterID) && s.source != MentionSource.TMP  && t.source != MentionSource.TMP) {
                 if (Constants.PRINT_DECISIONS) System.out.println("-" + Utils.getMentionPairString(d, s, t, comment));
             } else {
-                if (s.node.goldMention != null && t.node.goldMention != null && s.node.goldMention.corefClusterID == t.node.goldMention.corefClusterID &&!s.tmp && !t.tmp) {
+                if (s.node.goldMention != null && t.node.goldMention != null && s.node.goldMention.corefClusterID == t.node.goldMention.corefClusterID && s.source != MentionSource.TMP  && t.source != MentionSource.TMP) {
                     if (Constants.PRINT_DECISIONS) System.out.println("+" + Utils.getMentionPairString(d, s, t, comment));
                 }
             }
