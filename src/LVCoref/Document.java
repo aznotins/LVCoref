@@ -423,21 +423,23 @@ public class Document {
                 //System.err.printf("head:%s ner:%s\n", m.headString, m.nerString);
             }
             //System.err.println(aliases.toString());
+            String category = cluster.representative.category; //TODO - vai representative.category ir pareizā lieta?
             JSONArray aliasesArr = new JSONArray();
             aliasesArr.addAll(aliases);            
             NEObj.put("aliases", aliasesArr);
-            NEObj.put("type", cluster.representative.category);
+            NEObj.put("type", category);
+            if (category == null) System.err.println("Empty cluster category " + cluster.representative);
             if (cluster.representative.titleRepresentative()) NEObj.put("isTitle", 1);
             JSONObject oInflections = new JSONObject();
             String representative = cluster.representative.nerString;;
             try {
             	Expression e = new Expression(cluster.representative.nerString);
-            	Map<String,String> inflections = e.getInflections(cluster.firstMention.category); //TODO - vai firstMention.category ir the pareizā lieta?
+            	Map<String,String> inflections = e.getInflections(category);
             	//System.err.printf("Saucam getInflections vārdam '%s' ar kategoriju '%s'\n", cluster.representative.nerString, cluster.firstMention.category);
             	for (String i_case : inflections.keySet()) {
             		oInflections.put(i_case, inflections.get(i_case));
             	}
-            	representative = e.inflect("Nominatīvs", cluster.firstMention.category);
+            	representative = e.inflect("Nominatīvs", category);
             	//System.err.printf("Locījām frāzi '%s' ar kategoriju '%s', dabūjām '%s'\n", cluster.representative.nerString, cluster.firstMention.category, representative);
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -518,12 +520,12 @@ public class Document {
                 Node head = getHead(start, end);
                 
                 
-                if (category.equals("profession")) category = "person";
-                if (category.equals("event")) continue;
+                //if (category.equals("profession")) category = "person";
+                //if (category.equals("event")) continue;
                 //if (category.equals("product")) continue;
-                if (category.equals("media")) continue;
-                if (category.equals("time")) continue;
-                if (category.equals("sum")) continue;
+                //if (category.equals("media")) continue;
+                //if (category.equals("time")) continue;
+                //if (category.equals("sum")) continue;
                 
                 //if (head.tag.charAt(0) == 'p') continue;
                 
@@ -937,7 +939,7 @@ public class Document {
                 //if (gold) acronyms.put(n.word, n);
                 acronyms.put(n.word, n);
                 if(n.mention == null) {                
-                    Mention m = setMention(n.id, n.id, "organization", MentionType.PROPER);
+                    Mention m = setMention(n.id, n.id, "organization", MentionType.PROPER); // TODO nav tas labākais, taču vispār NER jau vajadzētu šo nomarķēt
                     if (m != null) {
                         m.strict = true;                        
                         LVCoref.logger.fine(Utils.getMentionComment(this, m, "Set abbreviation mention"));

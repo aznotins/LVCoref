@@ -318,13 +318,10 @@ public class LVCoref {
             d.setMentionsFromNEAnnotation();
             
             d.setQuoteMentions();
-            
             d.setAbbreviationMentions(false);
             d.setListMentions();
-                         //d.setMentions();
             d.setProperNodeMentions(true);
             d.setDetalizedNominalMentions();
-            
             d.setMentionCategories();
            
             d.tweakPersonMentions();d.tweakPersonMentions();//FIXME 
