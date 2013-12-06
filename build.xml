@@ -62,8 +62,8 @@
         </manifest>
     </jar>
     
-    <zip destfile="LVCoref.zip" basedir="." includes="dist/**,lists/**,lib/**,*.bat,*.sh,*.prop,README.md,LICENSE.txt">
-        <zipfileset dir="other" prefix="" excludes="maltparser/**,maltparser-lvsynt/**,maltparser-lvsem/**,LVTagger/**" />
+    <zip destfile="LVCoref.zip" basedir="." includes="dist/**,lists/**,lib/**,*.bat,*.sh,*.prop,README.md,LICENSE.txt,sample*.*">
+        <!-- <zipfileset dir="other" prefix="" excludes="maltparser/**,maltparser-lvsynt/**,maltparser-lvsem/**,LVTagger/**" /> -->
     </zip>
   </target>
 
