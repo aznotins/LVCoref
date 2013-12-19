@@ -428,7 +428,7 @@ public class Document {
             aliasesArr.addAll(aliases);            
             NEObj.put("aliases", aliasesArr);
             NEObj.put("type", category);
-            if (category == null) System.err.println("Empty cluster category " + cluster.representative);
+            // if (category == null) System.err.println("Empty cluster category " + cluster.representative);
             if (cluster.representative.titleRepresentative()) NEObj.put("isTitle", 1);
             JSONObject oInflections = new JSONObject();
             String representative = cluster.representative.nerString;;
@@ -1547,16 +1547,15 @@ public class Document {
         }
         Node head;
         if (cand.size() == 0) {
-        	System.err.println("["+start+ ".." +end +"] head candidates: " + cand);
+        	// System.err.println("["+start+ ".." +end +"] head candidates: " + cand);
         	head = tree.get(end); // FIXME - teorētiski šeit nevajadzētu nonākt, bet nonāk; varbūt node.id lauki ir nepareizi? 
         } else head = cand.get(cand.size()-1);//FIXME
-        //Node head = cand.get(0);
-        //needed if markable contains multiple head candidates
-        //lowest common ancestor is returned
+//        Node head = cand.get(0);
+//        needed if markable contains multiple head candidates
+//        lowest common ancestor is returned
 //        for (int i = 1; i < cand.size(); i++) {
 //            head = getCommonAncestor(head, cand.get(i));
 //        }
-
         return head;
     }
     

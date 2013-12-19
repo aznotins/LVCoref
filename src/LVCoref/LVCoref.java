@@ -205,7 +205,7 @@ public class LVCoref {
         
         logger.fine(props.toString());
         
-        Constants.printConstants(logger); //output constants to console
+        if (Constants.VERBOSE) Constants.printConstants(logger); //output constants to console
         
         dictionaries = new Dictionaries();
     }
@@ -214,7 +214,7 @@ public class LVCoref {
 	public static void main(String[] args) throws Exception {
 
 		Properties properties = StringUtils.argsToProperties(args);
-        System.err.println(properties);
+        //System.err.println(properties);
         
         initializeProperties(properties);
         

@@ -75,9 +75,9 @@ public class MentionBrowser {
         try {
 	        jexlContext.set("t", t);
 	        agree = (Boolean) expression.evaluate(jexlContext);
-        } catch (Exception ex) {
-        	ex.printStackTrace();
+        } catch (Exception ex) {        	
         	System.err.println("Error evaluating jexl expression");
+        	ex.printStackTrace(System.err);
         }
         return agree;
     }

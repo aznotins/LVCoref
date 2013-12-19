@@ -177,7 +177,7 @@ public class MMAX2 {
                 if (interval.length > 1) {
                     end = Integer.parseInt(interval[1].substring(5)) - 1;
                 }
-                System.err.println(i+" :" + start+ "-"+end);
+                //System.err.println(i+" :" + start+ "-"+end);
 //                if (category.equals("profession")) category = "person";
 //                if (category.equals("event")) continue;
 //                //if (category.equals("product")) continue;
