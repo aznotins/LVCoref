@@ -413,8 +413,8 @@ public class Document {
             	if (m.type == MentionType.PRONOMINAL) continue; // Vietniekvārdus aliasos neliekam
             	Expression e;
 				try {
-					e = new Expression(m.nerString);
-					String normalised = e.inflect("Nominatīvs", m.category);
+					e = new Expression(m.nerString, m.category, false);
+					String normalised = e.inflect("Nominatīvs");
 	            	if (normalised != null) aliases.add(normalised);
 	            	else aliases.add(m.nerString);   
 				} catch (Exception e1) {
@@ -433,13 +433,13 @@ public class Document {
             JSONObject oInflections = new JSONObject();
             String representative = cluster.representative.nerString;;
             try {
-            	Expression e = new Expression(cluster.representative.nerString);
-            	Map<String,String> inflections = e.getInflections(category);
+            	Expression e = new Expression(cluster.representative.nerString, category, false);
+            	Map<String,String> inflections = e.getInflections();
             	//System.err.printf("Saucam getInflections vārdam '%s' ar kategoriju '%s'\n", cluster.representative.nerString, cluster.firstMention.category);
             	for (String i_case : inflections.keySet()) {
             		oInflections.put(i_case, inflections.get(i_case));
             	}
-            	representative = e.inflect("Nominatīvs", category);
+            	representative = e.inflect("Nominatīvs");
             	//System.err.printf("Locījām frāzi '%s' ar kategoriju '%s', dabūjām '%s'\n", cluster.representative.nerString, cluster.firstMention.category, representative);
 			} catch (Exception e) {
 				e.printStackTrace();
