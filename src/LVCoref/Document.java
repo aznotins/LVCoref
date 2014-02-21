@@ -1,8 +1,5 @@
 package LVCoref;
 
-import LVCoref.Dictionaries.MentionType;
-import LVCoref.Mention.MentionSource;
-
 import java.awt.Color;
 import java.io.BufferedReader;
 import java.io.File;
@@ -10,12 +7,21 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.PrintWriter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
@@ -26,7 +32,8 @@ import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 import org.w3c.dom.NodeList;
 
-
+import LVCoref.Dictionaries.MentionType;
+import LVCoref.Mention.MentionSource;
 
 /**
  * Document class contains document parse tree structure, 
@@ -101,27 +108,6 @@ public class Document {
         acronyms = new HashMap<String, Node>();
     }
     
-    
-    public void printMentions(){
-        System.out.println("------Mentions---------");
-        for (Mention m : mentions) {
-			System.out.println("#" +m.id + "\t" + m.node.word + "\t" + m.type+ "\t" + m.category + " ^"+m.node.parent+" "/*n.children.toString()*/);
-            System.out.println(m.toString());
-        }
-        System.out.println("------/Mentions---------");
-    }
-    
-    public void printNodes(Collection<Node> c) {
-        for (Node n: c) {
-            System.out.println(n.toString());
-        }
-//      for(Node n : d.tree) {
-//			System.out.print("#" +n.id + "\t" + n.word + "\t" + n.type + "\t" + n.category + " ^"+n.parent+" "/*n.children.toString()*/); 
-//			System.out.print("[" );for(int g : n.children) {System.out.print(" " + d.tree.get(g).word + "#" +g+",");} System.out.println("]" );
-//		}
-    }
-
-    
     public String getSubString(int startID, int endID) {
         String s = "";
         startID = Math.max(startID, 0);
@@ -141,43 +127,18 @@ public class Document {
         return s.trim();
             
     }
-    
-    
-//    public void outputCONLL(String filename) throws IOException {
-//        PrintWriter out = new PrintWriter(new FileWriter(filename));
-//         
-//        for (Node n : tree) {
-//            out.print(n.conll_string);
-//            if (n.mention != null) {
-//                out.print("\t" + n.mention.id);
-//                if (n.mention.categories.size() > 0) out.print("\t" + Utils.implode(n.mention.categories, "|"));
-//                else out.print("\t_");
-//                if (corefClusters.get(n.mention.corefClusterID).corefMentions.size() > 1) out.print("\t" + n.mention.corefClusterID);
-//                else out.print("\t_");
-//            }
-//            else out.print("\t_\t_\t_");
-//            
-//            if (n.goldMention != null) {
-//                //System.out.println(n.goldMention);
-//                out.print("\t" + n.goldMention.id);
-//                out.print("\t" + Utils.implode(n.goldMention.categories, "|"));
-//                if (goldCorefClusters.get(n.goldMention.goldCorefClusterID).corefMentions.size() > 0) out.print("\t" + n.goldMention.goldCorefClusterID);
-//                else out.print("\t_");
-//            }
-//            else out.print("\t_\t_\t_");
-//            
-//            
-//            out.print('\n');
-//            
-//            if (n.sentEnd) out.print('\n');
-//        }     
-//    }
-    
+
+    /**
+     * Set conll coreference columns. Needs category to be set.
+     */
     public void setConllCorefColumns() {
         for (Node n : tree) {
             if (n.mention != null) {
                 n.conll_fields.add(Integer.toString(n.mention.corefClusterID));
-                if (n.mention.categories.size() > 0) n.conll_fields.add(Utils.implode(n.mention.categories, "|"));
+                if (n.mention.categories.size() > 0 && n.mention.category != null) {
+                	//n.conll_fields.add(Utils.implode(n.mention.categories, "|"));
+                	n.conll_fields.add(n.mention.category);
+                }
                 else n.conll_fields.add("_");
             } else {
                 n.conll_fields.add("_");
@@ -328,17 +289,28 @@ public class Document {
                 JSONArray tokens = (JSONArray) sentence.get("tokens");
                 for (int n_id = 0 ; n_id < tokens.size(); n_id++) {
                     JSONObject token = (JSONObject)tokens.get(n_id);
-                    String form = token.get("form").toString();
-                    String lemma = token.get("lemma").toString();                    
-                    String tag = token.get("tag").toString();
-                    String simpleTag = token.get("pos").toString();
-                    if (simpleTag.length() == 0 && tag.length() > 0) simpleTag = tag.substring(0, 1);
-                    String morphoFeatures = token.get("features").toString();
-                    Integer position = Integer.parseInt(token.get("index").toString());
-                    Integer parent_in_sentence = Integer.parseInt(token.get("parentIndex").toString());
+                    String form = token.containsKey("form") 
+                    		? token.get("form").toString() : "_";
+                    String lemma = token.containsKey("lemma") 
+                    		? token.get("lemma").toString() : "_";                    
+                    String tag = token.containsKey("tag") 
+                    		? token.get("tag").toString() : "_";
+                    String simpleTag = token.containsKey("pos") 
+                    		? token.get("pos").toString() : tag.substring(0, 1);
+                    String morphoFeatures = token.containsKey("features") 
+                    		? token.get("features").toString() : "_";
+                    Integer position = token.containsKey("index") 
+                    		? Integer.parseInt(token.get("index").toString()) : -1;
+                    Integer parent_in_sentence = token.containsKey("parentIndex") 
+                    		? Integer.parseInt(token.get("parentIndex").toString()) : -1;
                     String ner_label = "O";
-                    if (token.containsKey("namedEntityType")) ner_label = (String)token.get("namedEntityType");
-                    //parent_in_sentence = 0;
+                    if (token.containsKey("namedEntityType")) {
+                    	ner_label = (String)token.get("namedEntityType");
+                    }
+                    Integer namedEntityID = token.containsKey("namedEntityID") 
+                    		? Integer.parseInt(token.get("namedEntityID").toString()) : -1;
+                    String idType = token.containsKey("idType") 
+                    		? token.get("idType").toString() : "";
                     if (position == 1) {
                         if ((sentence_start_id != node_id)) {
                             sentences.add(sentence_start_id);
@@ -352,10 +324,14 @@ public class Document {
                     node.simpleTag = simpleTag;
                     node.morphoFeatures = morphoFeatures;
                     node.parentIndex = parent_in_sentence;
-                    node.conll_fields.addAll(Arrays.asList(position.toString(), form, lemma, simpleTag, tag, morphoFeatures, parent_in_sentence.toString()));
+                    node.conll_fields.addAll(Arrays.asList(position.toString(), 
+                    		form, lemma, simpleTag, tag, morphoFeatures, 
+                    		parent_in_sentence.toString()));
                     node.position = position;
                     node.sentNum = sentence_id;
                     node.ne_annotation = ner_label;
+                    node.namedEntityID = namedEntityID;
+                    node.idType = idType;
                     if (position == 1) { node.sentStart = true; }
                     if (parent_in_sentence == 0) node.sentRoot = true;
                     tree.add(node);
@@ -367,12 +343,124 @@ public class Document {
                 tree.get(node_id-1).sentEnd = true;
             }
             initializeNodeTree();
+            initializeBaseCoreference();
+            
         } catch (Exception e) {
             System.err.println("Error parsing input json data");
             e.printStackTrace(System.err);
         }
 	}
+
     
+    /**
+     * Initialize original mentions and coreferences provided from json document
+     */
+    public void initializeBaseCoreference() {
+    	for (Node n : tree) {
+    		if (n.namedEntityID > 0) {
+    			int start = n.getSpanStart(this).id;
+    			int end = n.getSpanEnd(this).id;
+    			Mention m = setMention(start, end);
+    			if (m != null) {
+    				m.source = MentionSource.BASE;
+    				if (corefClusters.containsKey(n.namedEntityID)) {
+    					CorefCluster c = new CorefCluster(this, -1);
+    					c.add(m);
+    					m.corefClusterID = -1;
+    					corefClusters.put(-1, c); // this cluster should be deleted in merging
+    					mergeClusters(c, corefClusters.get(n.namedEntityID));
+    				} else {
+    					CorefCluster c = new CorefCluster(this, n.namedEntityID);
+    					c.add(m);
+    					m.corefClusterID = n.namedEntityID;
+    					corefClusters.put(n.namedEntityID, c);
+    				}
+    				//System.err.println("New base mention " + m);
+    			} else {
+    				//System.err.println("Couldn't set mention: " + n);
+    			}
+    		}
+    	}
+    }
+    
+    public void useGoldClusters() {
+        for (int ci: goldCorefClusters.keySet()) {
+            CorefCluster cc = new CorefCluster(this, ci);
+            for (Mention m: goldCorefClusters.get(ci).corefMentions) {
+                Mention n = m.node.mention;
+                if (n != null) {
+                    cc.add(n);
+                    n.corefClusterID = ci;
+                } else {
+                }
+            }
+            corefClusters.put(ci, cc);
+        }
+    }
+    
+    /**
+     * For each mention create new cluster
+     */
+    public void initializeEntities() {
+        //initialize new cluster for each mention
+    	int id = maxClusterID() + 1;
+        for (Mention m: mentions) {
+            if (m.corefClusterID == -1) {
+                corefClusters.put(id, new CorefCluster(this, id));
+                corefClusters.get(id).add(m);
+                m.corefClusterID = id;
+                id++;
+            }            
+        }
+    }
+    
+    /**
+     * Put all mentions from m cluster to n
+     * @param m Mention
+     * @param n Mention
+     * @return true if cluster were changed
+     */
+    public boolean mergeClusters(Mention m, Mention n) {
+    	if (m == null || n == null) {
+    		System.err.println("Null mention");
+    		return false;
+    	}
+    	if (!corefClusters.containsKey(m.corefClusterID) 
+    			|| !corefClusters.containsKey(n.corefClusterID)) {
+    		System.err.println("Clusters not set for merged mentions");
+    		return false;
+    	}
+    	return mergeClusters(corefClusters.get(m.corefClusterID), 
+    			corefClusters.get(n.corefClusterID));
+    }
+    
+    public boolean mergeClusters(CorefCluster m, CorefCluster n) {
+    	if (m == null || n == null) {
+    		System.err.println("Null coref cluster");
+    		return false;
+    	}
+        if (m != n) {
+            int removeID = m.id;
+        	//System.err.printf("Merge: %d > %d; remove %d\n", m.id, n.id, removeID);
+            Set<Mention> cm = m.corefMentions;
+            for (Mention mm : cm) {
+                n.add(mm);
+                mm.corefClusterID = n.id;
+            }
+            corefClusters.remove(removeID);
+            return true;
+        } else {
+            return false;
+        }
+    }
+    
+    public int maxClusterID() {
+        int k = 0;
+        for (int i: corefClusters.keySet()) {
+            if (i > k) k = i;
+        }
+        return k;
+    }    
     
     @SuppressWarnings("unchecked")
 	public void outputJSON(PrintStream out) {
@@ -485,7 +573,6 @@ public class Document {
     }
     
     
-    
     /**
      * Add MMAX Gold Annotation
      * @param filename
@@ -531,9 +618,7 @@ public class Document {
                 
                 //currently supports only one mention per node as head
                 if (head.goldMention == null) {
-                    
-                    MentionType type = head.getType();
-                    Mention goldMention = new Mention(this, i, head, type , start, end); // @FIXME
+                    Mention goldMention = new Mention(this, i, head , start, end); // @FIXME
                     goldMention.document = this;
                     goldMention.start = start;
                     goldMention.end = end;
@@ -545,13 +630,13 @@ public class Document {
                                         
                     if (cluster.equals("empty")) {
                         cluster_id = cluster_c++;
-                        goldCorefClusters.put(cluster_id, new CorefCluster(cluster_id));
+                        goldCorefClusters.put(cluster_id, new CorefCluster(this, cluster_id));
                     } else {
                         cluster_id = classToInt.get(cluster);
                         if (cluster_id == null) {
                             cluster_id = cluster_c++;
                             classToInt.put(cluster, cluster_id);
-                            goldCorefClusters.put(cluster_id, new CorefCluster(cluster_id));
+                            goldCorefClusters.put(cluster_id, new CorefCluster(this, cluster_id));
                         }
                     }
                     goldCorefClusters.get(cluster_id).add(goldMention);
@@ -573,31 +658,6 @@ public class Document {
         return true;
     }
     
-      
-    /**
-     * Put all mentions from m cluster to n
-     * @param m Mention
-     * @param n Mention
-     * @return true if cluster were changed
-     */
-    public boolean mergeClusters(Mention m, Mention n) {
-        assert(m != null && n != null);
-        assert(corefClusters.get(m.corefClusterID) != null && corefClusters.get(n.corefClusterID) != null);
-        if (corefClusters.get(m.corefClusterID) != corefClusters.get(n.corefClusterID)) {
-            int removeID = m.corefClusterID;
-            Set<Mention> cm = corefClusters.get(m.corefClusterID).corefMentions;
-            // Set<Mention> cn = corefClusters.get(n.corefClusterID).corefMentions;
-            for (Mention mm : cm) {
-                getCluster(n.corefClusterID).add(mm);
-                mm.corefClusterID = n.corefClusterID;
-            }
-            corefClusters.remove(removeID);
-            return true;
-        } else {
-            return false;
-        }
-    }
-    
     
     public void updateProperWords() {
         for(Node n : tree) {
@@ -614,15 +674,7 @@ public class Document {
             }
         }
     }
-    
-    
-    public int maxClusterID() {
-        int k = 0;
-        for (int i: corefClusters.keySet()) {
-            if (i > k) k = i;
-        }
-        return k;
-    }
+   
     
     public void setTmpMentions() {
         int mention_id = mentions.size();
@@ -631,7 +683,7 @@ public class Document {
                 if (node.tag.charAt(0) == 'n' || node.tag.charAt(0) == 'p') {
                     if (!dict.excludeWords.contains(node.lemma)) {                        
                         node.isMention = true;
-                        Mention m = new Mention(this, mention_id++, node, node.getType(), node.id, node.id);
+                        Mention m = new Mention(this, mention_id++, node, node.id, node.id);
                         mentions.add(m);
                         node.mention = m;
                         m.source  = MentionSource.TMP;
@@ -653,7 +705,7 @@ public class Document {
             String cat = dict.getCategory(node.lemma);
             if (cat != null) {
                 node.isMention = true;
-                Mention m = new Mention(this, mention_id++, node, node.getType(), node.id, node.id);
+                Mention m = new Mention(this, mention_id++, node, node.id, node.id);
                 m.source = MentionSource.LIST;
                 m.strict = true;
                 mentions.add(m);
@@ -674,7 +726,7 @@ public class Document {
             }
             if (node.mention == null && node.isNoun() && node.isProper() && create) {
                 node.isMention = true;
-                Mention m = new Mention(this, mention_id++, node, node.getType(), node.id, node.id);
+                Mention m = new Mention(this, mention_id++, node, node.id, node.id);
                 mentions.add(m);
                 node.mention = m;
                 node.mention.source = MentionSource.PROPERNODES;
@@ -692,7 +744,7 @@ public class Document {
         for (Node node : tree) {
             if (node.mention == null && (node.isNoun() || node.isPronoun())) {
                 node.isMention = true;
-                Mention m = new Mention(this, mention_id++, node, node.getType(), node.id, node.id);
+                Mention m = new Mention(this, mention_id++, node, node.id, node.id);
                 m.source = MentionSource.ALLNODES;
                 mentions.add(m);
                 node.mention = m;
@@ -707,7 +759,7 @@ public class Document {
         for (Node node : tree) {
             if (node.isProper() && node.isNounGenitive() && node.parent != null && node.parent.mention == null && node.parent.isNoun()) {
                 node.parent.isMention = true;
-                Mention m = new Mention(this, mention_id++, node.parent, node.parent.getType(), node.parent.id, node.parent.id);
+                Mention m = new Mention(this, mention_id++, node.parent, node.parent.id, node.parent.id);
                 m.source = MentionSource.DETALIZEDNODES;
                 mentions.add(m);
                 node.parent.mention = m;
@@ -716,8 +768,13 @@ public class Document {
         }
     }
     
-   
     
+    /**
+     * 
+     * @param filename
+     * @return
+     */
+    @Deprecated
     public boolean setMentionsNER(String filename) {
         BufferedReader in = null;
         try {
@@ -899,31 +956,49 @@ public class Document {
         }
     }
     
+    /**
+     * Creates new mention and add to the mention list
+     * @param from
+     * @param to
+     * @param cat can be null or empty
+     * @param t
+     * @return created Mention or null on error
+     */
     public Mention setMention(int from, int to, String cat, MentionType t) {
-        Mention x = getMention(from, to, cat, t);
-        if (x != null) mentions.add(x);
+        Mention x = getMention(from, to);
+        if (x != null) {
+        	if (cat != null && cat.trim().length() > 0) {
+                x.categories.add(cat);
+                x.category = cat;
+            }
+        	if (t != null && t != MentionType.UNKNOWN) x.type = t;
+        	mentions.add(x);
+        	x.node.mention = x;
+        }
         return x;
     }
+    public Mention setMention(int from, int to) {
+    	return setMention(from, to, null, null);
+    }
     
-    public Mention getMention(int from, int to, String cat, MentionType t) {
-        
-        if (tree.get(to).tag.equals("zs")) to--; //FIXME 
-
+    /**
+     * Try to create new mention
+     * @param from
+     * @param to
+     * @param t
+     * @return Mention on success, null on failure
+     */
+    public Mention getMention(int from, int to) {
         Node head = getHead(from, to);
-        if (head.mention == null) {
+        if (head.mention == null || head.mention.source == MentionSource.BASE) {
+        	head.mention = null;
             //System.out.println("Mention \""+getSubString(from, to)+"\" head="+head.word);
             LVCoref.logger.fine("Mention \""+getSubString(from, to)+"\" head="+head.word);
             int id = mentions.size();
-            Mention m = new Mention(this, id, head, t, from, to);
-            head.mention = m;
-
+            Mention m = new Mention(this, id, head, from, to);
             m.start = from;
             m.end = to;
             m.root = head.id;
-            if (cat.trim().length() > 0) {
-                m.categories.add(cat);
-                m.category = cat;
-            }
             return m;
         } else {
             //System.err.println("setMention() mention with this head already set: " + "old=" + head.mention.nerString + " new=" + getSubString(from, to));
@@ -948,7 +1023,6 @@ public class Document {
                         LVCoref.logger.fine("Couldn't create abbreviation mention: " + n.word + "("+ n.id +")");
                     }
                 }
-                
             }
         }
     }
@@ -958,7 +1032,6 @@ public class Document {
      */
     public void removeNestedMentions() {
         int max_depth = 1;
-        List <Mention> mm = new ArrayList<Mention>();
         for (Mention m : mentions) {
             int l = 0;
             Node n = m.node.parent;
@@ -972,13 +1045,11 @@ public class Document {
                 }
                 n = n.parent;
             }
-            if (!nested) mm.add(m);
-            else {
+            if (nested) {
                 removeMention(m);
                 LVCoref.logger.fine(Utils.getMentionComment(this, m, "Removed nested mention"));
             }
         }
-        mentions = mm;
         normalizeMentions();
     }
     
@@ -988,65 +1059,44 @@ public class Document {
                 for (int i = m.start; i <= m.end; i++) {
                     Node q = tree.get(i);
                     if (q.mention != null && q.mention != m) {
-                        q.mention.source = MentionSource.TMP;
+                    	removeMention(m);
                         LVCoref.logger.fine(Utils.getMentionComment(this, m, "Removed nested quote mention"));
                         //System.err.println("REMOVED QUOTE " + q.mention.nerString);
                     }
                 }
             }
         }
-       removeTmpMentions();
+        normalizeMentions();
     }
     
     
     public void removePluralMentions() {
-        List <Mention> mm = new ArrayList<Mention>();
         for (Mention m : mentions) {
             if (m.number == Dictionaries.Number.PLURAL) {
                 removeMention(m);
                 LVCoref.logger.fine(Utils.getMentionComment(this, m, "Removed Plural mention"));
-            } else {
-                mm.add(m);
             }
         }
-        mentions.clear();
-        mentions = mm;
         normalizeMentions();
-//        for (Mention m : mentions) {
-//            if (m.number == Dictionaries.Number.PLURAL) {
-//
-//        }
     }
     
     public void removeTmpMentions() {
-        List <Mention> mm = new ArrayList<Mention>();
         for (Mention m : mentions) {
             if (m.source == MentionSource.TMP) {
                 removeMention(m);
                 LVCoref.logger.fine(Utils.getMentionComment(this, m, "Removed TMP mention"));
-            } else {
-                mm.add(m);
             }
         }
-        mentions.clear();
-        mentions = mm;
         normalizeMentions();
-//        for (Mention m : mentions) {
-//            if (m.number == Dictionaries.Number.PLURAL) {
-//
-//        }
     }
     
     public void removePleonasticMentions() {
-        List <Mention> mm = new ArrayList<Mention>();
         Set<String> plVerbs = new HashSet<String>(Arrays.asList("radīt","vedināt","liecināt", "nozīmēt"));
         Set<String> plVerbsAdv = new HashSet<String>(Arrays.asList("būt","nebūt","kļūt","izskatīties", "nozīmēt"));
         Set<String> mod = new HashSet<String>(Arrays.asList("viss"));
         
         for (Mention m : mentions) {
-            boolean remove = false;
-            
-            
+            boolean remove = false;            
             if (m.node.lemma.equals("tas")) {
                 //apstākļa vārds
                 if(m.node.parent != null && plVerbsAdv.contains(m.node.parent.lemma)) {
@@ -1063,38 +1113,28 @@ public class Document {
                 if (m.node.next(this) != null && mod.contains(m.node.next(this).lemma)) {
                     remove = true;
                 }
-            }
-            
+            }            
             if (remove) {
                 removeMention(m);
                 LVCoref.logger.fine(Utils.getMentionComment(this, m, "Removed Pleonastic mention"));
-            } else {
-                mm.add(m);
             }
         }
-        mentions.clear();
-        mentions = mm;
         normalizeMentions();
     }
     
     public void removeSingletonMentions() {
-        List <Mention> mm = new ArrayList<Mention>();
         for (Mention m : mentions) {
             if (corefClusters.get(m.corefClusterID) != null && corefClusters.get(m.corefClusterID).corefMentions.size() < 2) {
                 removeMention(m);
                 LVCoref.logger.fine(Utils.getMentionComment(this, m, "Removed singleton mention"));
-            } else {
-                mm.add(m);
             }
         }
-        mentions.clear();
-        mentions = mm;
         normalizeMentions();
     }
     
     //FIXME
     //add unset attribules
-    public void updateMentions() {
+    public void procesMentions() {
         for (Mention m : mentions) {
             m.normString = getNormSubString(m.start, m.end);
             
@@ -1245,53 +1285,11 @@ public class Document {
      }
         
     
-    
-    public void tweakPersonMentions(){
-        List <Mention> mm = new ArrayList<Mention>();
-        for (Mention m : mentions) {
-            boolean remove = false;
-            if (m.isPerson() && m.type == MentionType.PROPER) {
-                //System.out.println(m.headString + "\t\t\t\t" + m.getContext(this, 3));
-                int next = m.end + 1;
-                int prev = m.start - 1;
-                while(prev >= 0 && tree.get(prev).isProper && (tree.get(prev).mention == null || tree.get(prev).mention.isPerson() || tree.get(prev).mention.categories.size() == 0)) prev--;
-                while(next < tree.size() && tree.get(next).isProper && (tree.get(next).mention == null || tree.get(next).mention.isPerson()|| tree.get(next).mention.categories.size() == 0)) next++;
-                
-                prev++; next--;
-                if (m.start > prev || m.end < next) {
-                    Node head = getHead(prev, next);
-                    if (head.mention == null) {
-                        m.node.mention = null;
-                        m.node = head;
-                        head.mention = m;
-                        m.start = prev;
-                        m.end = next;
-                        LVCoref.logger.fine(Utils.getMentionComment(this, m,"Tweaked person mention"));
-                    } else if (head.mention != m) {
-                        if (head.mention.isPerson()) remove = true;
-                        else if (head.mention.node.isProper && head.mention.categories.size() == 0) {
-                            head.mention.categories.add("person");
-                            remove = true;
-                        }
-                        head.mention.start = Math.min(head.mention.start, m.start);
-                        head.mention.end= Math.max(head.mention.end, m.end);
-                        LVCoref.logger.fine(Utils.getMentionComment(this, head.mention,"Couldnt tweak person mention cause of "));
-                    }
-                }
-            }
-            if (remove) {
-                removeMention(m);
-                LVCoref.logger.fine(Utils.getMentionComment(this, m,"Removed nested person mention"));
-            } else {
-                mm.add(m);
-            }            
-        }
-        mentions.clear();
-        mentions = mm;
-        normalizeMentions();
-    }
-    
-    
+    /**
+     * Remove references to mention (tree and clusters). But it should be
+     * deleted from mention list.
+     * @param m
+     */
     public void removeMention(Mention m) {
         m.node.mention = null;
         CorefCluster cluster = corefClusters.get(m.corefClusterID);
@@ -1331,7 +1329,9 @@ public class Document {
         normalizeMentions();
     }
     
-    
+    /**
+     * Remove undefined mentions
+     */
     public void removeUndefiniedMentions() {        
         Set<String> exclude = new HashSet<String>(Arrays.asList("viss", "cits", "dažs", "daudz", "maz", "cits",  "cita"));
         List <Mention> mm = new ArrayList<Mention>();
@@ -1357,38 +1357,45 @@ public class Document {
         normalizeMentions();
     }
     
-    
-    
-    
-    
+    /**
+     * Remove nested genetive mentions
+     */
     public void removeGenitiveMentions() {
-        List <Mention> mm = new ArrayList<Mention>();
         for (Mention m : mentions) {
             //if (m.type == MentionType.PRONOMINAL) continue;
             //if (m.type == MentionType.PROPER) continue;
             if ((m.source != MentionSource.QUOTE && !m.strict) && m.mentionCase == Dictionaries.Case.GENITIVE && m.node.parent != null && m.node.parent.isNoun()) {
                 removeMention(m);
                 LVCoref.logger.fine(Utils.getMentionComment(this, m,"Removed genitive mention"));
-            } else {
-                mm.add(m);
             }
         }
-        mentions.clear();
-        mentions = mm;
         normalizeMentions();
     }
     
-    
-    
+    /**
+     * Sort mentions in document order
+     */
     public void sortMentions() {
         Collections.sort(mentions);
-        normalizeMentions();
     }
     
+    /**
+     * Normalize mentions - remove deleted mentions (not referenced by nodes)
+     */
     public void normalizeMentions() {
-        for(int i = 0; i < mentions.size(); i++) {
-           mentions.get(i).id = i;
-        }
+    	sortMentions(); // not always needed
+    	int id = 0;
+    	List <Mention> mm = new ArrayList<Mention>();
+    	for (Mention m : mentions) {
+    		if (m.node.mention != m) {
+    			// ignore because already removed
+    		} else {
+    			mm.add(m);
+    			m.id = id++;
+    		}
+    	}
+    	mentions.clear();
+    	mentions = mm;
     }
     
     public void sortGoldMentions() {
@@ -1408,46 +1415,7 @@ public class Document {
             m.node.mention = mm;
             mentions.add(mm);
         }
-    }
-    
-    public void useGoldClusters() {
-        for (int ci: goldCorefClusters.keySet()) {
-            CorefCluster cc = new CorefCluster(ci);
-            for (Mention m: goldCorefClusters.get(ci).corefMentions) {
-                Mention n = m.node.mention;
-                if (n != null) {
-                    cc.add(n);
-                    n.corefClusterID = ci;
-                } else {
-                }
-            }
-            corefClusters.put(ci, cc);
-        }
-    }
-    
-    public void setMentionCategories() {
-        for (Mention m : mentions) {
-            if (m.categories.size() == 0) m.setCategories(this);
-            if (m.categories.contains("other")) {
-                m.categories.remove("other");
-                m.setCategories(this);
-            }
-        }
-    }
-    
-    
-    public void initializeEntities() {
-        //initialize new cluster for each mention
-        for (Mention m: mentions) {
-            if (m.corefClusterID == -1) {
-                corefClusters.put(m.id, new CorefCluster(m.id));
-                corefClusters.get(m.id).add(m);
-                m.corefClusterID = m.id;
-            }            
-        }
-    }
-    
-    
+    }   
    
     /**
      * 
@@ -1747,18 +1715,6 @@ public class Document {
         }
     }
     
-    public void printCoreferences() {
-        for (Integer i : corefClusters.keySet()) {
-            if ( corefClusters.get(i).corefMentions.size() > 1){
-                System.out.println("---C"+i+"---");
-                for (Mention m : corefClusters.get(i).corefMentions) {
-                    System.out.println(m.node);
-                }
-            }
-        }
-    }   
-    
-    
     public CorefCluster getCluster(int i) {
         return corefClusters.get(i);
     }
@@ -1791,12 +1747,44 @@ public class Document {
         return sb.toString();
     }   
     
+    public void printNodes() {
+        for (Node n: tree) {
+            System.err.println(n);
+        }
+    }
     
-    public void printAllMentions() {
+    public void printMentions() {
     	LVCoref.logger.fine("MENTIONS:");
+    	System.err.println("MENTIONS:");
     	for (Mention m : mentions) {
     		LVCoref.logger.fine(m.source + "\t" + m + "\t" + m.categories);
+    		System.err.println(m.source + "\t" + m + "\t" + m.categories);
+    		//System.err.println("#" +m.id + "\t" + m.node.word + "\t" + m.type+ "\t" + m.category + " ^"+m.node.parent);
     	}
+    }
+    
+    public void printClusterRepresentatives() {
+    	System.err.println("CLUSTERS:");
+    	LVCoref.logger.fine("CLUSTERS - representatives:");
+    	for (int i : corefClusters.keySet()) {
+    		CorefCluster c = getCluster(i);
+    		if (c.representative.titleRepresentative()) {
+    			System.err.println(c.representative);
+    			LVCoref.logger.fine(c.representative.toString());
+    		}
+    	}
+    }
+    
+    public void printClusters() {
+    	System.err.println("CLUSTERS:");
+        for (Integer i : corefClusters.keySet()) {
+            if ( corefClusters.get(i).corefMentions.size() > 1){
+                System.err.println("---C"+i+"---");
+                for (Mention m : corefClusters.get(i).corefMentions) {
+                    System.err.printf("\t[%s]\t%s\n", m.nerString, m.node.toString());
+                }
+            }
+        }
     }
     
     public void printSimpleText(PrintStream s) {
@@ -1814,5 +1802,25 @@ public class Document {
     		}
     		if (n.sentEnd) s.println();
     	}
+    }
+    
+    /**
+     * Postprocessing after coreference resolution
+     */
+    public void postProcess() {
+    	// set final mention categories
+    	for (Mention m : mentions) {
+    		if (m.categories.size() > 0) {
+    			String[] cats = new String[m.categories.size()];
+    			int i = 0;
+    			for (String cat: m.categories) {
+    				cats[i++] = cat;
+    			}
+    			m.category = cats[0]; // rarely more than one category, priorities?
+    		} else {
+    			m.category = null;
+    		}
+    	}
+    	setConllCorefColumns();
     }
 }

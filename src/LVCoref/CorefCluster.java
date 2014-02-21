@@ -18,6 +18,8 @@ public class CorefCluster {
     
     public int id;
     
+    public Document document;
+    
     public Set<Mention> corefMentions;
     
     /**
@@ -56,7 +58,8 @@ public class CorefCluster {
     public Mention getFirstMention() { return firstMention; }
     public Mention getRepresentativeMention() { return representative; }
 
-    public CorefCluster(int ID) {
+    public CorefCluster(Document d, int ID) {
+    	document = d;
         id = ID;
         corefMentions = new HashSet<Mention>();
         nerStrings = new HashSet<String>();
@@ -85,6 +88,7 @@ public class CorefCluster {
         if (new_modifiers.size() > 0) return false;
         return true;
     }
+
     
 //    public static void mergeClusters(CorefCluster to, CorefCluster from) {        
 //        int toID = to.id;

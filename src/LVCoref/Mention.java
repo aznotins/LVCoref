@@ -18,7 +18,18 @@ public class Mention implements Comparable<Mention>{
 	public Integer id;
 	
 	// Source that created mention
-	public enum MentionSource { DEFAULT, NER, QUOTE, ABBREVIATION, TMP, LIST, ALLNODES, PROPERNODES, DETALIZEDNODES }
+	public enum MentionSource { 
+		DEFAULT, 
+		NER, 
+		QUOTE, 
+		ABBREVIATION, 
+		TMP, 
+		LIST, 
+		ALLNODES, 
+		PROPERNODES,
+		DETALIZEDNODES,
+		BASE			// read from input data, can be overwritten
+	}
 	public MentionSource source = MentionSource.DEFAULT;
     public boolean strict = false; //listed mentions, this head is important for genetives
 	
@@ -40,29 +51,21 @@ public class Mention implements Comparable<Mention>{
     public int sentNum = -1;
     public int paragraph = -1;
     
-    public MentionType type;
-    public Animacy animacy;
-    public Number number;
-    public Gender gender;
+    public MentionType type = MentionType.UNKNOWN;
+    public Animacy animacy = Animacy.UNKNOWN;
+    public Number number = Number.UNKNOWN;
+    public Gender gender = Gender.UNKNOWN;
     
     public Case mentionCase;
     public PronounType pronounType;
     
     public int person;
-    public String category;
+    public String category; // main category - if know precisely should be set explicitly
     
     public String comments = "";
-    public Set<String> words;
-    public Set<String> modifiers;
-    public Set<String> properModifiers;
-
-//    public boolean isSubject;
-//    public boolean isDirectObject;
-//    public boolean isIndirectObject;
-//    public boolean isPrepositionObject;
-//    public IndexedWord dependingVerb;
-//    public boolean twinless = true;
-//    public boolean generic = false;
+    public Set<String> words = new HashSet<>();
+    public Set<String> modifiers = new HashSet<>();
+    public Set<String> properModifiers = new HashSet<>();
     
     /**
      * Coreference information
@@ -70,7 +73,7 @@ public class Mention implements Comparable<Mention>{
     public int corefClusterID = -1;
     public int goldCorefClusterID = -1;    
     
-    Set<String> categories;
+    Set<String> categories = new HashSet<>(); // all found categories
     
     Mention(Mention m) {
         id = m.id;
@@ -103,7 +106,7 @@ public class Mention implements Comparable<Mention>{
     }
   
     /**
-     * Create mention. Does not set mention category
+     * Create mention
      * @param d
      * @param id
      * @param node
@@ -111,7 +114,7 @@ public class Mention implements Comparable<Mention>{
      * @param start
      * @param end
      */
-    Mention(Document d, int id, Node node, MentionType type, int start, int end) {
+    Mention(Document d, int id, Node node, int start, int end) {
         this.id = id;
 		this.root = node.id;
         this.node = node;
@@ -120,12 +123,17 @@ public class Mention implements Comparable<Mention>{
         this.end = end;
         this.nerString = d.getSubString(start, end);
         this.sentNum = node.sentNum;
-        categories = new HashSet<String>();
-        words = new HashSet<String>();
-        modifiers = new HashSet<String>();
-        properModifiers = new HashSet<String>();
-        this.type = type;
         document = d;
+        
+        // default values we can obtain
+        type = node.getType();
+        setCategories();
+        
+        normString = document.getNormSubString(start, end);
+        for(int i = start; i <= end; i++) {
+            words.add(document.tree.get(i).lemma);
+        }
+        nerString = document.getSubString(start, end);
         
         //Nomial word
         if (node.tag.charAt(0) == 'n') {
@@ -219,8 +227,16 @@ public class Mention implements Comparable<Mention>{
      * @return 
      */
     public boolean isGenitive(Mention m) {
-        if (node.isNounGenitive() && node.parent != null && node.parent.mention == m) return true;
-        if (m.node.isNounGenitive() && m.node.parent != null && m.node.parent.mention == this) return true;
+        if (node.isNounGenitive() 
+        		&& node.parent != null 
+        		&& node.parent.mention == m) {
+        	return true;
+        }
+        if (m.node.isNounGenitive() 
+        		&& m.node.parent != null 
+        		&& m.node.parent.mention == this) {
+        	return true;
+        }
         else return false;
     }
     
@@ -230,42 +246,27 @@ public class Mention implements Comparable<Mention>{
     }
     
     public String toString() {
-        return "["+nerString + "] " + source + " @head="+ headString + " "+" @id="+id+ " "+ " ("+getContext(document, 3) + ")";
+        return String.format("[%s] | @source=%s | @head=%s | @id=%d | (%s)", 
+        		nerString, source, headString, id, getContext(document, 3));
         
-//      StringBuilder result = new StringBuilder();
-//      String newLine = System.getProperty("line.separator");
-//
-//      result.append( this.getClass().getName() );
-//      result.append( " Object {" );
-//      result.append(newLine);
-//
-//      //determine fields declared in this class only (no fields of superclass)
-//      Field[] fields = this.getClass().getDeclaredFields();
-//
-//      //print field names paired with their values
-//      for ( Field field : fields  ) {
-//        result.append("  ");
-//        try {
-//          result.append( field.getName() );
-//          result.append(": ");
-//          //requires access to private field:
-//          result.append( field.get(this) );
-//        } catch ( IllegalAccessException ex ) {
-//          System.out.println(ex);
-//        }
-//        result.append(newLine);
-//      }
-//      result.append("}");
-//      result.append(newLine);
-//
-//      return result.toString();
     }
     
     public boolean categoryMatch(Mention m) {
-        if (categories == null || m.categories == null || categories.size() == 0 ||  m.categories.size()==0) return true;
-        if ((categories.contains("person") || categories.contains("profession")) 
-        		&& (m.categories.contains("person") || m.categories.contains("profession"))) return true;
-        if (categories.contains("other") || m.categories.contains("other")) return true;
+        if (categories == null 
+        		|| m.categories == null 
+        		|| categories.size() == 0 
+        		|| m.categories.size()==0) {
+        	return true;
+        }
+        if ((categories.contains("person") 
+        		|| categories.contains("profession")) 
+        		&& (m.categories.contains("person") 
+        				|| m.categories.contains("profession"))) {
+        	return true;
+        }
+        if (categories.contains("other") || m.categories.contains("other")) {
+        	return true;
+        }
         if (categories.containsAll(m.categories)) return true;
         return false;
     }
@@ -284,20 +285,6 @@ public class Mention implements Comparable<Mention>{
         return null;
     }
     
-    public Mention prevSyntactic(Document d) {
-        for (Node n : node.children);
-        	
-        
-        if (id > 0) return d.mentions.get(id-1);
-        return null;
-    }
-    
-    
-    public Set<Node> traverse(Set<Node> from, Set<Node> exclude) {
-        
-        return null;
-    }
-    
     public void addRefComm(Mention m, String s) {
         comments += ";"+m.node.word +"#"+m.id + "\""+s+"\"";
     }
@@ -311,13 +298,44 @@ public class Mention implements Comparable<Mention>{
     }
     
     public Boolean isSingleton(Document d) {
-        if (d.corefClusters.get(this.corefClusterID).corefMentions.size() < 2) return true;
+        if (d.corefClusters.get(this.corefClusterID).corefMentions.size() < 2) {
+        	return true;
+        }
         else return false;
     }
     
-    public void setCategories(Document d) {
-        this.categories = d.dict.getCategories(node.lemma);
+    /**
+     * Set categories for mentions, try to fix mentions without categories
+     * Used if categories not set by other tools
+     */
+    public void setCategories() {
+    	// from annotation schema
+        if (categories.contains("other")) {
+            categories.remove("other");
+        }
+        if (categories.size() == 0) {
+        	if (!node.idType.equals("")) categories.add(node.idType);
+        	else if (node.ne_annotation != null
+        			&& !node.ne_annotation.equals("")
+        			&& !node.ne_annotation.equals("O")) {
+        		categories.add(node.ne_annotation);
+        	}
+        }
+        // from LVCoref lists
+        categories.addAll(document.dict.getCategories(node.lemma)); 
+        // FIXME can add unnecessary categories for proper NE
     }
+    
+    /**
+     * Initialize mention type
+     * Used if type not set by other tools
+     */
+    public void setType() {
+    	if (type == MentionType.UNKNOWN) {
+    		type = node.getType(); // based on root node
+    	}
+    }
+    
     
     @Override 
     public int compareTo(Mention m) {
@@ -350,7 +368,8 @@ public class Mention implements Comparable<Mention>{
     	else {
     		Node prev = document.getNode(start-1);
     		Node next = document.getNode(end+1);
-    		if (prev != null && next != null && prev.isQuote() && next.isQuote()) res = true;
+    		if (prev != null && next != null 
+    				&& prev.isQuote() && next.isQuote()) res = true;
     	}
         return res;
     }
@@ -361,9 +380,17 @@ public class Mention implements Comparable<Mention>{
         //System.err.println(nerString +  "("+(category!=null?category:"null")+")"+ " : " + p.nerString + "("+(p.category!=null?p.category:"null")+")");
         if (this.type == MentionType.PRONOMINAL) return false; // PP - lai nav vietniekvārdi kā reprezentatīvākie
         if (p.type == MentionType.PRONOMINAL) return true;
-        if (p.category != null && this.category != null && p.category.equals("profession") && this.category.equals("person") && type == MentionType.PROPER) return true;
-        if (p.category != null && this.category != null && p.category.equals("person") && this.category.equals("profession") && p.type == MentionType.PROPER) return false;
-        if (p.type!=Dictionaries.MentionType.PROPER && type==Dictionaries.MentionType.PROPER) return true;
+        if (p.category != null && this.category != null 
+        		&& p.category.equals("profession") 
+        		&& this.category.equals("person") 
+        		&& type == MentionType.PROPER) return true;
+        if (p.category != null && this.category != null 
+        		&& p.category.equals("person") 
+        		&& this.category.equals("profession")
+        		&& p.type == MentionType.PROPER) return false;
+        if (p.type != MentionType.PROPER && type == MentionType.PROPER){
+        	return true;
+        }
         if (getLength() > p.getLength()) {
             return true;
         }

@@ -312,57 +312,50 @@ public class LVCoref {
             d.useGoldMentions();
             d.setAbbreviationMentions(true);
             d.setProperNodeMentions(false);
-            d.setMentionCategories();
             d.setMentionModifiers(false);
         } else {
             d.setMentionsFromNEAnnotation();
-            
             d.setQuoteMentions();
             d.setAbbreviationMentions(false);
             d.setListMentions();
             d.setProperNodeMentions(true);
-            d.setDetalizedNominalMentions();
-            d.setMentionCategories();
-           
-            d.tweakPersonMentions();d.tweakPersonMentions();//FIXME 
-                      
+            d.setDetalizedNominalMentions();            
+            
+            // After creating all mentions
+            d.normalizeMentions(); 	// sorts mentions (base and new mentions 
+            						// could be out of order), removes ignored 
+            						// base mentions
             d.removePleonasticMentions();
             d.removeNestedQuoteMentions();
             d.removeUndefiniedMentions();
-            
-            //----
             //d.removePluralMentions();
             d.removeNestedMentions();
-            
             d.removeExcludedMentions();
             d.removeGenitiveMentions();
-
             d.setMentionModifiers_v2(true);
-        }
-        
-        
-        d.updateMentions(); //FIXME move to constructor
-        d.sortMentions(); //needed for normalization (array index equals to id)
-
-        //Set coreference cluster for each mention
-        d.initializeEntities();
-               
-        d.printAllMentions();
+        }        
+        d.normalizeMentions();	// just in case, removes unused mentions and sorts them        
+        d.initializeEntities();	// set coreference cluster for each mention
         
         for(int i = 0; i < sieves.length; i++) {
             currentSieve = i;
             DeterministicCorefSieve sieve = sieves[i];
-            // Do coreference resolution using this pass
-            coref(d, sieve);
+            coref(d, sieve);	// Do coreference resolution using this pass
         }
         
-        //d.removePronounSingletonMentions(); //Remove unresolved pronoun mentions
+        /* Post processing step */
+        d.postProcess(); // final category, conll columns
         if (Constants.REMOVE_SINGLETONS) d.removeSingletonMentions();
 
-        //set final mention borders for precise border conll output and html visualization
+        // Set final mention borders for precise border conll output and html visualization
         for (Node n : d.tree) {
             n.markMentionBorders(d, true);
         }
+        
+//		d.printClusterRepresentatives();
+//		d.printClusters();
+//		d.printMentions();
+//		d.printSimpleText(System.err);
         
         if(doScore()) {        
             logger.fine("Pairwise score for this doc: ");
@@ -412,16 +405,6 @@ public class LVCoref {
             }
         }
 
-        d.setConllCorefColumns();
-               
-//        for (int i : d.corefClusters.keySet()) {
-//            CorefCluster c = d.getCluster(i);
-//            if (c.representative.titleRepresentative()) {
-//                System.err.println(c.representative);
-//            }
-//        }
-        
-        
         PrintStream ps;
         switch (outputType) {
             case CONLL:

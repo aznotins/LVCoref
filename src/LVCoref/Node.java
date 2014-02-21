@@ -6,6 +6,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import LVCoref.Dictionaries.MentionType;
+
 
 public class Node {
     public Document document;
@@ -23,6 +25,8 @@ public class Node {
     public int parentIndex;
     
     public String ne_annotation = "";
+    public int namedEntityID = -1;
+    public String idType = "";
     
     public int sentNum = -1;
     public int position;
@@ -77,22 +81,15 @@ public class Node {
         document = d;
 	}
     
-    
-    public  Dictionaries.MentionType getType() {
-        if (isProper) {
-            return Dictionaries.MentionType.PROPER;
-        }
-		if (tag.charAt(0) == 'n') {
-			if (tag.charAt(1)=='p') {
-				return Dictionaries.MentionType.PROPER;
-            }
-//            if (Character.isUpperCase(lemma.charAt(0))) {
-//                return Dictionaries.MentionType.PROPER;
-//            }            
-		} else if (tag.charAt(0) == 'p') {
-			return Dictionaries.MentionType.PRONOMINAL;
-		}
-        return Dictionaries.MentionType.NOMINAL;
+    /**
+     * Get mention type, default NOMINAL
+     * @return
+     */
+    public  MentionType getType() {
+    	if (isProper) return MentionType.PROPER; // flag for proper nodes
+    	if (isProper()) return MentionType.PROPER;
+		if (isPronoun()) return MentionType.PRONOMINAL;
+		return MentionType.NOMINAL;
 	}
     
     public Node prev(Document d) {
@@ -234,9 +231,27 @@ public class Node {
         return false;
     }
     
+    /**
+     * Check first letter, if it is sentence start check if lemma starts with uppercase or 
+     * NER annotation is person, organization, location or media
+     * @return
+     */
     public Boolean isProper() {
-        if (isProper) return true;
-        //if (Character.isUpperCase(word.charAt(0))) return true; //FIXME very sloppy heurestics
+        if (Character.isUpperCase(word.charAt(0))) {
+        	if (sentStart) {
+        		if (Character.isUpperCase(lemma.charAt(0))
+        				|| ne_annotation.equals("person") 
+        				|| ne_annotation.equals("organization")
+        	    		|| ne_annotation.equals("location")
+        	    		|| ne_annotation.equals("media")
+        	    		|| ne_annotation.equals("product")) {
+        			return true;
+        		} else {
+        			return false;
+        		}
+        	}
+        	return true;
+        }
         return false;
     }
     
@@ -371,24 +386,7 @@ public class Node {
         return s;
     }
  
-    
-    
     public String toString() {
-        StringBuilder result = new StringBuilder();
-        String newLine = System.getProperty("line.separator");
-
-        result.append( this.getClass().getName() );
-        result.append( " Object {" );
-
-        //determine fields declared in this class only (no fields of superclass)
-        Field[] fields = this.getClass().getDeclaredFields();
-
-        result.append(" word: " + this.word);
-        result.append(" tag: " + this.tag);
-        result.append(" lemma: " + this.lemma);
-        result.append("}");
-        //result.append(newLine);
-
-        return result.toString();
+    	return String.format("Node: %s | %s | %s", word, tag, lemma);
     }
 }

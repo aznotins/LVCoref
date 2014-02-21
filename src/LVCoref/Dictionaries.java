@@ -15,7 +15,7 @@ import java.util.logging.Logger;
 public class Dictionaries {
 
     //Used attributes for mentions
-    public enum MentionType { PRONOMINAL, NOMINAL, PROPER }
+    public enum MentionType { PRONOMINAL, NOMINAL, PROPER, UNKNOWN}
     public enum Gender { MALE, FEMALE, NEUTRAL, UNKNOWN }
     public enum Number { SINGULAR, PLURAL, UNKNOWN }    
     public enum Animacy { ANIMATE, INANIMATE, UNKNOWN }    
