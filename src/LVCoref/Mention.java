@@ -12,6 +12,7 @@ import LVCoref.Dictionaries.Gender;
 import LVCoref.Dictionaries.MentionType;
 import LVCoref.Dictionaries.Number;
 import LVCoref.Dictionaries.PronounType;
+import LVCoref.util.Log;
 
 public class Mention implements Comparable<Mention>{
     Document document;
@@ -194,7 +195,7 @@ public class Mention implements Comparable<Mention>{
             gender = Gender.UNKNOWN;
             number = Number.UNKNOWN;            
             mentionCase = Case.UNKNOWN;
-            d.logger.fine("Unsuported tag: " + node.tag);
+            Log.inf("Unsuported tag: " + node.tag);
         }        
     }
     

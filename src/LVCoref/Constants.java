@@ -1,5 +1,6 @@
 package LVCoref;
 
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class Constants {
@@ -8,6 +9,12 @@ public class Constants {
     public static final boolean USE_GOLD_MENTIONS = false;
     
     public static final boolean PRINT_DECISIONS = false;
+    
+    public static final boolean LOGGER_FILE = false;
+    public static final String LOGGER_FILE_PATH = "data/logs/";
+    public static final Level LOGGER_FILE_LEVEL = Level.FINE;
+    public static final Level LOGGER_ERR_LEVEL = Level.INFO;
+    public static final Level LOGGER_LEVEL = Level.FINE;
     
     public static final int SENTENCE_WINDOW = 30;
     

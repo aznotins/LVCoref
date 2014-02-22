@@ -1,9 +1,16 @@
 package LVCoref;
 
 import java.util.*;
+import java.util.logging.Logger;
+
+
+import LVCoref.util.Log;
 
 public class ScorerMUC extends CorefScorer {
-
+	
+	private static final Logger log = Logger.getLogger( Log.class.getName() );
+	//static { log.setLevel(Level.OFF); }
+	
   public ScorerMUC(){
     super();
     scoreType = ScoreType.MUC;
@@ -16,29 +23,29 @@ public class ScorerMUC extends CorefScorer {
     
     for(CorefCluster g : doc.goldCorefClusters.values()){
       if(g.corefMentions.size()==0) {
-        LVCoref.logger.warning("NO MENTIONS for cluster " + g.getClusterID());
+    	  log.severe("NO MENTIONS for cluster " + g.getClusterID());
         continue;
       }
       rDen += g.corefMentions.size()-1;
       rNum += g.corefMentions.size();
       
       Set<CorefCluster> partitions = new HashSet<CorefCluster>();
-      LVCoref.logger.fine("--GoldCluster #" + g.id );
+      Log.inf("--GoldCluster #" + g.id );
       for (Mention goldMention : g.corefMentions){        
         if(goldMention.node.mention == null) {  // twinless goldmention
           rNum--;
-          LVCoref.logger.fine("\t* ["+goldMention.nerString+"]"+ "\t"+goldMention.getContext(doc, 3)+ "\t@ "+ goldMention.node.id );
+          log.info("\t* ["+goldMention.nerString+"]"+ "\t"+goldMention.getContext(doc, 3)+ "\t@ "+ goldMention.node.id );
         } else {
           partitions.add(doc.corefClusters.get(goldMention.node.mention.corefClusterID));
-          LVCoref.logger.fine("\t"+goldMention.node.mention.corefClusterID+" ["+goldMention.nerString+"]" + "\t"+goldMention.getContext(doc, 3)+"\t@ "+ goldMention.node.id);
+          log.info("\t"+goldMention.node.mention.corefClusterID+" ["+goldMention.nerString+"]" + "\t"+goldMention.getContext(doc, 3)+"\t@ "+ goldMention.node.id);
         }
       }
       rNum -= partitions.size();
     }
     if (rDen != doc.goldMentions.size()-doc.goldCorefClusters.values().size()) {
-      System.err.println("rDen is " + rDen);
-      System.err.println("doc.allGoldMentions.size() is " + doc.goldMentions.size());
-      System.err.println("doc.goldCorefClusters.values().size() is " + doc.goldCorefClusters.values().size());
+      log.severe("rDen is " + rDen);
+      log.severe("doc.allGoldMentions.size() is " + doc.goldMentions.size());
+      log.severe("doc.goldCorefClusters.values().size() is " + doc.goldCorefClusters.values().size());
     }
     assert(rDen == (doc.goldMentions.size()-doc.goldCorefClusters.values().size()));
     

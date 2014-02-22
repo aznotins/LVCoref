@@ -35,7 +35,7 @@ public class LVCorefTest {
 	@Test
 	
 	public void test1() throws Exception {		
-		Document doc = new Document(LVCoref.logger, LVCoref.dictionaries);
+		Document doc = new Document(LVCoref.dictionaries);
 		doc.readCONLL("sample1_ner.conll");
 		LVCoref.processDocument(doc);
 		doc.printSimpleText(System.err);

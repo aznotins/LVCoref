@@ -3,7 +3,6 @@ package LVCoref;
 import java.awt.Color;
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -11,7 +10,6 @@ import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -19,6 +17,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -34,6 +33,7 @@ import org.w3c.dom.NodeList;
 
 import LVCoref.Dictionaries.MentionType;
 import LVCoref.Mention.MentionSource;
+import LVCoref.util.Log;
 
 /**
  * Document class contains document parse tree structure, 
@@ -42,6 +42,9 @@ import LVCoref.Mention.MentionSource;
  */
 public class Document {
     
+	private static final Logger log = Logger.getLogger( Log.class.getName() );
+	//static { log.setLevel(Level.OFF); }
+	
     /** 
      * Document parse tree
      */
@@ -59,13 +62,10 @@ public class Document {
     
     public Dictionaries dict;
     
-    public Logger logger;
-    
     public Set<String> properWords;
     
     public Map<String, Node> acronyms;
     
-	
     Document(){
 		tree = new ArrayList<Node>();
 		mentions = new ArrayList<Mention>();
@@ -77,24 +77,9 @@ public class Document {
         sentences = new ArrayList<Integer>();
         properWords = new HashSet<String>();
         acronyms = new HashMap<String, Node>();
-        logger = Logger.getLogger(Document.class.getName());
 	}
     
-    Document(Logger _logger) {
-        tree = new ArrayList<Node>();
-		mentions = new ArrayList<Mention>();
-        goldMentions = new ArrayList<Mention>();
-        dict = new Dictionaries();
-        refGraph = new RefGraph();
-        corefClusters = new HashMap<Integer, CorefCluster>();
-        goldCorefClusters = new HashMap<Integer, CorefCluster>();
-        sentences = new ArrayList<Integer>();
-        this.logger = _logger;
-        properWords = new HashSet<String>();
-        acronyms = new HashMap<String, Node>();
-    }
-    
-    Document(Logger _logger, Dictionaries d) {
+    Document(Dictionaries d) {
         tree = new ArrayList<Node>();
 		mentions = new ArrayList<Mention>();
         goldMentions = new ArrayList<Mention>();
@@ -103,7 +88,6 @@ public class Document {
         corefClusters = new HashMap<Integer, CorefCluster>();
         goldCorefClusters = new HashMap<Integer, CorefCluster>();
         sentences = new ArrayList<Integer>();
-        this.logger = _logger;
         properWords = new HashSet<String>();
         acronyms = new HashMap<String, Node>();
     }
@@ -168,7 +152,6 @@ public class Document {
             out.flush();
             out.close();
         } catch (IOException ex) {
-            Logger.getLogger(Document.class.getName()).log(Level.SEVERE, null, ex);
             System.err.println("ERROR: couldn't create/open output conll file");
         }
     }
@@ -189,7 +172,7 @@ public class Document {
     
     
     public void readCONLL(String filename) throws Exception {
-        if (logger != null) logger.fine("Read Conll " + filename);
+    	log.fine("Read Conll " + filename);
 		BufferedReader in = null;        
         in = new BufferedReader(new FileReader(filename));		
         readCONLL(in);
@@ -198,7 +181,7 @@ public class Document {
     
     
     public void readCONLL(BufferedReader in) throws Exception {
-        if (logger != null) logger.fine("Read conll stream");        
+        log.fine("Read conll stream");        
         String s;
 		int node_id = 0;
         int sentence_id = 0;
@@ -266,7 +249,7 @@ public class Document {
 	}
     
     public void readJSON(BufferedReader in) throws Exception {
-        if (logger != null) logger.fine("Read json stream");        
+    	log.fine("Read json stream");  
 		int node_id = 0;
         int sentence_id = 0;
 		int sentence_start_id = 0;
@@ -643,9 +626,9 @@ public class Document {
                     goldMention.goldCorefClusterID = cluster_id;
                     
 
-                    LVCoref.logger.fine("goldCluster #" + cluster_id +"(size="+goldCorefClusters.get(cluster_id).corefMentions.size()+")" + " " + getSubString(start, end) +" : \""+ head.nodeProjection(this)+ "\"");
+                    log.fine("goldCluster #" + cluster_id +"(size="+goldCorefClusters.get(cluster_id).corefMentions.size()+")" + " " + getSubString(start, end) +" : \""+ head.nodeProjection(this)+ "\"");
                 } else {
-                    logger.fine("Could not add mention because of same head: " + getSubString(start, end));
+                    log.fine("Could not add mention because of same head: " + getSubString(start, end));
                 }
                 
             }
@@ -687,7 +670,7 @@ public class Document {
                         mentions.add(m);
                         node.mention = m;
                         m.source  = MentionSource.TMP;
-                        LVCoref.logger.fine(Utils.getMentionComment(this, m, "Set tmp mention"));
+                        log.fine(Utils.getMentionComment(this, m, "Set tmp mention"));
                     }
                 }
             }
@@ -712,7 +695,7 @@ public class Document {
                 node.mention = m;
                 m.category = cat;
                 m.categories.add(cat);
-                LVCoref.logger.fine(Utils.getMentionComment(this, m, "Set list mention"));
+                log.fine(Utils.getMentionComment(this, m, "Set list mention"));
             }
         }
     }
@@ -730,11 +713,11 @@ public class Document {
                 mentions.add(m);
                 node.mention = m;
                 node.mention.source = MentionSource.PROPERNODES;
-                LVCoref.logger.fine(Utils.getMentionComment(this, m, "Set proper node mention"));
+                log.fine(Utils.getMentionComment(this, m, "Set proper node mention"));
             }
             else if (node.isProper() && node.mention != null && node.mention.type == MentionType.NOMINAL) {
                 node.mention.type = MentionType.PROPER;
-                LVCoref.logger.fine(Utils.getMentionComment(this, node.mention, "Set proper node mention (update to proper)"));
+                log.fine(Utils.getMentionComment(this, node.mention, "Set proper node mention (update to proper)"));
             }
         }
     }
@@ -748,7 +731,7 @@ public class Document {
                 m.source = MentionSource.ALLNODES;
                 mentions.add(m);
                 node.mention = m;
-                LVCoref.logger.fine(Utils.getMentionComment(this, m, "Set naive mention"));
+                log.fine(Utils.getMentionComment(this, m, "Set naive mention"));
             }
         }
     }
@@ -763,78 +746,10 @@ public class Document {
                 m.source = MentionSource.DETALIZEDNODES;
                 mentions.add(m);
                 node.parent.mention = m;
-                LVCoref.logger.fine(Utils.getMentionComment(this, m, "Set detalized nominal mention"));
+                log.fine(Utils.getMentionComment(this, m, "Set detalized nominal mention"));
             }
         }
     }
-    
-    
-    /**
-     * 
-     * @param filename
-     * @return
-     */
-    @Deprecated
-    public boolean setMentionsNER(String filename) {
-        BufferedReader in = null;
-        try {
-            in = new BufferedReader(new FileReader(filename));
-        } catch (FileNotFoundException ex) {
-            Logger.getLogger(Document.class.getName()).log(Level.SEVERE, null, ex);
-            System.err.println("Error opening NE annotation");
-            return false;
-        }
-		
-		String s;
-        int id  = 0;
-        int start = 0;
-        String cur_cat = "O";
-        Boolean isMention = false;
-        try {
-            while ((s = in.readLine()) != null) {
-                if (s.trim().length() > 0) {
-                    String[] fields = s.split("\t");
-                    assert(fields.length == 3);
-                    String word = fields[0];
-                    String cat = fields[2];	
-                    assert(word.substring(0,1).equals(tree.get(id).word.substring(0,1)));//assert(word.equals(tree.get(id).word)); ner dont suuport multiple words ?? FIXME
-                    if (isMention && (cat.equals("O") || !cur_cat.equals(cat) || tree.get(id).sentStart)) {
-                        LVCoref.logger.fine("NER Mention :("+start+" " + (id-1)+") " + getSubString(start, id-1));
-                        Mention m = null;
-                        if (cur_cat.equals("PERSONA")) m = setMention(start, id-1, "person", MentionType.PROPER);
-                        else if (cur_cat.equals("LOKACIJA")) m = setMention(start, id-1, "location", MentionType.PROPER);
-                        else if (cur_cat.equals("ORGANIZACIJA")) m = setMention(start, id-1, "organization", MentionType.PROPER);
-                        else {
-                            LVCoref.logger.fine("NER Unsupported category @" + cat);
-                        }
-                        if (m != null) {
-                            m.strict = true;
-                            m.source = MentionSource.NER;
-                        }
-                        isMention = !cat.equals("O");
-                        if (isMention) {
-                            start = id;
-                            cur_cat = cat;
-                        } else {
-                            cur_cat = "O";
-                        }
-                    } else if (!cat.equals("O") && !cat.equals(cur_cat)) {
-                        isMention = true;
-                        start = id;
-                        cur_cat = cat;
-                    }
-                    id++;
-                }
-            }
-            in.close();
-        } catch (IOException ex) {
-            System.err.println("Error reading NE annotation");
-            Logger.getLogger(Document.class.getName()).log(Level.SEVERE, null, ex);
-            return false;
-        }
-        return true;
-    }
-    
     
     public void setMentionsFromNEAnnotation() {
         int start = 0;
@@ -869,13 +784,13 @@ public class Document {
                 	m = setMention(start, end, cur_cat, MentionType.NOMINAL);
                 }
                 else {
-                    LVCoref.logger.fine("NER Unsupported category @" + cur_cat);
+                    log.warning("NER Unsupported category @" + cur_cat);
                     System.err.println("NER unsupported category @" + cur_cat);
                 }
                 if (m != null) {
                     m.strict = true;
                     m.source = MentionSource.NER;
-                    LVCoref.logger.fine("NER Mention " + m);
+                    log.fine("NER Mention " + m);
                     // System.err.println("NER Mention " + m);
                 }
                 
@@ -902,13 +817,13 @@ public class Document {
             	m = setMention(start, end, cur_cat, MentionType.NOMINAL);
             }
             else {
-                LVCoref.logger.fine("NER Unsupported category @" + cur_cat);
+            	log.warning("NER Unsupported category @" + cur_cat);
                 System.err.println("NER unsupported category @" + cur_cat);
             }
             if (m != null) {
                 m.strict = true;
                 m.source = MentionSource.NER;
-                LVCoref.logger.fine("NER Mention " + m);
+                log.fine("NER Mention " + m);
                // System.err.println("NER Mention " + m);
             }
         }
@@ -938,12 +853,12 @@ public class Document {
                             }
                             
                             if (add) {
-                                LVCoref.logger.fine("Quote Mention :("+i+" " + j+") " + getSubString(i+1, j-1));
+                            	log.fine("Quote Mention :("+i+" " + j+") " + getSubString(i+1, j-1));
                                 //assert(i+1 <= j-1);
                                 Mention m = setMention(i+1, j-1, "", MentionType.PROPER);                                
                                 if (m != null) {
                                     m.categories.addAll(dict.getCategories(m.node.lemma));
-                                    LVCoref.logger.fine(Utils.getMentionComment(this, m, ""));
+                                    log.fine(Utils.getMentionComment(this, m, ""));
                                     m.source = MentionSource.QUOTE;
                                 }
                             }                            
@@ -993,7 +908,7 @@ public class Document {
         if (head.mention == null || head.mention.source == MentionSource.BASE) {
         	head.mention = null;
             //System.out.println("Mention \""+getSubString(from, to)+"\" head="+head.word);
-            LVCoref.logger.fine("Mention \""+getSubString(from, to)+"\" head="+head.word);
+        	log.fine("Mention \""+getSubString(from, to)+"\" head="+head.word);
             int id = mentions.size();
             Mention m = new Mention(this, id, head, from, to);
             m.start = from;
@@ -1002,7 +917,7 @@ public class Document {
             return m;
         } else {
             //System.err.println("setMention() mention with this head already set: " + "old=" + head.mention.nerString + " new=" + getSubString(from, to));
-            LVCoref.logger.fine("setMention() mention with this head already set: " + "old=" + head.mention.nerString + " new=" + getSubString(from, to));
+        	log.fine("setMention() mention with this head already set: " + "old=" + head.mention.nerString + " new=" + getSubString(from, to));
             return null;
         }
     }
@@ -1017,10 +932,10 @@ public class Document {
                     Mention m = setMention(n.id, n.id, "organization", MentionType.PROPER); // TODO nav tas labākais, taču vispār NER jau vajadzētu šo nomarķēt
                     if (m != null) {
                         m.strict = true;                        
-                        LVCoref.logger.fine(Utils.getMentionComment(this, m, "Set abbreviation mention"));
+                        log.fine(Utils.getMentionComment(this, m, "Set abbreviation mention"));
                         m.source = MentionSource.ABBREVIATION;
                     } else {
-                        LVCoref.logger.fine("Couldn't create abbreviation mention: " + n.word + "("+ n.id +")");
+                    	log.fine("Couldn't create abbreviation mention: " + n.word + "("+ n.id +")");
                     }
                 }
             }
@@ -1047,7 +962,7 @@ public class Document {
             }
             if (nested) {
                 removeMention(m);
-                LVCoref.logger.fine(Utils.getMentionComment(this, m, "Removed nested mention"));
+                log.fine(Utils.getMentionComment(this, m, "Removed nested mention"));
             }
         }
         normalizeMentions();
@@ -1060,7 +975,7 @@ public class Document {
                     Node q = tree.get(i);
                     if (q.mention != null && q.mention != m) {
                     	removeMention(m);
-                        LVCoref.logger.fine(Utils.getMentionComment(this, m, "Removed nested quote mention"));
+                    	log.fine(Utils.getMentionComment(this, m, "Removed nested quote mention"));
                         //System.err.println("REMOVED QUOTE " + q.mention.nerString);
                     }
                 }
@@ -1074,7 +989,7 @@ public class Document {
         for (Mention m : mentions) {
             if (m.number == Dictionaries.Number.PLURAL) {
                 removeMention(m);
-                LVCoref.logger.fine(Utils.getMentionComment(this, m, "Removed Plural mention"));
+                log.fine(Utils.getMentionComment(this, m, "Removed Plural mention"));
             }
         }
         normalizeMentions();
@@ -1084,7 +999,7 @@ public class Document {
         for (Mention m : mentions) {
             if (m.source == MentionSource.TMP) {
                 removeMention(m);
-                LVCoref.logger.fine(Utils.getMentionComment(this, m, "Removed TMP mention"));
+                log.fine(Utils.getMentionComment(this, m, "Removed TMP mention"));
             }
         }
         normalizeMentions();
@@ -1116,7 +1031,7 @@ public class Document {
             }            
             if (remove) {
                 removeMention(m);
-                LVCoref.logger.fine(Utils.getMentionComment(this, m, "Removed Pleonastic mention"));
+                log.fine(Utils.getMentionComment(this, m, "Removed Pleonastic mention"));
             }
         }
         normalizeMentions();
@@ -1126,7 +1041,7 @@ public class Document {
         for (Mention m : mentions) {
             if (corefClusters.get(m.corefClusterID) != null && corefClusters.get(m.corefClusterID).corefMentions.size() < 2) {
                 removeMention(m);
-                LVCoref.logger.fine(Utils.getMentionComment(this, m, "Removed singleton mention"));
+                log.fine(Utils.getMentionComment(this, m, "Removed singleton mention"));
             }
         }
         normalizeMentions();
@@ -1141,7 +1056,6 @@ public class Document {
             for(int i = m.start; i <= m.end; i++) {
                 m.words.add(tree.get(i).lemma);
             }
-            
             m.nerString = getSubString(m.start, m.end);
         }
     }
@@ -1173,7 +1087,7 @@ public class Document {
             if (updateMargins) m.start = Math.min(left, m.start);
             
             if (left != m.node.id) {
-                LVCoref.logger.fine(Utils.getMentionComment(this, m, "Added mention modifiers "+"("+getSubString(left, m.node.id)+ ")"));
+            	log.fine(Utils.getMentionComment(this, m, "Added mention modifiers "+"("+getSubString(left, m.node.id)+ ")"));
             }
         }
     }
@@ -1204,7 +1118,7 @@ public class Document {
             if (updateMargins) m.start = Math.min(left, m.start);
             
             if (left != m.node.id) {
-                LVCoref.logger.fine(Utils.getMentionComment(this, m, "Added mention modifiers "+"("+getSubString(left, m.node.id)+ ")"));
+            	log.fine(Utils.getMentionComment(this, m, "Added mention modifiers "+"("+getSubString(left, m.node.id)+ ")"));
             }
         }
     }
@@ -1304,7 +1218,7 @@ public class Document {
         for (Mention m : mentions) {
             if (m.type == MentionType.PRONOMINAL && corefClusters.get(m.corefClusterID) != null && corefClusters.get(m.corefClusterID).corefMentions.size() < 2) {
                 removeMention(m);
-                 LVCoref.logger.fine(Utils.getMentionComment(this, m, "Removed pronoun singleton mention"));
+                log.fine(Utils.getMentionComment(this, m, "Removed pronoun singleton mention"));
             } else {
                 mm.add(m);
             }
@@ -1319,7 +1233,7 @@ public class Document {
         for (Mention m : mentions) {
             if (dict.excludeWords.contains(m.node.lemma.toLowerCase())) {
                 removeMention(m);
-                 LVCoref.logger.fine(Utils.getMentionComment(this, m, "Removed excluded mention"));
+                log.fine(Utils.getMentionComment(this, m, "Removed excluded mention"));
             } else {
                 mm.add(m);
             }
@@ -1347,7 +1261,7 @@ public class Document {
             }
             if (needExclude) {
                 removeMention(m);
-                 LVCoref.logger.fine(Utils.getMentionComment(this, m,"Removed undefinied mention"));
+                log.fine(Utils.getMentionComment(this, m,"Removed undefinied mention"));
             } else {
                 mm.add(m);
             }
@@ -1366,7 +1280,7 @@ public class Document {
             //if (m.type == MentionType.PROPER) continue;
             if ((m.source != MentionSource.QUOTE && !m.strict) && m.mentionCase == Dictionaries.Case.GENITIVE && m.node.parent != null && m.node.parent.isNoun()) {
                 removeMention(m);
-                LVCoref.logger.fine(Utils.getMentionComment(this, m,"Removed genitive mention"));
+                log.fine(Utils.getMentionComment(this, m,"Removed genitive mention"));
             }
         }
         normalizeMentions();
@@ -1754,23 +1668,20 @@ public class Document {
     }
     
     public void printMentions() {
-    	LVCoref.logger.fine("MENTIONS:");
-    	System.err.println("MENTIONS:");
+    	log.warning("MENTIONS:");
     	for (Mention m : mentions) {
-    		LVCoref.logger.fine(m.source + "\t" + m + "\t" + m.categories);
-    		System.err.println(m.source + "\t" + m + "\t" + m.categories);
+    		log.warning(m.source + "\t" + m + "\t" + m.categories);
     		//System.err.println("#" +m.id + "\t" + m.node.word + "\t" + m.type+ "\t" + m.category + " ^"+m.node.parent);
     	}
     }
     
     public void printClusterRepresentatives() {
-    	System.err.println("CLUSTERS:");
-    	LVCoref.logger.fine("CLUSTERS - representatives:");
+    	log.warning("CLUSTERS - representatives:");
     	for (int i : corefClusters.keySet()) {
     		CorefCluster c = getCluster(i);
     		if (c.representative.titleRepresentative()) {
     			System.err.println(c.representative);
-    			LVCoref.logger.fine(c.representative.toString());
+    			log.warning(c.representative.toString());
     		}
     	}
     }

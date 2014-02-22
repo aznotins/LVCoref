@@ -2,6 +2,7 @@ package LVCoref;
 
 import LVCoref.Dictionaries.MentionType;
 import LVCoref.Mention.MentionSource;
+import LVCoref.util.Log;
 
 import java.util.List;
 import org.apache.commons.jexl2.Expression;
@@ -112,7 +113,7 @@ public class Resolve {
                 }
             }
         }
-        LVCoref.logger.fine(Utils.getMentionPairString(d, s, t, comment));
+        Log.inf(Utils.getMentionPairString(d, s, t, comment));
         s.setAsResolved();
     }
     

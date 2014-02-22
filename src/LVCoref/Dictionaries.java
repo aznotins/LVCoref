@@ -12,6 +12,8 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import LVCoref.util.Log;
+
 public class Dictionaries {
 
     //Used attributes for mentions
@@ -190,7 +192,7 @@ public class Dictionaries {
         
         if (categories.size() > 0) {
             if (categories.size() > 1) {
-                LVCoref.logger.fine("Get category : more categories for \"" +s+"\"");
+                Log.inf("Get category : more categories for \"" +s+"\"");
             }
             return categories.iterator().next();
         }

@@ -1,38 +1,36 @@
 package LVCoref;
 
-import LVCoref.ScorerBCubed.BCubedType;
-import LVCoref.sievepasses.*;
-import edu.stanford.nlp.util.Pair;
-import java.io.IOException;
-
+import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
-import java.util.Calendar;
-import java.util.List;
-import java.util.Properties;
-import java.util.logging.FileHandler;
-import java.util.logging.Formatter;
-import java.util.logging.Handler;
-import java.util.logging.Level;
-import java.util.logging.LogRecord;
-import java.util.logging.Logger;
-
-import edu.stanford.nlp.util.StringUtils;
-import java.io.BufferedReader;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
+import java.util.List;
+import java.util.Properties;
+
+import LVCoref.ScorerBCubed.BCubedType;
+import LVCoref.sievepasses.DeterministicCorefSieve;
+import LVCoref.util.Log;
+
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import edu.stanford.nlp.util.Pair;
+import edu.stanford.nlp.util.StringUtils;
 
 /**
  * Main process class
  * @author arturs
  */
 public class LVCoref {
+	private static final Logger log = Logger.getLogger( Log.class.getName() );
+	//static { log.setLevel(Level.OFF); }
     
     private enum inputTypes {CONLL, STDIN_JSON, STDIN_CONLL};
     private enum outputTypes {CONLL, STDOUT_CONLL, STDOUT_JSON, NONE, TEXT};
-    public static final Logger logger = Logger.getLogger(LVCoref.class.getName());
     public static Properties props;
     public static Dictionaries dictionaries;
 
@@ -96,46 +94,6 @@ public class LVCoref {
     public static int additionalLinksCount;
     
     public static boolean useGoldMentions = false;
-
-    public static class LogFormatter extends Formatter {
-        @Override
-        public String format(LogRecord rec) {
-            StringBuilder buf = new StringBuilder(1000);
-            buf.append(formatMessage(rec));
-            buf.append('\n');
-            return buf.toString();
-        }
-    }
-    
-    public static void createLogger() {
-        timeStamp = Calendar.getInstance().getTime().toString().replaceAll("\\s", "-").replaceAll(":", "-");
-        String logFileName = logPath + timeStamp + "_log.txt";
-        for(Handler fh : logger.getHandlers()) { logger.removeHandler(fh); } //remove all old log handlers
-        try {
-            FileHandler fh = new FileHandler(logFileName, false);
-            logger.addHandler(fh);
-            logger.setLevel(Level.FINE);
-            fh.setFormatter(new LogFormatter());
-        } catch (IOException e) {
-            System.err.println("ERROR: cannot initialize logger!");
-        }
-        logger.fine(timeStamp);            
-//            logger.fine("----Parameters------"
-//                    + "\nmmaxExportPath: " + mmaxExportPath
-//                    + "\nmmaxExport: " + mmaxExport
-//                    + "\nlogPath: " + logPath
-//                    + "\nkeepLogs: " + keepLogs
-//                    + "\nconllInput: " + conllInput
-//                    + "\nconllOutput: " + conllOutput
-//                    + "\nhtmlOutput: " + htmlOutput
-//                    + "\nmmaxGold: " + mmaxGold
-//                    + "\nnerAnnotation: "+ nerAnnotation
-//                    + "\ninputType: " + inputType
-//                    + "\noutputType: " + outputType
-//                    + "\n----------\n"
-//                    );
-        //logger.fine(props.toString());
-    }
     
     public static void printHelp(){
         System.out.print(
@@ -201,11 +159,10 @@ public class LVCoref {
         }
         
         timeStamp = Calendar.getInstance().getTime().toString().replaceAll("\\s", "-").replaceAll(":", "-");
-        if (Boolean.parseBoolean(props.getProperty(Constants.LOG_PROP, "false"))) createLogger();
         
-        logger.fine(props.toString());
+        log.info(props.toString());        
         
-        if (Constants.VERBOSE) Constants.printConstants(logger); //output constants to console
+        Constants.printConstants(Log.log); //output constants to console
         
         dictionaries = new Dictionaries();
     }
@@ -230,7 +187,7 @@ public class LVCoref {
         if (Constants.MULTIPLE_DOCS_EVAL) {
             for (documentID=0; documentID < inputConllList.size(); documentID++) {
                 System.err.println("NEW DOCUMENT: " + inputConllList.get(documentID));
-                Document d = new Document(logger, dictionaries);
+                Document d = new Document(dictionaries);
                 try {
                     d.readCONLL(inputConllList.get(documentID));
                 } catch (Exception ex) {
@@ -247,7 +204,7 @@ public class LVCoref {
         BufferedReader in;
         switch(inputType) {
             case CONLL:
-                Document d = new Document(logger, dictionaries);
+                Document d = new Document(dictionaries);
                 try {
                     d.readCONLL(conllInput);
                 } catch (Exception ex) {
@@ -262,7 +219,7 @@ public class LVCoref {
             case STDIN_JSON:
                 in = new BufferedReader(new InputStreamReader(System.in, "UTF8"));
                 while (!stopProcess) {
-                    Document doc = new Document(logger, dictionaries);
+                    Document doc = new Document(dictionaries);
                     try {
                         doc.readJSON(in);
                     } catch (Exception ex) {
@@ -278,7 +235,7 @@ public class LVCoref {
             default:
                 in = new BufferedReader(new InputStreamReader(System.in, "UTF8"));
                 while (!stopProcess) {
-                    Document doc = new Document(logger, dictionaries);
+                    Document doc = new Document(dictionaries);
                     try {
                         doc.readCONLL(in);
                     } catch (Exception ex) {
@@ -358,51 +315,32 @@ public class LVCoref {
 //		d.printSimpleText(System.err);
         
         if(doScore()) {        
-            logger.fine("Pairwise score for this doc: ");
-            scoreSingleDoc.get(sieves.length-1).printF1(logger);
-            logger.fine("Accumulated score: ");
+            log.severe("Pairwise score for this doc: ");
+            scoreSingleDoc.get(sieves.length-1).printF1(Log.log);
+            log.severe("Accumulated score: ");
             printF1(true);
-            logger.fine("\n");
+            log.severe("\n");
 
             singleDocMentionScorer.add(d);
             mentionScorer.add(d);
             stats.add(d, true);
             singleDocStats.add(d, true);
 
-            logger.fine("Document Statistics: ");
-            logger.fine(singleDocStats.corefStatistics(true));
-            logger.fine("Accumulated Statistics: ");
-            logger.fine(stats.corefStatistics(true));
-            logger.fine("Mentions score: ");
-            logger.fine(singleDocMentionScorer.getScore());
-            logger.fine("Accumulated Mentions score: ");
-            logger.fine(mentionScorer.getScore());
-
-            if (Constants.VERBOSE) {
-                System.err.println("Document Statistics: ");
-                System.err.println(singleDocStats.corefStatistics(true));
-                System.err.println("Accumulated Statistics: ");
-                System.err.println(stats.corefStatistics(true));
-                System.err.println("Mentions score: ");
-                System.err.println(singleDocMentionScorer.getScore());
-                System.err.println("Accumulated Mentions score: ");
-                System.err.println(mentionScorer.getScore());
-            }        
-
+            log.severe("Document Statistics: ");
+            log.severe(singleDocStats.corefStatistics(true));
+            log.severe("Accumulated Statistics: ");
+            log.severe(stats.corefStatistics(true));
+            log.severe("Mentions score: ");
+            log.severe(singleDocMentionScorer.getScore());
+            log.severe("Accumulated Mentions score: ");
+            log.severe(mentionScorer.getScore());  
         } else {
             stats.add(d, false);
             singleDocStats.add(d, false);
-            logger.fine("Document Statistics: ");
-            logger.fine(singleDocStats.corefStatistics(false));
-            logger.fine("Accumulated Statistics: ");
-            logger.fine(stats.corefStatistics(false));
-
-            if (Constants.VERBOSE) {
-                System.err.println("Document Statistics: ");
-                System.err.println(singleDocStats.corefStatistics(false));
-                System.err.println("Accumulated Statistics: ");
-                System.err.println(stats.corefStatistics(false));
-            }
+            log.severe("Document Statistics: ");
+            log.severe(singleDocStats.corefStatistics(false));
+            log.severe("Accumulated Statistics: ");
+            log.severe(stats.corefStatistics(false));
         }
 
         PrintStream ps;
@@ -524,41 +462,24 @@ public class LVCoref {
     }
   
     public static void printF1(boolean printF1First) {
-        scoreMUC.get(sieveClassNames.length - 1).printF1(logger, printF1First);
-        scoreBcubed.get(sieveClassNames.length - 1).printF1(logger, printF1First);
-        scorePairwise.get(sieveClassNames.length - 1).printF1(logger, printF1First);
+        scoreMUC.get(sieveClassNames.length - 1).printF1(Log.log, printF1First);
+        scoreBcubed.get(sieveClassNames.length - 1).printF1(Log.log, printF1First);
+        scorePairwise.get(sieveClassNames.length - 1).printF1(Log.log, printF1First);
     }
   
     
     private static void printSieveScore(Document document, DeterministicCorefSieve sieve) {
-        logger.fine("===========================================\n");
-        logger.fine("pass"+currentSieve+" " + sieve.getClass()+": \t"+ sieve.flagsToString());
-        scoreMUC.get(currentSieve).printF1(logger);
-        scoreBcubed.get(currentSieve).printF1(logger);
-        scorePairwise.get(currentSieve).printF1(logger);
-        logger.fine("# of Clusters: "+document.corefClusters.size() + "\t,\t# of additional links: \t"+additionalLinksCount
+        log.severe("===========================================\n");
+        log.severe("pass"+currentSieve+" " + sieve.getClass()+": \t"+ sieve.flagsToString());
+        scoreMUC.get(currentSieve).printF1(Log.log);
+        scoreBcubed.get(currentSieve).printF1(Log.log);
+        scorePairwise.get(currentSieve).printF1(Log.log);
+        log.severe("# of Clusters: "+document.corefClusters.size() + "\t,\t# of additional links: \t"+additionalLinksCount
             +"\t,\t# of additional correct links: \t"+additionalCorrectLinksCount
             +"\t,\tprecision of new links: \t"+1.0*additionalCorrectLinksCount/additionalLinksCount);
-        logger.fine("# of total additional links: \t"+linksCountInPass.get(currentSieve).second()
+        log.severe("# of total additional links: \t"+linksCountInPass.get(currentSieve).second()
             +"\t,\t# of total additional correct links: \t"+linksCountInPass.get(currentSieve).first()
             +"\t,\taccumulated precision of this pass: \t"+1.0*linksCountInPass.get(currentSieve).first()/linksCountInPass.get(currentSieve).second());
-        logger.fine("--------------------------------------");
-
-        if (Constants.VERBOSE) {
-            System.err.println("===========================================\n");
-            System.err.println("pass"+currentSieve+" " + sieve.getClass()+": "+ sieve.flagsToString());
-            System.err.println(scoreMUC.get(currentSieve).getF1String(true));
-            System.err.println(scoreBcubed.get(currentSieve).getF1String(true));
-            System.err.println(scorePairwise.get(currentSieve).getF1String(true));
-
-            System.err.println("# of Clusters: \t"+document.corefClusters.size() + "\t,\t# of additional links: \t"+additionalLinksCount
-                +"\t,\t# of additional correct links: \t"+additionalCorrectLinksCount
-                +"\t,\tprecision of new links: \t"+1.0*additionalCorrectLinksCount/additionalLinksCount);
-            System.err.println("# of total additional links: \t"+linksCountInPass.get(currentSieve).second()
-                +"\t,\t# of total additional correct links: \t"+linksCountInPass.get(currentSieve).first()
-                +"\t,\taccumulated precision of this pass: \t"+1.0*linksCountInPass.get(currentSieve).first()/linksCountInPass.get(currentSieve).second());
-            System.err.println("--------------------------------------");
-        }
-
+        log.severe("--------------------------------------");
     }
 }
