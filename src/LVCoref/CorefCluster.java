@@ -1,7 +1,9 @@
 package LVCoref;
 
 
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
 
@@ -21,6 +23,9 @@ public class CorefCluster {
     public Document document;
     
     public Set<Mention> corefMentions;
+    public Map<String, Integer> categories = new HashMap<>(); // used categories
+    public String category; // the most probable category based on categories
+    public int category_count; // count times of used cluster category
     
     /**
      * First Mention for cluster
@@ -71,6 +76,10 @@ public class CorefCluster {
         properModifiers = new HashSet<String>();
     }
    
+    /**
+     * Add mention to cluster, keeps track of all cluster attribues (category, etc)
+     * @param m
+     */
     public void add(Mention m) {
         corefMentions.add(m);
         modifiers.addAll(m.modifiers);
@@ -78,6 +87,20 @@ public class CorefCluster {
         words.addAll(m.words);
         if (m.moreRepresentative(representative)) representative = m;
         if (firstMention == null || firstMention.node.id > m.node.id) firstMention = m;
+        
+        if (!m.node.isPronoun()) {
+        	//ignore pronouns for category tracking
+	        for (String cat : m.categories) {
+	        	if (!categories.containsKey(cat)) categories.put(cat, 0);
+	        	int count = categories.get(cat) + 1;
+	        	categories.put(cat, count);
+	        	if (count > category_count) {
+	        		// update cluster category
+	        		category = cat;
+	        		category_count = count;
+	        	}
+	        }
+        }
     }
     
     public boolean includeModifiers(CorefCluster c) {

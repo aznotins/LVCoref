@@ -1,12 +1,12 @@
 package LVCoref;
 
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 import LVCoref.Dictionaries.MentionType;
+import edu.stanford.nlp.trees.Tree;
 
 
 public class Node {
@@ -15,6 +15,8 @@ public class Node {
     public int parentID;
 	public int id;
 	public List<Node> children;
+	
+	public Tree tree;
 	
 	public boolean isMention;
 	public String tag;

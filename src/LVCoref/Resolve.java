@@ -1,18 +1,22 @@
 package LVCoref;
 
-import LVCoref.Dictionaries.MentionType;
-import LVCoref.Mention.MentionSource;
-import LVCoref.util.Log;
-
 import java.util.List;
+import java.util.logging.Logger;
+
 import org.apache.commons.jexl2.Expression;
 import org.apache.commons.jexl2.JexlContext;
 import org.apache.commons.jexl2.JexlEngine;
 import org.apache.commons.jexl2.MapContext;
 
+import LVCoref.Dictionaries.MentionType;
+import LVCoref.Mention.MentionSource;
+import LVCoref.util.Log;
+
 
 public class Resolve {
-    
+	private static final Logger log = Logger.getLogger( Log.class.getName() );
+	//static { log.setLevel(Level.OFF); }
+	
     public static final boolean JEXL_SILENT = true;
     public static final boolean JEXL_LENIENT = false;
     public static final boolean JEXL_DBG = false;
@@ -113,7 +117,7 @@ public class Resolve {
                 }
             }
         }
-        Log.inf(Utils.getMentionPairString(d, s, t, comment));
+        log.fine(Utils.getMentionPairString(d, s, t, comment));
         s.setAsResolved();
     }
     

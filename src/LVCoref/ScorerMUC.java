@@ -1,8 +1,8 @@
 package LVCoref;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.logging.Logger;
-
 
 import LVCoref.util.Log;
 

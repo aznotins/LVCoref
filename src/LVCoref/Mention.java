@@ -2,9 +2,8 @@ package LVCoref;
 
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Set;
+import java.util.logging.Logger;
 
 import LVCoref.Dictionaries.Animacy;
 import LVCoref.Dictionaries.Case;
@@ -15,6 +14,9 @@ import LVCoref.Dictionaries.PronounType;
 import LVCoref.util.Log;
 
 public class Mention implements Comparable<Mention>{
+	private static final Logger log = Logger.getLogger( Log.class.getName() );
+	//static { log.setLevel(Level.OFF); }
+	
     Document document;
 	public Integer id;
 	
@@ -311,20 +313,21 @@ public class Mention implements Comparable<Mention>{
      */
     public void setCategories() {
     	// from annotation schema
-        if (categories.contains("other")) {
-            categories.remove("other");
-        }
+        categories.remove("other");
+        
         if (categories.size() == 0) {
         	if (!node.idType.equals("")) categories.add(node.idType);
         	else if (node.ne_annotation != null
         			&& !node.ne_annotation.equals("")
         			&& !node.ne_annotation.equals("O")) {
         		categories.add(node.ne_annotation);
+        		log.info("NER category " + node.ne_annotation + " - " + nerString);
+        	} else {
+        		// from LVCoref lists
+                categories.addAll(document.dict.getCategories(node.lemma)); 
         	}
         }
-        // from LVCoref lists
-        categories.addAll(document.dict.getCategories(node.lemma)); 
-        // FIXME can add unnecessary categories for proper NE
+        log.fine(String.format("Set category [%s] %s", nerString, categories.toString()));
     }
     
     /**

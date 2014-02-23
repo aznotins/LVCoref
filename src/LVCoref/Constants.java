@@ -3,8 +3,12 @@ package LVCoref;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import LVCoref.util.Log;
+
 public class Constants {
-   
+	private static final Logger log = Logger.getLogger( Log.class.getName() );
+	//static { log.setLevel(Level.OFF); }
+	
     /** if false, use mention prediction */
     public static final boolean USE_GOLD_MENTIONS = false;
     
@@ -14,7 +18,7 @@ public class Constants {
     public static final String LOGGER_FILE_PATH = "data/logs/";
     public static final Level LOGGER_FILE_LEVEL = Level.FINE;
     public static final Level LOGGER_ERR_LEVEL = Level.INFO;
-    public static final Level LOGGER_LEVEL = Level.FINE;
+    public static final Level LOGGER_LEVEL = Level.SEVERE;
     
     public static final int SENTENCE_WINDOW = 30;
     
@@ -68,13 +72,13 @@ public class Constants {
     
     
     /** print the values of variables in this class */
-    public static void printConstants(Logger logger) {
-        if (Constants.USE_GOLD_MENTIONS) logger.info("USE_GOLD_MENTIONS on");
-        else logger.info("USE_GOLD_MENTIONS off");
+    public static void printConstants() {
+        if (Constants.USE_GOLD_MENTIONS) log.config("USE_GOLD_MENTIONS on");
+        else log.config("USE_GOLD_MENTIONS off");
 //        if (Constants.USE_GOLD_MENTION_BOUNDARIES) logger.info("USE_GOLD_MENTION_BOUNDARIES on");
 //        else logger.info("USE_GOLD_MENTION_BOUNDARIES off");
-        if (Constants.REMOVE_SINGLETONS) logger.info("REMOVE_SINGLETONS on");
-        else logger.info("REMOVE_SINGLETONS off");
-        logger.info("=================================================================");
+        if (Constants.REMOVE_SINGLETONS) log.config("REMOVE_SINGLETONS on");
+        else log.config("REMOVE_SINGLETONS off");
+        log.config("=================================================================");
     }
 }

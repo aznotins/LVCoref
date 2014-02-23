@@ -17,8 +17,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Handler;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -34,6 +32,7 @@ import org.w3c.dom.NodeList;
 import LVCoref.Dictionaries.MentionType;
 import LVCoref.Mention.MentionSource;
 import LVCoref.util.Log;
+import edu.stanford.nlp.util.StringUtils;
 
 /**
  * Document class contains document parse tree structure, 
@@ -119,9 +118,13 @@ public class Document {
         for (Node n : tree) {
             if (n.mention != null) {
                 n.conll_fields.add(Integer.toString(n.mention.corefClusterID));
-                if (n.mention.categories.size() > 0 && n.mention.category != null) {
-                	//n.conll_fields.add(Utils.implode(n.mention.categories, "|"));
-                	n.conll_fields.add(n.mention.category);
+                String category = getCluster(n.mention.corefClusterID).category;
+//                if (n.mention.categories.size() > 0 && n.mention.category != null) {
+//                	//n.conll_fields.add(Utils.implode(n.mention.categories, "|"));
+//                	n.conll_fields.add(n.mention.category);
+//                }
+                if (category != null) {
+                	n.conll_fields.add(category);
                 }
                 else n.conll_fields.add("_");
             } else {
@@ -494,7 +497,7 @@ public class Document {
                 //System.err.printf("head:%s ner:%s\n", m.headString, m.nerString);
             }
             //System.err.println(aliases.toString());
-            String category = cluster.representative.category; //TODO - vai representative.category ir pareizā lieta?
+            String category = cluster.category != null ? cluster.category : "null"; // labāk kā representative.category
             JSONArray aliasesArr = new JSONArray();
             aliasesArr.addAll(aliases);            
             NEObj.put("aliases", aliasesArr);
@@ -785,7 +788,6 @@ public class Document {
                 }
                 else {
                     log.warning("NER Unsupported category @" + cur_cat);
-                    System.err.println("NER unsupported category @" + cur_cat);
                 }
                 if (m != null) {
                     m.strict = true;
@@ -818,7 +820,6 @@ public class Document {
             }
             else {
             	log.warning("NER Unsupported category @" + cur_cat);
-                System.err.println("NER unsupported category @" + cur_cat);
             }
             if (m != null) {
                 m.strict = true;
@@ -1668,31 +1669,38 @@ public class Document {
     }
     
     public void printMentions() {
-    	log.warning("MENTIONS:");
+    	Log.p("MENTIONS:");
     	for (Mention m : mentions) {
-    		log.warning(m.source + "\t" + m + "\t" + m.categories);
+    		Log.p(m.source + "\t" + m + "\t" + m.categories);
     		//System.err.println("#" +m.id + "\t" + m.node.word + "\t" + m.type+ "\t" + m.category + " ^"+m.node.parent);
     	}
     }
     
     public void printClusterRepresentatives() {
-    	log.warning("CLUSTERS - representatives:");
+    	Log.p("CLUSTERS - representatives:");
     	for (int i : corefClusters.keySet()) {
     		CorefCluster c = getCluster(i);
     		if (c.representative.titleRepresentative()) {
-    			System.err.println(c.representative);
-    			log.warning(c.representative.toString());
+    			Log.p(String.format("[%s] [%s]", c.representative.nerString, c.representative.category));
     		}
     	}
     }
     
     public void printClusters() {
-    	System.err.println("CLUSTERS:");
+    	Log.p("CLUSTERS:");
         for (Integer i : corefClusters.keySet()) {
-            if ( corefClusters.get(i).corefMentions.size() > 1){
-                System.err.println("---C"+i+"---");
-                for (Mention m : corefClusters.get(i).corefMentions) {
-                    System.err.printf("\t[%s]\t%s\n", m.nerString, m.node.toString());
+        	CorefCluster c = corefClusters.get(i);
+            if ( c.corefMentions.size() > 1){
+            	Log.p(String.format("---C"+i+"--- [%s/%s] [%s]", 
+            			c.category,
+            			c.representative.category,
+            			c.representative.nerString));
+                for (Mention m : c.corefMentions) {
+                	Log.p(String.format(
+                			"%s(%s) %s [%s] ", 
+                			m.node.word, m.node.tag,
+                			m.categories.toString(),
+                			StringUtils.trim(m.nerString + " |", 40)));
                 }
             }
         }

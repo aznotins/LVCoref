@@ -10,14 +10,11 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Properties;
+import java.util.logging.Logger;
 
 import LVCoref.ScorerBCubed.BCubedType;
 import LVCoref.sievepasses.DeterministicCorefSieve;
 import LVCoref.util.Log;
-
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 import edu.stanford.nlp.util.Pair;
 import edu.stanford.nlp.util.StringUtils;
 
@@ -160,9 +157,8 @@ public class LVCoref {
         
         timeStamp = Calendar.getInstance().getTime().toString().replaceAll("\\s", "-").replaceAll(":", "-");
         
-        log.info(props.toString());        
-        
-        Constants.printConstants(Log.log); //output constants to console
+        log.severe(props.toString());
+        Constants.printConstants(); //output constants to console
         
         dictionaries = new Dictionaries();
     }
@@ -173,6 +169,7 @@ public class LVCoref {
 		Properties properties = StringUtils.argsToProperties(args);
         //System.err.println(properties);
         
+		Log.init();
         initializeProperties(properties);
         
         if (Constants.MULTIPLE_DOCS_EVAL) {
@@ -315,32 +312,33 @@ public class LVCoref {
 //		d.printSimpleText(System.err);
         
         if(doScore()) {        
-            log.severe("Pairwise score for this doc: ");
+            log.info("Pairwise score for this doc: ");
             scoreSingleDoc.get(sieves.length-1).printF1(Log.log);
-            log.severe("Accumulated score: ");
+            log.info("Accumulated score: ");
             printF1(true);
-            log.severe("\n");
+            log.info("\n");
 
             singleDocMentionScorer.add(d);
             mentionScorer.add(d);
             stats.add(d, true);
             singleDocStats.add(d, true);
 
-            log.severe("Document Statistics: ");
-            log.severe(singleDocStats.corefStatistics(true));
-            log.severe("Accumulated Statistics: ");
-            log.severe(stats.corefStatistics(true));
-            log.severe("Mentions score: ");
-            log.severe(singleDocMentionScorer.getScore());
-            log.severe("Accumulated Mentions score: ");
-            log.severe(mentionScorer.getScore());  
+            log.fine("Document Statistics: ");
+            log.fine(singleDocStats.corefStatistics(true));
+            log.info("Accumulated Statistics: ");
+            log.info(stats.corefStatistics(true));
+            
+            log.info("Mentions score: ");
+            log.info(singleDocMentionScorer.getScore());
+            log.info("Accumulated Mentions score: ");
+            log.info(mentionScorer.getScore());  
         } else {
             stats.add(d, false);
             singleDocStats.add(d, false);
-            log.severe("Document Statistics: ");
-            log.severe(singleDocStats.corefStatistics(false));
-            log.severe("Accumulated Statistics: ");
-            log.severe(stats.corefStatistics(false));
+            log.fine("Document Statistics: ");
+            log.fine(singleDocStats.corefStatistics(false));
+            log.info("Accumulated Statistics: ");
+            log.info(stats.corefStatistics(false));
         }
 
         PrintStream ps;

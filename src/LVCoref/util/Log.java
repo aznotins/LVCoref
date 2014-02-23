@@ -2,9 +2,11 @@ package LVCoref.util;
 
 import java.io.IOException;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.logging.FileHandler;
 import java.util.logging.Formatter;
 import java.util.logging.Handler;
+import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import java.util.logging.StreamHandler;
@@ -25,17 +27,36 @@ public class Log {
         @Override
         public String format(LogRecord rec) {
             StringBuilder buf = new StringBuilder(1000);
+            if (rec.getLevel().intValue() > Level.INFO.intValue()) {
+            	buf.append(String.format("%s [%s]\n",rec.getLevel(), new Date()));
+            }
             buf.append(formatMessage(rec));
             buf.append('\n');
-            return buf.toString();
+            return buf.toString();            
         }
     }
+	
+	/**
+	 * Output message to System.err
+	 * @param msg
+	 */
+	public static void p(String msg) { System.err.println(msg); }
+	public static void pt(String msg) {
+		Date now = new Date();    	
+//    	SimpleDateFormat sdf = new SimpleDateFormat("E, y-M-d 'at' h:m:s a z");
+//    	System.out.println( sdf.format(now) );
+		System.err.printf("[%s]\n%s\n", now, msg);
+	}
+	/**
+	 * Output message to System.out
+	 * @param msg
+	 */
+	public static void out(String msg) { System.out.println(msg); }
 	
 	public static void sev(String msg) { log.severe(msg); }
 	public static void war(String msg) { log.warning(msg); }
 	public static void inf(String msg) { log.info(msg); }
 	public static void fin(String msg) { log.fine(msg); }
-
 	
 	public static void init() {
 		id = Calendar.getInstance().getTime().toString().replaceAll("\\s", "-").replaceAll(":", "-");
@@ -74,6 +95,4 @@ public class Log {
 		log.info("info");
 		log.fine("fine");
 	}
-
-
 }
