@@ -3,6 +3,8 @@ package LVCoref;
 import java.awt.Color;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -16,6 +18,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.logging.Logger;
 
@@ -48,6 +51,8 @@ public class Document {
      * Document parse tree
      */
 	public List<Node> tree;
+	
+	public JSONObject json = null;
     
     public List<Integer> sentences; //node ids starting senteces
 
@@ -328,6 +333,7 @@ public class Document {
                 sentences.add(sentence_start_id);
                 tree.get(node_id-1).sentEnd = true;
             }
+            json = jsonData;
             initializeNodeTree();
             initializeBaseCoreference();
             
@@ -363,7 +369,7 @@ public class Document {
     				}
     				//System.err.println("New base mention " + m);
     			} else {
-    				//System.err.println("Couldn't set mention: " + n);
+    				log.warning("BASE: could not create base mention " + n);
     			}
     		}
     	}
@@ -448,8 +454,27 @@ public class Document {
         return k;
     }    
     
+    /**
+     * Prepares and outputs json
+     * @param out
+     */
+    public void outputJSON(PrintStream out) {
+    	if (json == null) initJSON();
+    	else {
+    		jsonUpdateSentences();
+    		jsonUpdateNE();
+    		jsonUpdateFrames();
+    	}
+    	if (Constants.DEBUG) out.println(Utils.prettyJSON(json.toString()));
+    	else out.println(json.toString());
+        out.flush();
+    }
+    
+    /**
+     * Initialize JSON structure (sentences and named entities)
+     */
     @SuppressWarnings("unchecked")
-	public void outputJSON(PrintStream out) {
+	public void initJSON() {
         JSONArray sentencesArr = new JSONArray();
         for (int sentID = 0; sentID < sentences.size(); sentID++) {
             JSONObject sentenceObj = new JSONObject();
@@ -472,10 +497,56 @@ public class Document {
             }
             sentenceObj.put("tokens", tokensArr);
             sentenceObj.put("text", sentenceText(sentID));
+            sentenceObj.put("frames", new JSONArray());
+            sentenceObj.put("detachedNamedEntityMarkers", new JSONArray());
             sentencesArr.add(sentenceObj);
         }
-        
-        JSONObject NEMap = new JSONObject();
+        JSONObject doc = new JSONObject();
+        doc.put("document", new JSONObject());
+        doc.put("sentences", sentencesArr);
+        json = doc;
+        jsonUpdateNE();
+    }
+    
+    /**
+     * Traverses and updates sentence token coreference fields (idType and neID)
+     */
+    public void jsonUpdateSentences() {
+    	try {
+            if (json == null) throw new Exception("Empty document");
+            JSONArray sentencesArr = (JSONArray)json.get("sentences");
+            if (sentencesArr == null) throw new Exception("Sentences key not set");
+            
+            int node_id = 0; // current node id from node tree
+            for (int s_id = 0; s_id < sentencesArr.size(); s_id++) {
+                JSONObject sentence = (JSONObject)sentencesArr.get(s_id);
+                JSONArray tokens = (JSONArray) sentence.get("tokens");
+                for (int n_id = 0 ; n_id < tokens.size(); n_id++) {
+                	Node n = getNode(node_id++);	
+                    JSONObject token = (JSONObject)tokens.get(n_id);
+                    if (token.containsKey("idType")) token.remove("idType");
+                    if (token.containsKey("namedEntityID")) token.remove("namedEntityID");
+                    if (n.namedEntityID > 0 && n.mention == null) {
+                    	log.warning("Deleted base mention " + n);
+                    }
+                    if (n.mention != null) {
+                    	token.put("namedEntityID", n.mention.corefClusterID);
+                    	String cat = getCluster(n.mention.corefClusterID).category;
+                    	if (cat != null) token.put("idType", cat);
+                    }
+                }
+            }
+        } catch (Exception e) {
+        	log.severe("ERROR parsing input json data");
+            e.printStackTrace(System.err);
+        }
+    }
+    	
+    public void jsonUpdateNE() {
+    	if (json.containsKey("namedEntities")) json.remove("namedEntities"); // remove old namedEntity data
+    	JSONObject NEMap = new JSONObject();
+    	json.put("namedEntities", NEMap);
+    	
         for (int cID : corefClusters.keySet()) {
             CorefCluster cluster = corefClusters.get(cID);
             JSONObject NEObj = new JSONObject();
@@ -523,17 +594,72 @@ public class Document {
             NEObj.put("representative", representative);
             NEMap.put(cID, NEObj);
         }
-        
-        JSONObject doc = new JSONObject();
-        doc.put("document", new JSONObject());
-        doc.put("sentences", sentencesArr);
-        doc.put("namedEntities", NEMap);
-        
-        out.println(doc.toString());
-        out.flush();
     }
     
+    /**
+     * Traverses frames and updates the ids of the nameEntities, based on original
+     * namedEntityID annotation for token
+     * Could rewrite this based on frame tokenIndex
+     */
+    public void jsonUpdateFrames() {
+    	// create baseNeId => newNeId mapping
+    	Map<Integer, Integer> nes = new HashMap<>();
+    	for (Node n : tree) {
+    		if (n.namedEntityID > 0) {
+    			if (n.mention != null) {
+    				nes.put(n.namedEntityID, n.mention.corefClusterID);
+    			} else {
+    				//log.warning(String.format("Deleted base mention %s", n));
+    			}
+    		}
+    	}
+    	try {
+            if (json == null) throw new Exception("Empty document");
+            JSONArray sentencesArr = (JSONArray)json.get("sentences");
+            if (sentencesArr == null) throw new Exception("Sentences key not set");
+            
+            for (int s_id = 0; s_id < sentencesArr.size(); s_id++) {
+                JSONObject sentence = (JSONObject)sentencesArr.get(s_id);
+                JSONArray framesArr = (JSONArray) sentence.get("frames");
+                //int sent_start = sentences.get(s_id); // sentence start node id
+                
+                for (int f_id = 0 ; f_id < framesArr.size(); f_id++) {
+                    JSONObject frame = (JSONObject)framesArr.get(f_id);
+                    
+                    if (frame.containsKey("namedEntityID")) {
+                    	int nameEntityID = Integer.parseInt(frame.get("namedEntityID").toString());
+                    	if (nes.containsKey(nameEntityID)) {
+                    		frame.put("namedEntityID", nes.get(nameEntityID));
+                    	} else {
+                    		log.warning(String.format(
+                    				"Frame without existing namedEntity: sentID=%d, frameID=%d [%s]", s_id, f_id, sentence.get("text")));
+                    	}
+                    }
+                    
+                    JSONArray frameElements = (JSONArray) frame.get("elements");
+                    for (int el_id = 0; el_id < frameElements.size(); el_id++) {
+                    	JSONObject element = (JSONObject)frameElements.get(el_id);
+                    	if (element.containsKey("namedEntityID")) {
+                        	int nameEntityID = Integer.parseInt(element.get("namedEntityID").toString());
+                        	if (nes.containsKey(nameEntityID)) {
+                        		element.put("namedEntityID", nes.get(nameEntityID));
+                        	} else {
+                        		log.warning(String.format(
+                        				"Frame element without existing namedEntity: sentID=%d, frameID=%d, elementID=%d [%s]", s_id, f_id, el_id, sentence.get("text")));
+                        	}
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+        	log.severe("ERROR parsing input json data");
+            e.printStackTrace(System.err);
+        }
+    }
     
+    /**
+     * Initialize node tree, based on node parent field
+     */
     public void initializeNodeTree() {
         for (Node n : tree) {
             if (Constants.USE_SINTAX) {
@@ -557,8 +683,7 @@ public class Document {
             
         }
     }
-    
-    
+     
     /**
      * Add MMAX Gold Annotation
      * @param filename
@@ -962,8 +1087,7 @@ public class Document {
                 n = n.parent;
             }
             if (nested) {
-                removeMention(m);
-                log.fine(Utils.getMentionComment(this, m, "Removed nested mention"));
+                removeMention(m, "Removed nested mention");
             }
         }
         normalizeMentions();
@@ -975,9 +1099,7 @@ public class Document {
                 for (int i = m.start; i <= m.end; i++) {
                     Node q = tree.get(i);
                     if (q.mention != null && q.mention != m) {
-                    	removeMention(m);
-                    	log.fine(Utils.getMentionComment(this, m, "Removed nested quote mention"));
-                        //System.err.println("REMOVED QUOTE " + q.mention.nerString);
+                    	removeMention(m, "Removed nested quote mention");
                     }
                 }
             }
@@ -989,8 +1111,7 @@ public class Document {
     public void removePluralMentions() {
         for (Mention m : mentions) {
             if (m.number == Dictionaries.Number.PLURAL) {
-                removeMention(m);
-                log.fine(Utils.getMentionComment(this, m, "Removed Plural mention"));
+                removeMention(m, "Removed Plural mention");
             }
         }
         normalizeMentions();
@@ -1031,8 +1152,7 @@ public class Document {
                 }
             }            
             if (remove) {
-                removeMention(m);
-                log.fine(Utils.getMentionComment(this, m, "Removed Pleonastic mention"));
+                removeMention(m, "Removed Pleonastic mention");
             }
         }
         normalizeMentions();
@@ -1041,8 +1161,7 @@ public class Document {
     public void removeSingletonMentions() {
         for (Mention m : mentions) {
             if (corefClusters.get(m.corefClusterID) != null && corefClusters.get(m.corefClusterID).corefMentions.size() < 2) {
-                removeMention(m);
-                log.fine(Utils.getMentionComment(this, m, "Removed singleton mention"));
+                removeMention(m, "Removed singleton mention");
             }
         }
         normalizeMentions();
@@ -1206,41 +1325,39 @@ public class Document {
      * @param m
      */
     public void removeMention(Mention m) {
-        m.node.mention = null;
-        CorefCluster cluster = corefClusters.get(m.corefClusterID);
-        if (cluster != null) {
-            if (cluster.corefMentions.size() < 2) corefClusters.remove(m.corefClusterID);
-            else cluster.corefMentions.remove(m);
-        }
+    	removeMention(m, null);
+    }
+    public void removeMention(Mention m, String comment) {
+    	if (m.node.namedEntityID < 0) {
+    		m.node.mention = null;
+            CorefCluster cluster = corefClusters.get(m.corefClusterID);
+            if (cluster != null) {
+                if (cluster.corefMentions.size() < 2) corefClusters.remove(m.corefClusterID);
+                else cluster.corefMentions.remove(m);
+            }
+            if (comment != null) {
+            	log.fine(Utils.getMentionComment(this, m, comment));
+            }
+    	} else {
+    		log.info(String.format("ORIGINAL MENTION: [%s] tried to remove %s", comment, m.toString()));
+    	}
     }
     
     public void removePronounSingletonMentions() {
-        List <Mention> mm = new ArrayList<Mention>();
         for (Mention m : mentions) {
             if (m.type == MentionType.PRONOMINAL && corefClusters.get(m.corefClusterID) != null && corefClusters.get(m.corefClusterID).corefMentions.size() < 2) {
-                removeMention(m);
-                log.fine(Utils.getMentionComment(this, m, "Removed pronoun singleton mention"));
-            } else {
-                mm.add(m);
+                removeMention(m, "Removed pronoun singleton mention");
             }
         }
-        mentions.clear();
-        mentions = mm;
         normalizeMentions();
     }
     
     public void removeExcludedMentions() {
-        List <Mention> mm = new ArrayList<Mention>();
         for (Mention m : mentions) {
             if (dict.excludeWords.contains(m.node.lemma.toLowerCase())) {
-                removeMention(m);
-                log.fine(Utils.getMentionComment(this, m, "Removed excluded mention"));
-            } else {
-                mm.add(m);
+                removeMention(m, "Removed excluded mention");
             }
         }
-        mentions.clear();
-        mentions = mm;
         normalizeMentions();
     }
     
@@ -1249,7 +1366,6 @@ public class Document {
      */
     public void removeUndefiniedMentions() {        
         Set<String> exclude = new HashSet<String>(Arrays.asList("viss", "cits", "dažs", "daudz", "maz", "cits",  "cita"));
-        List <Mention> mm = new ArrayList<Mention>();
         for (Mention m : mentions) {
             boolean needExclude = false;
             if (m.number != Dictionaries.Number.SINGULAR) {
@@ -1261,14 +1377,9 @@ public class Document {
                 }
             }
             if (needExclude) {
-                removeMention(m);
-                log.fine(Utils.getMentionComment(this, m,"Removed undefinied mention"));
-            } else {
-                mm.add(m);
+                removeMention(m, "Removed undefinied mention");
             }
         }
-        mentions.clear();
-        mentions = mm;
         normalizeMentions();
     }
     
@@ -1280,8 +1391,7 @@ public class Document {
             //if (m.type == MentionType.PRONOMINAL) continue;
             //if (m.type == MentionType.PROPER) continue;
             if ((m.source != MentionSource.QUOTE && !m.strict) && m.mentionCase == Dictionaries.Case.GENITIVE && m.node.parent != null && m.node.parent.isNoun()) {
-                removeMention(m);
-                log.fine(Utils.getMentionComment(this, m,"Removed genitive mention"));
+                removeMention(m, "Removed genitive mention");
             }
         }
         normalizeMentions();
@@ -1742,4 +1852,31 @@ public class Document {
     	}
     	setConllCorefColumns();
     }
+    
+	/**
+	 * @param args
+	 * @throws Exception 
+	 * @throws FileNotFoundException 
+	 */
+    public static void main(String[] args) throws FileNotFoundException, Exception {
+    	String propertiesFile = "lvcoref.prop";
+    	Properties props = new Properties();
+		props.load(new FileInputStream(propertiesFile));
+		props.setProperty(Constants.OUTPUT_PROP, "none");
+		LVCoref.initializeProperties(props);
+    	
+    	Document d = new Document();
+		
+		//String file = "sample1_coref.conll";
+		//String file = "ziedonis_coref.json";
+		String file = "00C203A6-4206-4B74-8349-E21CC48B8E30_.json";
+		//d.readCONLL(new BufferedReader(new FileReader(file)));
+		
+		d.readJSON(new BufferedReader(new FileReader(file)));
+		//d.initTree();
+		
+		LVCoref.processDocument(d);
+		
+		//d.outputJSON(System.out);
+	}
 }

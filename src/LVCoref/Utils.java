@@ -5,7 +5,17 @@
 package LVCoref;
 
 import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.io.Writer;
+import java.util.Map;
 import java.util.Set;
+
+import javax.swing.text.html.HTMLDocument.Iterator;
+
+import org.json.simple.JSONObject;
+
+import edu.stanford.nlp.util.StringUtils;
 
 /**
  *
@@ -80,6 +90,33 @@ public class Utils {
                 +" \t@id=" +m.id
                 +" \t@head="+m.node.word+"|"+m.node.tag;
         return s;
+    }
+    
+    public static String prettyJSON(String s) {
+    	int indent = 0;
+    	String tab = "  ";
+    	StringBuilder sb = new StringBuilder();
+    	for (int i = 0; i < s.length(); i++) {
+    		Character c = s.charAt(i);
+    		if (c == '[' || c == '{') {
+    			sb.append(c);
+    			sb.append('\n');
+    			indent++;
+    			sb.append(StringUtils.repeat(tab, indent));
+    		} else if (c == ',') {
+    			sb.append(c);
+    			sb.append('\n');
+    			sb.append(StringUtils.repeat(tab, indent));
+    		} else if (c == ']' || c == '}') {
+    			sb.append('\n');
+    			indent--;
+    			sb.append(StringUtils.repeat(tab, indent));
+    			sb.append(c);
+    		} else {
+    			sb.append(c);
+    		}
+    	}
+    	return sb.toString();
     }
     
 }

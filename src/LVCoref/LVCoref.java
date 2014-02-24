@@ -251,15 +251,17 @@ public class LVCoref {
     
     public static void processDocument(Document d) { 
         String mmaxGold;
-        if (Constants.MULTIPLE_DOCS_EVAL) {
-            mmaxGold = mmaxGoldList.get(documentID);
-//            if (nerList.size() > 0) {
-//                nerAnnotation = nerList.get(documentID);
-//            }
-        } else {
-            mmaxGold = props.getProperty(Constants.MMAX_GOLD_PROP, "");
+        if (props != null) {
+	        if (Constants.MULTIPLE_DOCS_EVAL) {
+	            mmaxGold = mmaxGoldList.get(documentID);
+	//            if (nerList.size() > 0) {
+	//                nerAnnotation = nerList.get(documentID);
+	//            }
+	        } else {
+	            mmaxGold = props.getProperty(Constants.MMAX_GOLD_PROP, "");
+	        }
+	        if (mmaxGold.length() > 0) {d.addAnnotationMMAX(mmaxGold); }
         }
-        if (mmaxGold.length() > 0) {d.addAnnotationMMAX(mmaxGold); }
         
         d.updateProperWords();
         if (Constants.USE_GOLD_MENTIONS && mmaxGold.length() > 0) {

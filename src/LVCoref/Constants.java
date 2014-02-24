@@ -18,7 +18,7 @@ public class Constants {
     public static final String LOGGER_FILE_PATH = "data/logs/";
     public static final Level LOGGER_FILE_LEVEL = Level.FINE;
     public static final Level LOGGER_ERR_LEVEL = Level.INFO;
-    public static final Level LOGGER_LEVEL = Level.SEVERE;
+    public static final Level LOGGER_LEVEL = Level.WARNING;
     
     public static final int SENTENCE_WINDOW = 30;
     
@@ -29,6 +29,7 @@ public class Constants {
     public static final boolean MULTIPLE_DOCS_EVAL = false;
     
     public static final boolean VERBOSE = false;
+    public static final boolean DEBUG = false; // extra output (pretty json, ..)
 
     /** if true, use given mention boundaries */
     public static final boolean USE_GOLD_MENTION_BOUNDARIES = false;

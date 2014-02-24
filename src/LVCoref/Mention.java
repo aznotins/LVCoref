@@ -197,7 +197,7 @@ public class Mention implements Comparable<Mention>{
             gender = Gender.UNKNOWN;
             number = Number.UNKNOWN;            
             mentionCase = Case.UNKNOWN;
-            Log.inf("Unsuported tag: " + node.tag);
+            Log.fin("Unsuported tag: " + node.tag);
         }        
     }
     

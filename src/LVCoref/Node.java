@@ -27,8 +27,8 @@ public class Node {
     public int parentIndex;
     
     public String ne_annotation = "";
-    public int namedEntityID = -1;
-    public String idType = "";
+    public int namedEntityID = -1; // old named entity ID, used for merging
+    public String idType = ""; // old value, used for merging
     
     public int sentNum = -1;
     public int position;

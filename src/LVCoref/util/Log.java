@@ -28,7 +28,11 @@ public class Log {
         public String format(LogRecord rec) {
             StringBuilder buf = new StringBuilder(1000);
             if (rec.getLevel().intValue() > Level.INFO.intValue()) {
-            	buf.append(String.format("%s [%s]\n",rec.getLevel(), new Date()));
+            	buf.append(String.format("%s [%s] %s.%s()\n",
+            			rec.getLevel(), 
+            			new Date(), 
+            			rec.getSourceClassName(),
+            			rec.getSourceMethodName()));
             }
             buf.append(formatMessage(rec));
             buf.append('\n');
