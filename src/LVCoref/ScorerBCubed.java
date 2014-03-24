@@ -46,6 +46,7 @@ public class ScorerBCubed extends CorefScorer {
 
       for(Mention m2 : doc.corefClusters.get(m.corefClusterID).getCorefMentions()){
         if(m==m2 || 
+        	//sameMention(doc, m.node) && sameMention(doc, m2.node) && // lai sakrīt ar conll scorer
             (m.node.goldMention != null 
                 && m2.node.goldMention != null 
                 && m.node.goldMention.goldCorefClusterID == m2.node.goldMention.goldCorefClusterID)) {
@@ -69,6 +70,7 @@ public class ScorerBCubed extends CorefScorer {
       double total = 0.0;
       for(Mention m2 : doc.goldCorefClusters.get(m.goldCorefClusterID).getCorefMentions()){
         if(m==m2 ||
+        	//sameMention(doc, m.node) && sameMention(doc, m2.node) && // lai sakrīt ar conll scorer
             (m.node.mention != null
                 && m2.node.mention != null
                 && m.node.mention.corefClusterID == m2.node.mention.corefClusterID)) {
@@ -172,5 +174,15 @@ public class ScorerBCubed extends CorefScorer {
 
     recallDenSum += rDen;
     recallNumSum += rNum;    
+  }
+  
+  public boolean sameMention(Document doc, Node n) {
+	  if (n.mention != null && n.goldMention != null 
+			  && n.mention.start == n.goldMention.start 
+			  && n.mention.end == n.goldMention.end) {
+		  return true;
+	  } else {
+		  return false;
+	  }
   }
 }

@@ -20,17 +20,17 @@ public class Mention implements Comparable<Mention>{
     Document document;
 	public Integer id;
 	
-	// Source that created mention
+	// Source that created mention (from less to more important)
 	public enum MentionSource { 
-		DEFAULT, 
-		NER, 
-		QUOTE, 
-		ABBREVIATION, 
-		TMP, 
-		LIST, 
+		TMP,
 		ALLNODES, 
+		DEFAULT,
+		QUOTE,
+		LIST,
 		PROPERNODES,
+		ABBREVIATION, 
 		DETALIZEDNODES,
+		NER,
 		BASE			// read from input data, can be overwritten
 	}
 	public MentionSource source = MentionSource.DEFAULT;
@@ -125,7 +125,7 @@ public class Mention implements Comparable<Mention>{
         this.start = start;
         this.end = end;
         this.nerString = d.getSubString(start, end);
-        this.sentNum = node.sentNum;
+        this.sentNum = node.sentence.getID();
         document = d;
         
         // default values we can obtain
@@ -321,13 +321,13 @@ public class Mention implements Comparable<Mention>{
         			&& !node.ne_annotation.equals("")
         			&& !node.ne_annotation.equals("O")) {
         		categories.add(node.ne_annotation);
-        		log.info("NER category " + node.ne_annotation + " - " + nerString);
+        		log.finer("NER category " + node.ne_annotation + " - " + nerString);
         	} else {
         		// from LVCoref lists
                 categories.addAll(document.dict.getCategories(node.lemma)); 
         	}
         }
-        log.fine(String.format("Set category [%s] %s", nerString, categories.toString()));
+        log.finer(String.format("Set category [%s] %s", nerString, categories.toString()));
     }
     
     /**

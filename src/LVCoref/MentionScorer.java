@@ -4,6 +4,12 @@
  */
 package LVCoref;
 
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
+
+import LVCoref.util.Log;
+
+
 /**
  *
  * @author Artūrs
@@ -17,20 +23,27 @@ public class MentionScorer {
     double r=0;
     double f=0;
     
-    public void add(Document d) {        
-        pn += d.mentions.size();
-        rn += d.goldMentions.size();
+    public void add(Document d) {
         for (Node n : d.tree) {
-            if (n.mention != null && n.goldMention != null) {
-                pc++;
-            } else if (n.mention != null) {
-                //System.out.println(Utils.getMentionComment(d, n.mention, "Precision error"));
-            }
-            if (n.goldMention != null && n.mention != null) {
-                rc++;
-            } else if (n.goldMention != null) {
-                //System.out.println(Utils.getMentionComment(d, n.goldMention, "Recall error"));
-            }
+        	//Log.log.info(n + "\t"+  n.mention + "\t" + n.goldMention);
+        	if (n.mention != null) {
+        		if (n.goldMention != null) {
+        			if (n.mention.start == n.goldMention.start && n.mention.end == n.goldMention.end)
+        			pc++;
+        		} else {
+        			//Log.log.info(Utils.getMentionComment(d, n.mention, "Precision error"));
+        		}
+        		pn++;
+        	}
+        	if (n.goldMention != null) {
+        		if (n.mention != null) {
+        			if (n.mention.start == n.goldMention.start && n.mention.end == n.goldMention.end)
+        			rc++;
+        		} else {
+        			//Log.log.info(Utils.getMentionComment(d, n.goldMention, "Recall error"));
+        		}
+        		rn++;
+        	}
         }
     }
     
@@ -42,13 +55,17 @@ public class MentionScorer {
     
     public String getScore() {
         StringBuilder sb = new StringBuilder();
-        String nl = "\n";
         calculate();
-        sb.append("--Mentions eval--" +nl);
-        sb.append("Precision: \t" + (double)p + "\t ("+pc+ "/"+pn+")" +nl);
-        sb.append("Recall: \t" + (double)r + "\t ("+rc+ "/"+rn+")" +nl);
-        sb.append("F1: \t" + f +nl);
-        sb.append("-----------------" +nl );
+        NumberFormat nf = new DecimalFormat("00.00");
+        sb.append("MI");
+        sb.append("\t").append(nf.format(f*100));
+        sb.append("\t").append(nf.format(p*100));
+        sb.append("\t").append(nf.format(r*100));
+//        sb.append("-- Mentions score --" +nl);
+//        sb.append("Precision: \t" + (double)p + "\t ("+pc+ "/"+pn+")" +nl);
+//        sb.append("Recall: \t" + (double)r + "\t ("+rc+ "/"+rn+")" +nl);
+//        sb.append("F1: \t" + f +nl);
+//        sb.append("-----------------" +nl );
         return sb.toString();
     }
 }

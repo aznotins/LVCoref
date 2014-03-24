@@ -71,15 +71,43 @@ public class Log {
 		
 		// level fine messages to file logger
 		if (Constants.LOGGER_FILE) {
-			String logFileName = logPath + id + "_log.txt";
-			try {
-	            FileHandler fh = new FileHandler(logFileName, false);
-	            log.addHandler(fh);
-	            fh.setFormatter(new LogFormatter());
-	            fh.setLevel(Constants.LOGGER_FILE_LEVEL);
-	        } catch (IOException e) {
-	            System.err.println("ERROR: cannot initialize file logger!");
-	        }
+			if (true) {
+				String logFileName = logPath + id + "_log.txt";
+				try {
+		            FileHandler fh = new FileHandler(logFileName, false);
+		            log.addHandler(fh);
+		            fh.setFormatter(new LogFormatter());
+		            fh.setLevel(Constants.LOGGER_FILE_LEVEL);
+		        } catch (IOException e) {
+		            System.err.println("ERROR: cannot initialize file logger!");
+		        }
+			}
+
+			// clean file logger
+			if (true) {
+				String logFileName = logPath + id + "_cleanlog.txt";
+				try {
+		            FileHandler fh = new FileHandler(logFileName, false);
+		            log.addHandler(fh);
+		            fh.setFormatter(new LogFormatter());
+		            fh.setLevel(Level.INFO);
+		        } catch (IOException e) {
+		            System.err.println("ERROR: cannot initialize file logger!");
+		        }
+			}
+			
+			// one logger (overwriten on run)
+			if (true) {
+				String logFileName = logPath + "log.txt";
+				try {
+		            FileHandler fh = new FileHandler(logFileName, false);
+		            log.addHandler(fh);
+		            fh.setFormatter(new LogFormatter());
+		            fh.setLevel(Level.INFO);
+		        } catch (IOException e) {
+		            System.err.println("ERROR: cannot initialize file logger!");
+		        }
+			}
 		}
 		
 		// level info and higer to system.err

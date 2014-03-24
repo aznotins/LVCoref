@@ -9,7 +9,6 @@ import org.apache.commons.jexl2.JexlEngine;
 import org.apache.commons.jexl2.MapContext;
 
 import LVCoref.Dictionaries.MentionType;
-import LVCoref.Mention.MentionSource;
 import LVCoref.util.Log;
 
 
@@ -104,20 +103,20 @@ public class Resolve {
         }
     }
     private static void _resolve(Document d, Mention s, Mention t, String comment) {
-        if (s.corefClusterID == t.corefClusterID) return;
-        if (Constants.PRINT_DECISIONS) System.err.println(comment + "\t" + s.nerString + "\t" + t.nerString);        
+        if (s.corefClusterID == t.corefClusterID) return;   
         d.mergeClusters(s, t);
         s.addRefComm(t, comment);
-        if (LVCoref.doScore()) {
-            if ((s.node.goldMention == null || t.node.goldMention == null || s.node.goldMention.corefClusterID != t.node.goldMention.corefClusterID) && s.source != MentionSource.TMP  && t.source != MentionSource.TMP) {
-                if (Constants.PRINT_DECISIONS) System.out.println("-" + Utils.getMentionPairString(d, s, t, comment));
+        if (Constants.SCORE) {
+            if ((s.node.goldMention == null || t.node.goldMention == null || s.node.goldMention.corefClusterID != t.node.goldMention.corefClusterID)) {
+                if (Constants.PRINT_DECISIONS) log.info("-" + Utils.getMentionPairString(d, s, t, comment));
             } else {
-                if (s.node.goldMention != null && t.node.goldMention != null && s.node.goldMention.corefClusterID == t.node.goldMention.corefClusterID && s.source != MentionSource.TMP  && t.source != MentionSource.TMP) {
-                    if (Constants.PRINT_DECISIONS) System.out.println("+" + Utils.getMentionPairString(d, s, t, comment));
+                if (s.node.goldMention != null && t.node.goldMention != null && s.node.goldMention.corefClusterID == t.node.goldMention.corefClusterID) {
+                    if (Constants.PRINT_DECISIONS) log.info("+" + Utils.getMentionPairString(d, s, t, comment));
                 }
             }
+        } else {
+            if (Constants.PRINT_DECISIONS) log.fine(Utils.getMentionPairString(d, s, t, comment));        	
         }
-        log.fine(Utils.getMentionPairString(d, s, t, comment));
         s.setAsResolved();
     }
     

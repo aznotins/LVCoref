@@ -14,9 +14,10 @@ public class Node {
 	public Node parent;
     public int parentID;
 	public int id;
-	public List<Node> children;
+	public List<Node> children = new ArrayList<>();
 	
 	public Tree tree;
+	public Sentence sentence;
 	
 	public boolean isMention;
 	public String tag;
@@ -30,12 +31,11 @@ public class Node {
     public int namedEntityID = -1; // old named entity ID, used for merging
     public String idType = ""; // old value, used for merging
     
-    public int sentNum = -1;
     public int position;
     public boolean isProper = false;
 	
 	//public String conll_string;
-    public List<String> conll_fields;
+    public List<String> conll_fields = new ArrayList<>();
     
     public Mention mention;
     public Mention goldMention = null;
@@ -46,10 +46,11 @@ public class Node {
 	public String type;
 	public String category;
 	
-	public ArrayList<Integer> var;
+	public ArrayList<Integer> var = new ArrayList<>();
 	
-	public ArrayList<Integer> successors;
+	public ArrayList<Integer> successors = new ArrayList<>();
 	public int ant;
+	public String dependency;
 	
 	public Integer corefs_id;
     
@@ -57,32 +58,42 @@ public class Node {
     public Boolean sentRoot = false; //sentece root node
     public Boolean sentEnd = false; //sentece end
     
-    public List<Integer> mentionStartList;
-    public List<Integer> mentionEndList;
+    public List<Mention> mentionStartList = new ArrayList<>();
+    public List<Mention> mentionEndList = new ArrayList<>();
 	
 	
 	Node(String word, String lemma, String tag, int parent_id, Integer id, Document d) {
 		this.word = word;
 		this.lemma = lemma;
 		this.tag = tag;
-		children = new ArrayList<Node>();
 		this.parentID = parent_id;
 		this.id = id;
-		this.var = new ArrayList<Integer>();
 		this.isMention = false;
 		this.ant = -1;
-		this.category = category;
-		this.type = type;
-		this.successors = new ArrayList<Integer>();
         this.mention = null;
-        
-        this.mentionStartList = new ArrayList<Integer>();
-        this.mentionEndList = new ArrayList<Integer>();
-        
-        this.conll_fields = new ArrayList<String>();
         document = d;
 	}
-    
+	
+	public void setSimpleTag(String _simpleTag) { simpleTag = _simpleTag; }
+	public void setParent(int _idx) { parentID = _idx; }
+	public void setSentenceParent(int _idx) { parentIndex = _idx; }
+	public void setMorphoFeatures(String feats) { morphoFeatures = feats; }
+	public void setPosition(int pos) { position = pos; }
+	public void setNerAnnotation(String ner) { ne_annotation = ner; }
+	public void setConllFields(List<String> fields) { conll_fields.addAll(fields); } 
+	public void setParentNode(Node parentNode) { parent = parentNode; }
+	public void addChild(Node n) { children.add(n); }
+	public boolean isSentenceRoot() { return word.equals("_ROOT_"); }
+	public List<String> getFields() { return conll_fields; }
+	
+	public String getField(int i) { 
+		if (i < conll_fields.size()) {
+			return conll_fields.get(i);
+		} else {
+			return "";
+		}
+	}
+	
     /**
      * Get mention type, default NOMINAL
      * @return
@@ -115,7 +126,7 @@ public class Node {
         Node min = this;
         for (Node n: this.children) {
             if (n.id > min.id) continue;
-            if (n.sentNum != this.sentNum) continue;
+            if (n.sentence.getID() != this.sentence.getID()) continue;
             Node x = n.getSpanStart(d);
             if (x.id < min.id) min = x;
         }
@@ -126,7 +137,7 @@ public class Node {
         Node max = this;
         for (Node n: this.children) {
             if (n.id < max.id) continue;
-            if (n.sentNum != this.sentNum) continue;
+            if (n.sentence.getID() != this.sentence.getID()) continue;
             Node x = n.getSpanEnd(d);
             if (x.id > max.id) max = x; 
         }
@@ -292,7 +303,7 @@ public class Node {
     public int getDepth() {
         int r = 0;
         Node q  = this;
-        while (q.parent != null && q.parent.sentNum == sentNum) {
+        while (q.parent != null && q.parent.sentence.getID() == sentence.getID()) {
             r++;
             q = q.parent;
         }
@@ -301,8 +312,8 @@ public class Node {
     
     public int minDistance(Node n) {
         int r = 0;            
-        if (sentNum != n.sentNum) {
-            r = Math.abs(sentNum-n.sentNum) + this.getDepth() + n.getDepth();
+        if (sentence.getID() != n.sentence.getID()) {
+            r = Math.abs(sentence.getID()-n.sentence.getID()) + this.getDepth() + n.getDepth();
         } else {
             Node q = document.getCommonAncestor(this, n);
             Node t = n;
@@ -344,48 +355,46 @@ public class Node {
     }
     
     
-    
-    /**
-     * Could be optimized
-     * @param d 
-     */
-    public void markMentionBorders(Document d, Boolean allowSingletonMentions) {
-        Node n = this;
-        while (n != null && n.sentNum == this.sentNum) {
-            if (n.mention != null && (allowSingletonMentions || !n.mention.isSingleton(d)) ) {
-                if (this.id == n.mention.start) {
-                    this.mentionStartList.add(n.mention.id);
-                }
-                if (this.id == n.mention.end) {
-                    this.mentionEndList.add(n.mention.id);
-                }
-            }
-            n = n.next(d);
-        }
-    }
-    
     public String getConllMentionColumn(Document d, Boolean allowSingletonMentions) {
-        String s = "";
-        int i = 0;
-        int j = 0;
-        while (i < this.mentionStartList.size() || j < this.mentionEndList.size()) {
-
-            if (i < this.mentionStartList.size()) {
-                s += "(" + mentionStartList.get(i); 
-                if (j < this.mentionEndList.size() && mentionStartList.get(i) == mentionEndList.get(j)) {
-                    s += ")";
-                    if (i+1 < this.mentionStartList.size()) s+="|";
-                    j++;
-                }
-                i++;
-            } else {
-                s += ")";
-                j++;
-            }            
-        }  
-        //System.out.println(mentionStartList + " " + mentionEndList + "\t" + s);
-        if (s.equals("")) s="_";
-        return s;
+        StringBuilder sb = new StringBuilder();
+        boolean start = true;
+        for (Mention m : mentionStartList) {
+        	if (!start) sb.append("|");
+    		sb.append("("); sb.append(d.getCluster(m.corefClusterID).id);
+    		start = false;
+        }
+        for (Mention m : mentionEndList) {
+        	if (mentionStartList.contains(m)) {
+        		sb.append(")");
+        	} else {
+        		if (!start) sb.append("|");
+    			sb.append(d.getCluster(m.corefClusterID).id); sb.append(")");
+        	}
+    		start = false;
+        }
+        if (start) sb.append("_");
+        return sb.toString();
+        
+//        int i = 0;
+//        int j = 0;
+//        String s = "";
+//        while (i < this.mentionStartList.size() || j < this.mentionEndList.size()) {
+//            if (i < this.mentionStartList.size()) {
+//                s += "(" + mentionStartList.get(i).corefClusterID; 
+//                if (j < this.mentionEndList.size() && mentionStartList.get(i).corefClusterID == mentionEndList.get(j).corefClusterID) {
+//                    s += ")";
+//                    if (i+1 < this.mentionStartList.size()) s+="|";
+//                    j++;
+//                }
+//                i++;
+//            } else {
+//                s += ")";
+//                j++;
+//            }            
+//        }  
+//        //System.out.println(mentionStartList + " " + mentionEndList + "\t" + s);
+//        if (s.equals("")) s="_";
+//        return s;
     }
  
     public String toString() {

@@ -55,7 +55,7 @@ public class Filter {
     public static int sentenceDistance(Mention s, Mention t) {
         _updateOperationCount();
         //if (s == null || t == null) return Integer.MAX_VALUE;
-        return Math.abs(s.node.sentNum - t.node.sentNum);
+        return Math.abs(s.node.sentence.getID() - t.node.sentence.getID());
     }
     
     public static boolean nominal(Mention s) {

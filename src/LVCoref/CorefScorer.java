@@ -2,7 +2,6 @@ package LVCoref;
 
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
-import java.util.logging.Logger;
 
 /**
  * Wrapper for a coreference resolution score: MUC, B cubed, Pairwise.
@@ -57,7 +56,7 @@ public abstract class CorefScorer {
   protected abstract void calculatePrecision(Document doc);
   protected abstract void calculateRecall(Document doc);
 
-  public void printF1(Logger logger, boolean printF1First) {
+  public String getF1String(boolean simple) {
     NumberFormat nf = new DecimalFormat("0.000000");
 
     double r = getRecall();
@@ -68,60 +67,23 @@ public abstract class CorefScorer {
     String P = nf.format(p);
     String F1 = nf.format(f1);
 
-    NumberFormat nf2 = new DecimalFormat("00.0");
-
+    NumberFormat nf2 = new DecimalFormat("00.00");
     String RR = nf2.format(r*100);
     String PP = nf2.format(p*100);
     String F1F1 = nf2.format(f1*100);
 
-    if(printF1First) {
-      String str = "F1 = "+F1+", P = "+P+" ("+(int) precisionNumSum+"/"+(int) precisionDenSum+"), R = "+R+" ("+(int) recallNumSum+"/"+(int) recallDenSum+")";
-      if(scoreType == ScoreType.Pairwise){
-        logger.fine("Pairwise "+str);
-      } else if(scoreType == ScoreType.BCubed){
-        logger.fine("B cube "+str);
-      } else {
-        logger.fine("MUC "+str);
-      }
-    } else {
-      logger.fine("& "+PP+" & "+RR + " & "+F1F1);
-    }
+    StringBuilder sb = new StringBuilder();
+    if(scoreType == ScoreType.Pairwise){
+        sb.append("Pairwise\t");
+	  } else if(scoreType == ScoreType.BCubed){
+		  sb.append("B cube\t");
+	  } else if(scoreType == ScoreType.MUC) {
+		  sb.append("MUC\t");
+	  }
+    sb.append(F1F1); sb.append("\t");
+    sb.append(PP); sb.append("\t");
+    sb.append(RR);
+    if (!simple) sb.append("\tF1 = "+F1+", P = "+P+" ("+(int) precisionNumSum+"/"+(int) precisionDenSum+"), R = "+R+" ("+(int) recallNumSum+"/"+(int) recallDenSum+")");
+    return sb.toString();
   }
-  public void printF1(Logger logger) {
-    printF1(logger, true);
-  }
-  
-  public String getF1String(boolean printF1First) {
-    NumberFormat nf = new DecimalFormat("0.000");
-
-    double r = getRecall();
-    double p = getPrecision();
-    double f1 = getF1();
-
-    String R = nf.format(r);
-    String P = nf.format(p);
-    String F1 = nf.format(f1);
-
-    NumberFormat nf2 = new DecimalFormat("00.0");
-
-    String RR = nf2.format(r*100);
-    String PP = nf2.format(p*100);
-    String F1F1 = nf2.format(f1*100);
-
-    if(printF1First) {
-      String str = "F1 = "+F1+", P = "+P+" ("+(int) precisionNumSum+"/"+(int) precisionDenSum+"), R = "+R+" ("+(int) recallNumSum+"/"+(int) recallDenSum+")";
-      System.err.println(F1F1 +"\t" + PP + "\t" + RR);
-      if(scoreType == ScoreType.Pairwise){
-        return "Pairwise "+str;
-      } else if(scoreType == ScoreType.BCubed){
-        return "B cube "+str;
-      } else {
-        return "MUC "+str;
-      }
-    } else {
-        return "& "+PP+" & "+RR + " & "+F1F1;
-    }
-    
-  }
-
 }

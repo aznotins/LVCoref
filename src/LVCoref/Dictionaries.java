@@ -192,7 +192,7 @@ public class Dictionaries {
         
         if (categories.size() > 0) {
             if (categories.size() > 1) {
-                Log.inf("Get category : more categories for \"" +s+"\"");
+                Log.fin("Get category from dictionary : more categories for \"" +s+"\"");
             }
             return categories.iterator().next();
         }

@@ -1,22 +1,31 @@
 package LVCoref;
 
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Properties;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import LVCoref.ScorerBCubed.BCubedType;
 import LVCoref.sievepasses.DeterministicCorefSieve;
 import LVCoref.util.Log;
+import edu.stanford.nlp.io.StringOutputStream;
 import edu.stanford.nlp.util.Pair;
 import edu.stanford.nlp.util.StringUtils;
+import edu.stanford.nlp.util.SystemUtils;
 
 /**
  * Main process class
@@ -24,20 +33,17 @@ import edu.stanford.nlp.util.StringUtils;
  */
 public class LVCoref {
 	private static final Logger log = Logger.getLogger( Log.class.getName() );
-	//static { log.setLevel(Level.OFF); }
+	static { Log.init(); }
     
     private enum inputTypes {CONLL, STDIN_JSON, STDIN_CONLL};
     private enum outputTypes {CONLL, STDOUT_CONLL, STDOUT_JSON, NONE, TEXT};
     public static Properties props;
     public static Dictionaries dictionaries;
+    private static inputTypes inputType = inputTypes.STDIN_CONLL;
+    private static outputTypes outputType = outputTypes.STDOUT_CONLL;
+    
+    public static List<String> inputConllList;
 
-    /**
-    * If true, we score the output of the given test document
-    * Assumes gold annotations are available
-    */
-    //private static int maxSentDist = 100;
-    private static boolean doScore = false;
-    private static int maxSentDist;
     private static String mmaxExportPath = "data/mmax2/";
     private static String mmaxExportProjectName = "";
     private static boolean mmaxExport = false;
@@ -45,34 +51,12 @@ public class LVCoref {
     private static String conllInput = null;
     private static String conllOutput = null;
     private static String htmlOutput = null;
-    private static String nerAnnotation = null;
     
-    /**
-    * Array of sieve passes to be used in the system
-    * Ordered from highest precision to lowest!
-    */
-    private static /*final */DeterministicCorefSieve [] sieves;
-    private static /*final*/ String [] sieveClassNames;
-
-    /** Current sieve index */
-    public static int currentSieve;
+    private static DeterministicCorefSieve [] sieves; // array of used sieves
+    private static String [] sieveClassNames;
+    public static int currentSieve; // current sieve index
     
-    //for evaluation
-    public static int docID;
-    public static List<String> inputConllList;
-    public static List<String> mmaxGoldList;
-    public static List<String> nerList;
-    
-
-    /** counter for links in passes (Pair<correct links, total links>)  */
-    public static List<Pair<Integer, Integer>> linksCountInPass;
-    
-    private static inputTypes inputType = inputTypes.STDIN_CONLL;
-    private static outputTypes outputType = outputTypes.STDOUT_CONLL;
-    
-    public static String timeStamp = ""; //for logs
-    public static int documentID = 0;
-    public static boolean stopProcess = false;
+    public static String timeStamp = "";
 
     /** Scores for each pass */
     public static List<CorefScorer> scorePairwise;
@@ -85,12 +69,11 @@ public class LVCoref {
     public static MentionScorer mentionScorer = new MentionScorer();
     public static Statistics singleDocStats = new Statistics();
     public static Statistics stats = new Statistics();
-    
-      /** Additional scoring stats */
+    /** counter for links in passes (Pair<correct links, total links>)  */
+    public static List<Pair<Integer, Integer>> linksCountInPass;
     public static int additionalCorrectLinksCount;
     public static int additionalLinksCount;
     
-    public static boolean useGoldMentions = false;
     
     public static void printHelp(){
         System.out.print(
@@ -105,8 +88,6 @@ public class LVCoref {
             + "\n\t" + Constants.MMAX_EXPORT_PATH_PROP + ": MMAX export path with trailing / (default = data/mmax2/"
             + "\n\t" + Constants.MMAX_EXPORT_NAME_PROP + ": project name (if no specified timestamp is used"
             + "\n\t" + Constants.HTML_PROP + ": file path for html formatted coreference results, direcotory should include script.js, style.css"
-            + "\n\t" + Constants.MMAX_GOLD_PROP + ": file path to existing  mmax coref_level gold annotation, used for scoring"
-            + "\n\t" + Constants.NER_PROP + ": file path to existing NE tagged file"
             + "\n--------------------\n"
         );
         System.out.flush();
@@ -129,14 +110,12 @@ public class LVCoref {
         conllInput = props.getProperty(Constants.CONLL_INPUT_LIST, null);
         
         mmaxExport = Boolean.parseBoolean(props.getProperty(Constants.MMAX_EXPORT_PROP, "false"));
-        maxSentDist = Integer.parseInt(props.getProperty(Constants.MAXDIST_PROP, "-1"));
 
         mmaxExport = Boolean.parseBoolean(props.getProperty(Constants.MMAX_EXPORT_PROP, "false"));
         mmaxExportPath = props.getProperty(Constants.MMAX_EXPORT_PATH_PROP, "");
         mmaxExportProjectName = props.getProperty(Constants.MMAX_EXPORT_NAME_PROP);
         
         htmlOutput = props.getProperty(Constants.HTML_PROP, "");
-        nerAnnotation = props.getProperty(Constants.NER_PROP, "");
 
         if (Boolean.parseBoolean(props.getProperty("h", "false")) || Boolean.parseBoolean(props.getProperty("help",  "false"))) { printHelp(); System.exit(0); }
         
@@ -149,12 +128,6 @@ public class LVCoref {
             sieves[i].init(props);
         }
         
-        doScore = Boolean.parseBoolean(props.getProperty(Constants.SCORE_PROP, "false"));
-        maxSentDist = Integer.parseInt(props.getProperty(Constants.MAXDIST_PROP, "-1"));
-        if(doScore){
-            initScorers();
-        }
-        
         timeStamp = Calendar.getInstance().getTime().toString().replaceAll("\\s", "-").replaceAll(":", "-");
         
         log.severe(props.toString());
@@ -163,41 +136,198 @@ public class LVCoref {
         dictionaries = new Dictionaries();
     }
     
+    public static void initScorers() {
+        linksCountInPass = new ArrayList<Pair<Integer, Integer>>();
+        scorePairwise = new ArrayList<CorefScorer>();
+        scoreBcubed = new ArrayList<CorefScorer>();
+        scoreMUC = new ArrayList<CorefScorer>();
+        for(int i = 0 ; i < sieveClassNames.length ; i++){
+            scorePairwise.add(new ScorerPairwise());
+            scoreBcubed.add(new ScorerBCubed(BCubedType.Ball));
+            scoreMUC.add(new ScorerMUC());
+            linksCountInPass.add(new Pair<Integer, Integer>(0, 0));
+        }  
+    }
+    
+    public static void parserScoreCompare() {
+    	StringBuilder summary = new StringBuilder();
+    	String baseDir = "eval/lrec_coref_bestner";
+    	//String baseDir = "eval/lrec_coref_ner";
+    	File dir = new File(baseDir);
+    	for (File f : dir.listFiles()) {
+    		if (f.isDirectory()) {
+    			scoreDirectory(f.getPath(), f.getPath() + ".conll");
+    			summary.append(f.getName()).append("\t");
+    			summary.append(getF1(true));
+    		}
+    	}
+    	log.info("===== PARSER COMPARE SUMMARY =====");
+    	log.info(summary.toString());
+    }
+    
+    public static void scoreDirectory(String path) {
+    	scoreDirectory(path, Constants.SCORE_OUT);
+    }    
+    public static void scoreDirectory(String path, String out) {
+    	initScorers();
+    	PrintStream ps = null;
+    	if (Constants.SCORE_OUT.length() > 0) {
+    		try {
+				ps = new PrintStream(new File(out), "UTF8");
+			} catch (FileNotFoundException e) {
+				e.printStackTrace();
+			} catch (UnsupportedEncodingException e) {
+				e.printStackTrace();
+			}
+    	}
+    	try {
+	    	File dir = new File(path);
+	    	int docBase = 0;
+	    	if (dir.isDirectory()) {
+	    		for (File f : dir.listFiles()) {
+	    			if (!f.isFile()) continue;
+	    			if (dictionaries == null) dictionaries = new Dictionaries();
+	    			Document d = new Document(dictionaries);
+	    			d.id = f.getName();
+	    			log.info("SCORE " + f.getPath());
+	    			d.readCONLL(f.getPath());
+	    			processDocument(d);
+	    			d.updateMentionIds(docBase); docBase += 100000;
+	    			d.setConllCorefColumns();
+	    			if (ps != null) {
+	    				d.outputCONLL(ps);
+	    			}
+	    		}
+	    		if (ps != null) ps.close();
+	    	}
+	        if (Constants.SCORE_EVAL_SCRIPT != null) {
+	              String summary = getConllEvalSummary(Constants.SCORE_EVAL_SCRIPT, Constants.SCORE_OUT, Constants.SCORE_OUT);
+	              log.info("\nCONLL EVAL SUMMARY (After COREF)");
+	              printScoreSummary(summary, true);
+	              printFinalConllScore(summary);
+	          }
+    	} catch (Exception ex) {
+    		log.severe("Could not read conll file for scoring");
+    		ex.printStackTrace();
+    	}
+    }
+    
+	public static void printScoreSummary(String summary, boolean afterPostProcessing) {
+		String[] lines = summary.split("\n");
+		if(!afterPostProcessing) {
+			for(String line : lines) {
+				if(line.startsWith("Identification of Mentions")) {
+					log.info(line);
+					return;
+				}
+			}
+		} else {
+			StringBuilder sb = new StringBuilder();
+			for(String line : lines) {
+				if(line.startsWith("METRIC")) sb.append(line);
+				if(!line.startsWith("Identification of Mentions") && line.contains("Recall")) {
+					sb.append(line).append("\n");
+				}
+			}
+			log.info(sb.toString());
+		}
+	}
+	/** Print average F1 of MUC, B^3, CEAF_E */
+	public static void printFinalConllScore(String summary) {
+		Pattern f1 = Pattern.compile("Coreference:.*Recall: \\(.*\\) (.*)%\tPrecision: \\(.*\\) (.*)%\tF1: (.*)%");
+		Matcher f1Matcher = f1.matcher(summary);
+		int count = 4;
+		Double[] F1s = new Double[count];
+		Double[] Ps = new Double[count];
+		Double[] Rs = new Double[count];
+		String[] names = new String[count];
+		int i = 0;
+		while (f1Matcher.find()) {
+			names[i] = f1Matcher.group(1);
+			F1s[i] = Double.parseDouble(f1Matcher.group(3));
+			Ps[i] = Double.parseDouble(f1Matcher.group(2));
+			Rs[i] = Double.parseDouble(f1Matcher.group(1));
+			i++;
+		}
+		Pattern pattern = Pattern.compile("METRIC\\s+(.*):");
+		Matcher matcher = pattern.matcher(summary);
+		i = 0;
+		while (matcher.find()) {
+			names[i] = matcher.group(1);
+			i++;
+		}
+//		log.info(StringUtils.join(names, "\t"));
+//		log.info(StringUtils.join(F1s, "\t"));
+//		log.info(StringUtils.join(Rs, "\t"));
+//		log.info(StringUtils.join(Ps, "\t"));
+		for (int sc = 0 ; sc < count; sc++) {
+			log.info(names[sc] + "\t" + F1s[sc] + "\t" + Ps[sc] + "\t" + Rs[sc]);
+		}
+		double finalScore = (F1s[0]+F1s[1]+F1s[3])/3;
+		double finalP = (Ps[0]+Ps[1]+Ps[3])/3;
+		double finalR = (Rs[0]+Rs[1]+Rs[3])/3;
+		DecimalFormat df = new DecimalFormat("#.##");
+		log.info("(muc+bcub+ceafe)/3\t" + df.format(finalScore) + "\t" + df.format(finalP) + "\t" + df.format(finalR));
+	}
+      
+	public static String getConllEvalSummary(String conllMentionEvalScript,
+			String goldFile, String predictFile) throws IOException	{
+		if (conllMentionEvalScript == null) return "";
+		ProcessBuilder process = new ProcessBuilder(conllMentionEvalScript, "all", goldFile, predictFile, "none");
+		StringOutputStream errSos = new StringOutputStream();
+		StringOutputStream outSos = new StringOutputStream();
+		PrintWriter out = new PrintWriter(outSos);
+		PrintWriter err = new PrintWriter(errSos);
+		SystemUtils.run(process, out, err);
+		out.close();
+		err.close();
+		String summary = outSos.toString();
+		String errStr = errSos.toString();
+		if (errStr.length() > 0) {
+			summary += "\nERROR: " + errStr;
+		}
+		return summary;
+	}
+    
+    public static void annotateFolder(String path, String outPath) {
+    	try {
+	    	File dir = new File(path);
+	    	if (dir.isDirectory()) {
+	    		for (File f : dir.listFiles()) {
+	    			if (!f.isFile()) continue;
+	    			if (dictionaries == null) dictionaries = new Dictionaries();
+	    			Document d = new Document(dictionaries);
+	    			d.id = f.getName();
+	    			log.info("ANNOTATE " + f.getPath());
+	    			d.readCONLL(f.getPath());
+	    			processDocument(d);
+	    			d.setConllCorefColumns();
+	    			d.outputCONLL(outPath + f.getName());
+	    		}
+	    	}
+    	} catch (Exception ex) {
+    		log.severe("Could read conll file for folder annotation");
+    		ex.printStackTrace();
+    	}
+    }
     
 	public static void main(String[] args) throws Exception {
-
 		Properties properties = StringUtils.argsToProperties(args);
-        //System.err.println(properties);
-        
-		Log.init();
         initializeProperties(properties);
-        
-        if (Constants.MULTIPLE_DOCS_EVAL) {
-            inputConllList = new ArrayList<String>(Arrays.asList(conllInput.split(",")));
-            String mmaxGold = props.getProperty(Constants.MMAX_GOLD_PROP, "");
-            mmaxGoldList = new ArrayList<String>(Arrays.asList(mmaxGold.split(",")));
-            nerList = new ArrayList<String>(Arrays.asList(nerAnnotation.split(",")));
-            if (inputConllList.size() != mmaxGoldList.size()) System.err.println("Incorrect number of files for evaluation");    
-            docID = 0;
+//        if (true) {
+//        	parserScoreCompare();
+//        	return;
+//        }
+        if (Constants.SCORE) {
+        	scoreDirectory(Constants.SCORE_PATH);
+        	return;
+        } 
+        if (Constants.TAG_FOLDER) {
+        	annotateFolder(Constants.TAG_FOLDER_PATH, Constants.TAG_FOLDER_OUT);
+        	return;
         }
         
-        if (Constants.MULTIPLE_DOCS_EVAL) {
-            for (documentID=0; documentID < inputConllList.size(); documentID++) {
-                System.err.println("NEW DOCUMENT: " + inputConllList.get(documentID));
-                Document d = new Document(dictionaries);
-                try {
-                    d.readCONLL(inputConllList.get(documentID));
-                } catch (Exception ex) {
-                    System.err.println("Could not read conll file");
-                    ex.printStackTrace();
-                }
-                if (d.tree.size() > 0) processDocument(d);                
-            }
-        } else {
-        
-        /*
-         * Create document
-         */
+        int docID = 0; // document counter
         BufferedReader in;
         switch(inputType) {
             case CONLL:
@@ -205,76 +335,61 @@ public class LVCoref {
                 try {
                     d.readCONLL(conllInput);
                 } catch (Exception ex) {
-                    System.err.println("Could not read conll file");
+                	log.severe("Could not read conll file");
                     ex.printStackTrace();
                     break;
-                }
-                
+                }                
                 if (d.tree.size() > 0) processDocument(d);
-                
                 break;
             case STDIN_JSON:
                 in = new BufferedReader(new InputStreamReader(System.in, "UTF8"));
-                while (!stopProcess) {
+                while (true) {
                     Document doc = new Document(dictionaries);
+                    doc.id = Integer.toString(docID++);
                     try {
                         doc.readJSON(in);
                     } catch (Exception ex) {
-                        System.err.println("Could not read json from stream");
+                        log.severe("Could not read json from stream");
                         ex.printStackTrace();
                         break;
                     }
                     if (doc.tree.size() > 0) processDocument(doc);  
                     else break;
-                    documentID++;
                 }
                 break;
             default:
                 in = new BufferedReader(new InputStreamReader(System.in, "UTF8"));
-                while (!stopProcess) {
+                while (true) {
                     Document doc = new Document(dictionaries);
+                    doc.id = Integer.toString(docID++);
                     try {
                         doc.readCONLL(in);
                     } catch (Exception ex) {
-                        System.err.println("Could not read conll from stream");
+                    	log.severe("Could not read conll from stream");
                         ex.printStackTrace();
                         break;
                     }
                     if (doc.tree.size() > 0) processDocument(doc);  
                     else break;
-                    documentID++;
                 }
-            }
         }
-    };
-        
+    }        
     
     public static void processDocument(Document d) { 
-        String mmaxGold;
-        if (props != null) {
-	        if (Constants.MULTIPLE_DOCS_EVAL) {
-	            mmaxGold = mmaxGoldList.get(documentID);
-	//            if (nerList.size() > 0) {
-	//                nerAnnotation = nerList.get(documentID);
-	//            }
-	        } else {
-	            mmaxGold = props.getProperty(Constants.MMAX_GOLD_PROP, "");
-	        }
-	        if (mmaxGold.length() > 0) {d.addAnnotationMMAX(mmaxGold); }
-        }
-        
         d.updateProperWords();
-        if (Constants.USE_GOLD_MENTIONS && mmaxGold.length() > 0) {
+        if (Constants.USE_GOLD_MENTIONS) {
             d.useGoldMentions();
             d.setAbbreviationMentions(true);
             d.setProperNodeMentions(false);
             d.setMentionModifiers(false);
         } else {
             d.setMentionsFromNEAnnotation();
+            //d.setAllMentions();
             d.setQuoteMentions();
             d.setAbbreviationMentions(false);
             d.setListMentions();
-            d.setProperNodeMentions(true);
+            
+//            d.setProperNodeMentions(true);
             d.setDetalizedNominalMentions();            
             
             // After creating all mentions
@@ -282,13 +397,17 @@ public class LVCoref {
             						// could be out of order), removes ignored 
             						// base mentions
             d.removePleonasticMentions();
+            
             d.removeNestedQuoteMentions();
-            d.removeUndefiniedMentions();
-            //d.removePluralMentions();
+            //d.removeUndefiniedMentions();
+            
+            d.removePluralMentions();
+            
             d.removeNestedMentions();
             d.removeExcludedMentions();
             d.removeGenitiveMentions();
             d.setMentionModifiers_v2(true);
+            d.removeDublicateMentions();
         }        
         d.normalizeMentions();	// just in case, removes unused mentions and sorts them        
         d.initializeEntities();	// set coreference cluster for each mention
@@ -304,36 +423,31 @@ public class LVCoref {
         if (Constants.REMOVE_SINGLETONS) d.removeSingletonMentions();
 
         // Set final mention borders for precise border conll output and html visualization
-        for (Node n : d.tree) {
-            n.markMentionBorders(d, true);
-        }
+        d.markMentionBorders(true);
         
 //		d.printClusterRepresentatives();
 //		d.printClusters();
 //		d.printMentions();
 //		d.printSimpleText(System.err);
         
-        if(doScore()) {        
+        if(Constants.SCORE) {        
             log.info("Pairwise score for this doc: ");
-            scoreSingleDoc.get(sieves.length-1).printF1(Log.log);
-            log.info("Accumulated score: ");
-            printF1(true);
-            log.info("\n");
-
+            log.info(scoreSingleDoc.get(sieves.length-1).getF1String(true));
+            
+            singleDocMentionScorer = new MentionScorer(); 
             singleDocMentionScorer.add(d);
+            log.info(singleDocMentionScorer.getScore());
+            
             mentionScorer.add(d);
             stats.add(d, true);
             singleDocStats.add(d, true);
-
-            log.fine("Document Statistics: ");
-            log.fine(singleDocStats.corefStatistics(true));
-            log.info("Accumulated Statistics: ");
-            log.info(stats.corefStatistics(true));
             
-            log.info("Mentions score: ");
-            log.info(singleDocMentionScorer.getScore());
-            log.info("Accumulated Mentions score: ");
-            log.info(mentionScorer.getScore());  
+            log.info("Accumulated score: ");
+            log.info(getF1(true));
+//            log.fine("Document Statistics: ");
+//            log.fine(singleDocStats.corefStatistics(true));
+//            log.info("Accumulated Statistics: ");
+//            log.info(stats.corefStatistics(true));
         } else {
             stats.add(d, false);
             singleDocStats.add(d, false);
@@ -342,7 +456,10 @@ public class LVCoref {
             log.info("Accumulated Statistics: ");
             log.info(stats.corefStatistics(false));
         }
-
+        outputDocument(d);
+    }
+    
+    public static void outputDocument(Document d) {
         PrintStream ps;
         switch (outputType) {
             case CONLL:
@@ -354,7 +471,7 @@ public class LVCoref {
                     ps = new PrintStream(System.out, true, "UTF8");
                     d.outputJSON(ps);
                 } catch (UnsupportedEncodingException ex) {
-                    System.err.println("Unsupported output encoding");
+                    log.severe("Unsupported output encoding");
                     ex.printStackTrace();
                 }
                 break;
@@ -363,7 +480,7 @@ public class LVCoref {
                     ps = new PrintStream(System.out, true, "UTF8");
                     d.printSimpleText(ps);
                 } catch (UnsupportedEncodingException ex) {
-                    System.err.println("Unsupported output encoding");
+                    log.severe("Unsupported output encoding");
                     ex.printStackTrace();
                 }
                 break;
@@ -374,25 +491,21 @@ public class LVCoref {
                     ps = new PrintStream(System.out, true, "UTF8");
                     d.outputCONLL(ps);
                 } catch (UnsupportedEncodingException ex) {
-                    System.err.println("Unsupported output encoding");
+                    log.severe("Unsupported output encoding");
                     ex.printStackTrace();
                 }
         }
         if (htmlOutput != null) {
             d.htmlOutput(htmlOutput);
         }
- 
         if (Boolean.parseBoolean(props.getProperty(Constants.LOG_PROP, "false"))) {
-            d.outputCONLL(logPath + timeStamp+ "_" + documentID + ".conll");
-            
-            d.htmlOutput(logPath + timeStamp+ "_" + documentID + ".html");
+            d.outputCONLL(logPath + timeStamp+ "_" + d.id + ".conll");
+            d.htmlOutput(logPath + timeStamp+ "_" + d.id + ".html");
             d.htmlOutput(logPath + "log.html");
             d.outputCONLL(logPath + "log.conll");
         }
-
         if (mmaxExport) {
-            String docId = (documentID == 0) ? "" : "_" + documentID;
-            String projectName = (mmaxExportProjectName != null && mmaxExportProjectName.trim().length() > 0) ? mmaxExportProjectName+docId : timeStamp+ docId;
+            String projectName = (mmaxExportProjectName != null && mmaxExportProjectName.trim().length() > 0) ? mmaxExportProjectName+d.id : timeStamp+ d.id;
             MMAX2.createProject(d, projectName, mmaxExportPath);
         }
     }
@@ -402,8 +515,7 @@ public class LVCoref {
         sieve.coreferent(document);
         additionalCorrectLinksCount = 0;
         additionalLinksCount = 0;
-        //output scores
-        if(doScore()){
+        if(Constants.SCORE){
             scoreMUC.get(currentSieve).calculateScore(document);
             scoreBcubed.get(currentSieve).calculateScore(document);
             scorePairwise.get(currentSieve).calculateScore(document);
@@ -425,61 +537,54 @@ public class LVCoref {
             linksCountInPass.get(currentSieve).setFirst(linksCountInPass.get(currentSieve).first() + additionalCorrectLinksCount);
             linksCountInPass.get(currentSieve).setSecond(linksCountInPass.get(currentSieve).second() + additionalLinksCount);
 
-            printSieveScore(document, sieve);
+            //printSieveScore(document, sieve);
         }
     }
-    
-    
-    public static String signature(Properties props) {
-        StringBuilder os = new StringBuilder();
-        os.append(Constants.SIEVES_PROP + ":" +
-                props.getProperty(Constants.SIEVES_PROP,
-                        Constants.SIEVEPASSES));
-        os.append(Constants.SCORE_PROP + ":" +
-                props.getProperty(Constants.SCORE_PROP,
-                        "false"));
-        os.append(Constants.CONLL_SCORER + ":" +
-                props.getProperty(Constants.CONLL_SCORER,
-                        Constants.conllMentionEvalScript));
-        return os.toString();
-    }
-
-    public static void initScorers() {
-        linksCountInPass = new ArrayList<Pair<Integer, Integer>>();
-        scorePairwise = new ArrayList<CorefScorer>();
-        scoreBcubed = new ArrayList<CorefScorer>();
-        scoreMUC = new ArrayList<CorefScorer>();
-        for(int i = 0 ; i < sieveClassNames.length ; i++){
-            scorePairwise.add(new ScorerPairwise());
-            scoreBcubed.add(new ScorerBCubed(BCubedType.Bconll));
-            scoreMUC.add(new ScorerMUC());
-            linksCountInPass.add(new Pair<Integer, Integer>(0, 0));
-        }  
-    }
-
-    public static boolean doScore() { 
-        return doScore; 
-    }
   
-    public static void printF1(boolean printF1First) {
-        scoreMUC.get(sieveClassNames.length - 1).printF1(Log.log, printF1First);
-        scoreBcubed.get(sieveClassNames.length - 1).printF1(Log.log, printF1First);
-        scorePairwise.get(sieveClassNames.length - 1).printF1(Log.log, printF1First);
+    public static String getF1(boolean simple) {
+    	StringBuilder sb = new StringBuilder();
+    	sb.append(scoreMUC.get(sieveClassNames.length - 1).getF1String(simple)).append("\n");
+    	sb.append(scoreBcubed.get(sieveClassNames.length - 1).getF1String(simple)).append("\n");
+    	sb.append(scorePairwise.get(sieveClassNames.length - 1).getF1String(simple)).append("\n");
+    	double F1s = (scoreMUC.get(sieveClassNames.length - 1).getF1() 
+    			+ scoreBcubed.get(sieveClassNames.length - 1).getF1()
+    			+ scorePairwise.get(sieveClassNames.length - 1).getF1()) * 100 / 3;
+    	double Ps = (scoreMUC.get(sieveClassNames.length - 1).getPrecision() 
+    			+ scoreBcubed.get(sieveClassNames.length - 1).getPrecision()
+    			+ scorePairwise.get(sieveClassNames.length - 1).getPrecision()) * 100 / 3;
+    	double Rs = (scorePairwise.get(sieveClassNames.length - 1).getRecall() 
+    			+ scoreBcubed.get(sieveClassNames.length - 1).getRecall()
+    			+ scorePairwise.get(sieveClassNames.length - 1).getRecall()) * 100 / 3;
+		NumberFormat nf = new DecimalFormat("00.00");
+		sb.append(nf.format(F1s) + "\t" + nf.format(Ps) + "\t" + nf.format(Rs)).append("\n");
+		sb.append(mentionScorer.getScore()).append("\n");
+		return sb.toString();
     }
-  
     
     private static void printSieveScore(Document document, DeterministicCorefSieve sieve) {
-        log.severe("===========================================\n");
-        log.severe("pass"+currentSieve+" " + sieve.getClass()+": \t"+ sieve.flagsToString());
-        scoreMUC.get(currentSieve).printF1(Log.log);
-        scoreBcubed.get(currentSieve).printF1(Log.log);
-        scorePairwise.get(currentSieve).printF1(Log.log);
-        log.severe("# of Clusters: "+document.corefClusters.size() + "\t,\t# of additional links: \t"+additionalLinksCount
+        log.info("===== PASS"+currentSieve+" " + sieve.getClass().getSimpleName()+": "+ sieve.flagsToString()+ "======");
+        log.info(scoreMUC.get(currentSieve).getF1String(false));
+        log.info(scoreBcubed.get(currentSieve).getF1String(false));
+        log.info(scorePairwise.get(currentSieve).getF1String(false));
+        double F1s = (scoreMUC.get(currentSieve).getF1() 
+    			+ scoreBcubed.get(currentSieve).getF1()
+    			+ scorePairwise.get(currentSieve).getF1()) * 100 / 3;
+    	double Ps = (scoreMUC.get(currentSieve).getPrecision() 
+    			+ scoreBcubed.get(currentSieve).getPrecision()
+    			+ scorePairwise.get(currentSieve).getPrecision()) * 100 / 3;
+    	double Rs = (scorePairwise.get(currentSieve).getRecall() 
+    			+ scoreBcubed.get(currentSieve).getRecall()
+    			+ scorePairwise.get(currentSieve).getRecall()) * 100 / 3;
+		NumberFormat nf = new DecimalFormat("00.00");
+		log.info("Total\t" + nf.format(F1s) + "\t" + nf.format(Ps) + "\t" + nf.format(Rs));
+        
+        
+        log.info("# of Clusters: "+document.corefClusters.size() + "\t,\t# of additional links: \t"+additionalLinksCount
             +"\t,\t# of additional correct links: \t"+additionalCorrectLinksCount
             +"\t,\tprecision of new links: \t"+1.0*additionalCorrectLinksCount/additionalLinksCount);
-        log.severe("# of total additional links: \t"+linksCountInPass.get(currentSieve).second()
+        log.info("# of total additional links: \t"+linksCountInPass.get(currentSieve).second()
             +"\t,\t# of total additional correct links: \t"+linksCountInPass.get(currentSieve).first()
             +"\t,\taccumulated precision of this pass: \t"+1.0*linksCountInPass.get(currentSieve).first()/linksCountInPass.get(currentSieve).second());
-        log.severe("--------------------------------------");
+        log.info("--------------------------------------");
     }
 }

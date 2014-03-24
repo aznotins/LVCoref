@@ -16,6 +16,16 @@ public class ScorerMUC extends CorefScorer {
     scoreType = ScoreType.MUC;
   }
   
+  public boolean sameMention(Document doc, Node n) {
+	  if (n.mention != null && n.goldMention != null 
+			  && n.mention.start == n.goldMention.start 
+			  && n.mention.end == n.goldMention.end) {
+		  return true;
+	  } else {
+		  return false;
+	  }
+  }
+  
   @Override
   protected void calculateRecall(Document doc) {
     int rDen = 0;
@@ -30,14 +40,14 @@ public class ScorerMUC extends CorefScorer {
       rNum += g.corefMentions.size();
       
       Set<CorefCluster> partitions = new HashSet<CorefCluster>();
-      Log.inf("--GoldCluster #" + g.id );
+      log.fine("--GoldCluster #" + g.id );
       for (Mention goldMention : g.corefMentions){        
-        if(goldMention.node.mention == null) {  // twinless goldmention
+        if(goldMention.node.mention == null /*!sameMention(doc, goldMention.node)*/) {  // twinless goldmention
           rNum--;
-          log.info("\t* ["+goldMention.nerString+"]"+ "\t"+goldMention.getContext(doc, 3)+ "\t@ "+ goldMention.node.id );
+          log.fine("\t* ["+goldMention.nerString+"]"+ "\t"+goldMention.getContext(doc, 3)+ "\t@ "+ goldMention.node.id );
         } else {
           partitions.add(doc.corefClusters.get(goldMention.node.mention.corefClusterID));
-          log.info("\t"+goldMention.node.mention.corefClusterID+" ["+goldMention.nerString+"]" + "\t"+goldMention.getContext(doc, 3)+"\t@ "+ goldMention.node.id);
+          log.fine("\t"+goldMention.node.mention.corefClusterID+" ["+goldMention.nerString+"]" + "\t"+goldMention.getContext(doc, 3)+"\t@ "+ goldMention.node.id);
         }
       }
       rNum -= partitions.size();
@@ -65,7 +75,7 @@ public class ScorerMUC extends CorefScorer {
       Set<CorefCluster> partitions = new HashSet<CorefCluster>();
       //LVCoref.logger.fine("--PredictedCluster #" + c.id );
       for (Mention predictedMention : c.corefMentions){
-        if(predictedMention.node.goldMention == null) {  // twinless goldmention
+        if(predictedMention.node.goldMention == null /*!sameMention(doc, predictedMention.node)*/) {  // twinless goldmention
           pNum--;
           //LVCoref.logger.fine("\t* ["+predictedMention.nerString+"]"+ "\t"+predictedMention.getContext(doc, 3)+ "\t@ "+ predictedMention.node.id);
         } else {
