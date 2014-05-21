@@ -36,8 +36,6 @@ import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 import org.w3c.dom.NodeList;
 
-import com.sun.xml.internal.bind.v2.runtime.reflect.opt.Const;
-
 import LVCoref.Dictionaries.MentionType;
 import LVCoref.Mention.MentionSource;
 import LVCoref.ScorerBCubed.BCubedType;
